@@ -19,6 +19,7 @@ import logging
 import coloredlogs
 import subprocess
 import pydicom
+import json
 from importlib import util
 from ruamel.yaml import YAML
 yaml = YAML()
@@ -327,9 +328,14 @@ def is_niftifile(file: str) -> bool:
 
     # TODO: Returns true if filetype is nifti.
     if os.path.isfile(file):
-        with open(file, 'r') as niftifile:
-            pass
-        return False
+        if not file.endswith(".nii"):
+            return False
+        if not os.path.isfile(file[:-4] + ".json"):
+            logger.warning("Nifti file without json dumps is not supported")
+            return False
+        # with open(file, 'r') as niftifile:
+        #    pass
+        return True
 
 
 def is_incomplete_acquisition(folder: str) -> bool:
@@ -410,19 +416,28 @@ def get_p7file(folder: str) -> str:
     return None
 
 
-def get_niftifile(folder: str) -> str:
+def get_niftifile(folder: str, index: int=0) -> str:
     """
     Gets a nifti-file from the folder
 
     :param folder:  The full pathname of the folder
+    :index:         The index number of the dicom file
     :return:        The filename of the first nifti-file in the folder.
     """
-
+    
+    idx = 0
     for file in sorted(os.listdir(folder)):
-        if is_niftifile(file):
-            return os.path.join(folder, file)
+        # skipping jsonfile
+        if file.endswith(".json"):
+            continue
 
-    logger.warning('Cannot find nifti files in:' + folder)
+        if is_niftifile(os.path.join(folder,file)):
+            if idx == index:
+                return os.path.join(folder, file)
+            else:
+                idx += 1
+
+    logger.warning('Cannot find >{} files in: {}'.format(index, folder))
     return None
 
 
@@ -566,7 +581,11 @@ def get_dicomfield(tagname: str, dicomfile: str):
     else:
         try:
             if dicomfile != _DICOMFILE_CACHE:
-                dicomdict = pydicom.dcmread(dicomfile, force=True)      # The DICM tag may be missing for anonymized DICOM files
+                if dicomfile.endswith(".nii"):
+                    with open(dicomfile[:-4] + ".json") as f:
+                        dicomdict = json.load(f)["acqpar"][0]
+                else:
+                    dicomdict = pydicom.dcmread(dicomfile, force=True)      # The DICM tag may be missing for anonymized DICOM files
                 if 'Modality' not in dicomdict:
                     raise ValueError(f'Cannot read {dicomfile}')
                 _DICOMDICT_CACHE = dicomdict
@@ -598,13 +617,10 @@ def get_dicomfield(tagname: str, dicomfile: str):
     # Cast the dicom datatype to int or str (i.e. to something that yaml.dump can handle)
     if not value:
         return ''
-
     elif isinstance(value, int):
         return int(value)
-
     elif not isinstance(value, str):    # Assume it's a MultiValue type and flatten it
         return str(value)
-
     else:
         return str(value)
 
@@ -682,6 +698,7 @@ def dir_bidsmap(bidsmap: dict, source: str) -> list:
     """
 
     provenance = []
+    print(bidsmap, source)
     for modality in bidsmodalities + (unknownmodality, ignoremodality):
         if modality in bidsmap[source] and bidsmap[source][modality]:
             for run in bidsmap[source][modality]:
@@ -940,7 +957,10 @@ def exist_run(bidsmap: dict, source: str, modality: str, run_item: dict, matchbi
     return False
 
 
-def get_matching_run(dicomfile: str, bidsmap: dict, modalities: tuple = bidsmodalities + (ignoremodality, unknownmodality)) -> tuple:
+def get_matching_run(dicomfile: str, bidsmap: dict, 
+                     modalities: tuple = bidsmodalities 
+                     + (ignoremodality, unknownmodality)
+                     ) -> tuple:
     """
     Find the first run in the bidsmap with dicom attributes that match with the dicom file. Then update the (dynamic) bids values (values are cleaned-up to be BIDS-valid)
 
@@ -951,7 +971,7 @@ def get_matching_run(dicomfile: str, bidsmap: dict, modalities: tuple = bidsmoda
                         modality = bids.unknownmodality and index = None if there is no match, the run is still populated with info from the dicom-file
     """
 
-    source = 'DICOM'                                                                                        # TODO: generalize for non-DICOM (dicomfile -> file)?
+    source = 'Nifti'                                                                                        # TODO: generalize for non-DICOM (dicomfile -> file)?
     run_   = dict(provenance={}, attributes={}, bids={})
 
     # Loop through all bidsmodalities and runs; all info goes into run_
@@ -959,9 +979,11 @@ def get_matching_run(dicomfile: str, bidsmap: dict, modalities: tuple = bidsmoda
         if bidsmap[source][modality] is None: continue
 
         for index, run in enumerate(bidsmap[source][modality]):
-
-            run_  = dict(provenance={}, attributes={}, bids={})                                             # The CommentedMap API is not guaranteed for the future so keep this line as an alternative
-            match = any([run['attributes'][attrkey] is not None for attrkey in run['attributes']])          # Normally match==True, but make match==False if all attributes are empty
+            # The CommentedMap API is not guaranteed for the future 
+            # so keep this line as an alternative
+            run_  = dict(provenance={}, attributes={}, bids={})
+            # Normally match==True, but make match==False if all attributes are empty
+            match = any([run['attributes'][attrkey] is not None for attrkey in run['attributes']])
 
             # Try to see if the dicomfile matches all of the attributes and fill all of them
             for attrkey, attrvalue in run['attributes'].items():

@@ -44,7 +44,7 @@ DICOM:
   - provenance: ~                 # The fullpath name of the DICOM file from which the attributes are read. Serves also as a look-up key to find a run in the bidsmap
     attributes: &anatattributes
       Modality: ~
-      ProtocolName: ~
+      ProtocolName: "*mtflash3d*"
       SeriesDescription: ~
       ImageType: ~
       SequenceName: ~
@@ -196,7 +196,7 @@ DICOM:
   - provenance: ~
     attributes: &dwiattributes
       Modality: ~
-      ProtocolName: ~
+      ProtocolName: "*_diff_*"
       SeriesDescription: ~
       ImageType: ~
       SequenceName: ~

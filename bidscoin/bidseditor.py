@@ -29,9 +29,15 @@ try:
 except ImportError:
     import bids             # This should work if bidscoin was not pip-installed
 
-SOURCE = 'DICOM'            # TODO: allow for non-DICOM (e.g. PAR/REC) edits
+# SOURCE = 'DICOM'            # TODO: allow for non-DICOM (e.g. PAR/REC) edits
+SOURCE = 'Nifti'
 
 LOGGER = logging.getLogger('bidscoin')
+logFormatter = logging.Formatter("[%(levelname)-7.7s]:%(asctime)s:%(name)s:%(filename)s:%(lineno)d %(message)s",
+                                 datefmt='%m/%d/%Y %H:%M:%S')
+consoleHandler = logging.StreamHandler()
+consoleHandler.setFormatter(logFormatter)
+LOGGER.addHandler(consoleHandler)
 
 ROW_HEIGHT = 22
 
@@ -1182,7 +1188,8 @@ class EditDialog(QDialog):
                                                   self.current_modality,
                                                   self.target_run['provenance'],
                                                   self.target_modality,
-                                                  self.target_run)
+                                                  self.target_run,
+                                                  source=SOURCE)
 
         # Now that we have updated the bidsmap, we can also update the current_modality
         self.current_modality = self.target_modality
@@ -1273,7 +1280,8 @@ class EditDialog(QDialog):
                                                   self.current_modality,
                                                   self.target_run['provenance'],
                                                   self.target_modality,
-                                                  self.target_run)
+                                                  self.target_run,
+                                                  source=SOURCE)
 
         self.done_edit.emit(self.target_bidsmap)
         self.done(1)
@@ -1296,6 +1304,17 @@ def bidseditor(bidsfolder: str, sourcefolder: str='', bidsmapfile: str='', templ
     # Obtain the initial bidsmap info
     template_bidsmap, templatefile = bids.load_bidsmap(templatefile, os.path.join(bidsfolder,'code','bidscoin'))
     input_bidsmap, bidsmapfile     = bids.load_bidsmap(bidsmapfile,  os.path.join(bidsfolder,'code','bidscoin'))
+    # Checking validity of bidsmaps
+    if SOURCE not in template_bidsmap or template_bidsmap[SOURCE] is None:
+        raise Exception("[{}] not in {} (template)".format(SOURCE, templatefile))
+    if SOURCE not in input_bidsmap or input_bidsmap[SOURCE] is None:
+        raise Exception("[{}] not in {} (template)".format(SOURCE, templatefile))
+    for modality in bids.bidsmodalities + (bids.unknownmodality, bids.ignoremodality):
+        if modality not in template_bidsmap[SOURCE]:
+            LOGGER.warning("{} not in {}[{}]".format(modality, templatefile, SOURCE))
+        if modality not in input_bidsmap[SOURCE]:
+            LOGGER.warning("{} not in {}[{}]".format(modality, fbidsmapile, SOURCE))
+
     output_bidsmap                 = copy.deepcopy(input_bidsmap)
     if not input_bidsmap:
         LOGGER.error(f'No bidsmap file found in {bidsfolder}. Please run the bidsmapper first and / or use the correct bidsfolder')
