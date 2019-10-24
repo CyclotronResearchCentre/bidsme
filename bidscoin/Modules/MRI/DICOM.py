@@ -1,29 +1,32 @@
-from Modules.MRI import MRI
+from Modules.MRI.MRI import MRI
 
 import os
+import re
 import logging
 import pydicom
 
 logger = logging.getLogger(__name__)
 
+
 class DICOM(MRI):
     __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE","isSiemens"]
 
-    def __init__(self, file=""):
-        super(DICOM, self).__init__()
+    def __init__(self, recording=""):
+        super().__init__()
 
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
         self.isSiemens = False
         self.type = "DICOM"
 
-        if file:
-            self.loadFile(file)
+        if recording:
+            self.set_rec_path(recording)
 
-
-    def isValidFile(self, file: str) -> bool:
+    @classmethod
+    def isValidFile(cls, file: str) -> bool:
         """
-        Checks whether a file is a DICOM-file. It uses the feature that Dicoms have the string DICM hardcoded at offset 0x80.
+        Checks whether a file is a DICOM-file. It uses the feature 
+        that Dicoms have the string DICM hardcoded at offset 0x80.
 
         :param file:    The full pathname of the file
         :return:        Returns true if a file is a DICOM-file
@@ -48,9 +51,9 @@ class DICOM(MRI):
         if not self.isValidFile(self, path):
             raise ValueError("{} is not valid {} file"
                              .format(path, self.name))
-        if path != self._DICOMFILE_CACHE
+        if path != self._DICOMFILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
-            dicomdict = pydicom.dcmread(dicomfile, force=True)
+            dicomdict = pydicom.dcmread(path, force=True)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
             self.isSiemens = self.is_dicomfile_siemens(self._DICOMFILE_CACHE)
@@ -79,22 +82,24 @@ class DICOM(MRI):
         else:
             return str(value)
 
-    def parse_x_protocol(pattern: str) -> str:
+    def parse_x_protocol(self, pattern: str) -> str:
         """
         Siemens writes a protocol structure as text into each DICOM file.
-        This structure is necessary to recreate a scanning protocol from a DICOM,
-        since the DICOM information alone wouldn't be sufficient.
+        This structure is necessary to recreate a scanning protocol 
+        from a DICOM, since the DICOM information alone 
+        wouldn't be sufficient.
 
-        :param pattern:     A regexp expression: '^' + pattern + '\t = \t(.*)\\n'
+        :param pattern:     A regexp expression: 
+                            '^' + pattern + '\t = \t(.*)\\n'
         :return:            The string extracted values from the dicom-file 
-        according to the given pattern
+                            according to the given pattern
         """
         if not self.isSiemens:
             logger.warning('Parsing {} may fail because {} does not seem '
-                            'to be a Siemens DICOM file'
-                            .format(pattern, self.file))
+                           'to be a Siemens DICOM file'
+                           .format(pattern, self.file))
         regexp = '^' + pattern + '\t = \t(.*)\n'
-        regex  = re.compile(regexp.encode('utf-8'))
+        regex = re.compile(regexp.encode('utf-8'))
         with open(self.file, 'rb') as openfile:
             for line in openfile:
                 match = regex.match(line)
@@ -116,3 +121,14 @@ class DICOM(MRI):
         :return:        Returns true if a file is a Siemens DICOM-file
         """
         return b'ASCCONV BEGIN' in open(file, 'rb').read()
+
+    def isComplete(self):
+        nrep = self.get_field('lRepetitions')
+        nfiles = self.get_nFiles()
+
+        if nrep and nrep > nfiles:
+            logger.warning('{}: Incomplete acquisition: '\
+                           '\nExpected {}, found {} dicomfiles'
+                           .format(self._DICOMFILE_CACHE, nrep, nfiles))
+            return False
+        return True

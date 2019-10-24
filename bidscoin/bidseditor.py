@@ -30,7 +30,7 @@ except ImportError:
     import bids             # This should work if bidscoin was not pip-installed
 
 # SOURCE = 'DICOM'            # TODO: allow for non-DICOM (e.g. PAR/REC) edits
-SOURCE = 'Nifti'
+SOURCE = 'Nifti_dump'
 
 LOGGER = logging.getLogger('bidscoin')
 logFormatter = logging.Formatter("[%(levelname)-7.7s]:%(asctime)s:%(name)s:%(filename)s:%(lineno)d %(message)s",

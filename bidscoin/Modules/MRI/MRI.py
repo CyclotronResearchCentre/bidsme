@@ -1,30 +1,40 @@
+import os
 import logging
 
+from tools import tools
 
 logger = logging.getLogger(__name__)
 
+
 class MRI(object):
-    __slots__ = ["type", "bidsmodalities",
-                 "bidslabels",
+    __slots__ = [
                  "index",
                  "files",
                  "type",
-                 "acq_path"]
+                 "rec_path"]
 
-    def __init__(self, acq_path: str = ""):
-        self.name = "MRI"
-        self.bidsmodalities = ('fmap', 'anat', 'func', 'dwi', 'beh', 'pet')
-        self.bidslabels = ('task', 'acq', 'ce', 'rec', 'dir', 'run', 'mod',
-                           'echo', 'suffix', 'IntendedFor')
+    bidsmodalities = ('fmap', 'anat', 'func', 'dwi', 'beh', 'pet')
+    bidslabels = ('task', 'acq', 'ce', 'rec', 'dir', 'run', 'mod',
+                  'echo', 'suffix', 'IntendedFor')
+    def __init__(self):
         self.type = "None"
         self.files = list()
-        self.acq_path = ""
+        self.rec_path = ""
         self.index = -1
-        
-        self.set_acq_path(acq_path)
 
-    def isValidFile(self, file: str) -> bool:
+    @classmethod
+    def isValidRecording(cls, rec_path: str) -> bool:
+        for file in os.listdir(rec_path):
+            if cls.isValidFile(os.path.join(rec_path,file)):
+                return True
+        return False
+
+    @classmethod
+    def isValidFile(cls, file: str) -> bool:
         raise NotImplementedError
+
+    def clearCache(self) -> None:
+        pass
 
     def loadFile(self, index: int) -> None:
         raise NotImplementedError
@@ -32,10 +42,27 @@ class MRI(object):
     def get_field(self, field: str):
         raise NotImplemented
 
+    def get_dynamic_field(self, field: str):
+        val = field
+        if not field or not isinstance(field, str) or\
+                field.startswith('<<'):
+            return field
+        if field.startswith('<') and field.endswith('>'):
+            val = self.get_field(field[1:-1])
+            if not val:
+                return field
+            else:
+                val = tools.cleanup_value(val)
+        return val
+
+
     def loadNextFile(self) -> bool:
         if self.index + 1 >= len(self.files):
             return False
         self.loadFile(self.index + 1)
+
+    def isComplete(self):
+        raise NotImplementedError
 
     def get_nFiles(self, folder: str) -> int:
         """
@@ -54,7 +81,6 @@ class MRI(object):
                     count += 1
         return count
 
-
     def get_file(self, folder: str, index: int=0) -> str:
         """
         Return the valid file of index from folder without loading
@@ -70,7 +96,7 @@ class MRI(object):
             if os.path.basename(file).startswith('.'):
                 logger.warning(f'Ignoring hidden file: {file}')
                 continue
-            
+
             full_path = os.path.join(folder, file)
             if self.isValidFile(full_path):
                 if idx == index:
@@ -78,6 +104,11 @@ class MRI(object):
                 else:
                     idx += 1
         logger.warning(f'Cannot find >{index} {self.type} files in: {folder}')
+        return None
+
+    def currentFile(self):
+        if self.index >= 0 and self.index < len(self.files):
+            return self.files[self.index]
         return None
 
     def set_rec_path(self, rec_path:str) -> int:
@@ -89,25 +120,25 @@ class MRI(object):
         :rec_path:  The full path name to the folder
         :return:    Number of valid files
         """
-        if not os.isdir(rec_path):
+        if not os.path.isdir(rec_path):
             raise NotADirectoryError("Path {} is not a folder"
                                      .format(rec_path))
         self.rec_path = rec_path
         self.clearCache()
-        self.files = clear()
+        self.files.clear()
 
         for file in sorted(os.listdir(self.rec_path)):
             if os.path.basename(file).startswith('.'):
                 logger.warning(f'Ignoring hidden file: {file}')
                 continue
-            full_path = os.path.join(folder, file)
+            full_path = os.path.join(self.rec_path, file)
             if self.isValidFile(full_path):
                     self.files.append(full_path)
         if len(self.files) == 0:
             logger.warning("No valid {} files found in {}"
                            .format(self.type, self.rec_path))
+        else:
+            self.loadFile(0)
         logger.debug("Found {} files in {}"
                      .format(len(self.files), self.rec_path))
         return len(self.files)
-
-

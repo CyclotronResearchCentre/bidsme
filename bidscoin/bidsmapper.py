@@ -24,55 +24,66 @@ try:
 except ImportError:
     import bids         # This should work if bidscoin was not pip-installed
     import bidseditor
+    from Modules.MRI.selector import select as MRI_select
 
 
 LOGGER = logging.getLogger('bidscoin')
 
 
-def build_dicommap(dicomfile: str, bidsmap_new: dict, bidsmap_old: dict, template: dict, gui: object) -> dict:
+def build_bidsmap(recording, bidsmap_new: dict, bidsmap_old: dict, template: dict, gui: object) -> dict:
     """
-    All the logic to map dicom-attributes (fields/tags) onto bids-labels go into this function
+    All the logic to map recording-attributes (fields/tags) onto bids-labels go into this function
 
-    :param dicomfile:   The full-path name of the source dicom-file
+    :param recording:   The instance of recording class 
     :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
+    :param bidsmap_old: Full BIDS heuristics data structure, with all options, 
+                        BIDS labels and attributes, etc
     :param template:    The bidsmap template with the default heuristics
-    :param gui:         If not None, the user will not be asked for help if an unknown run is encountered
+    :param gui:         If not None, the user will not be asked for help if 
+                        an unknown run is encountered
     :return:            The bidsmap with new entries in it
     """
 
     # Input checks
-    if not dicomfile or (not template['DICOM'] and not bidsmap_old['DICOM']):
-        LOGGER.info('No DICOM information found in the bidsmap and template')
+    if not recording or (not template[recording.type] 
+                         and not bidsmap_old[recording.type]):
+        LOGGER.info('No {} information found in the bidsmap and template'
+                    .format(recording.type))
         return bidsmap_new
 
     # See if we can find a matching run in the old bidsmap
-    run, modality, index = bids.get_matching_run(dicomfile, bidsmap_old)
+    run, modality, index = bids.get_matching_run(recording, bidsmap_old)
 
     # If not, see if we can find a matching run in the template
     if index is None:
-        run, modality, _ = bids.get_matching_run(dicomfile, template)
+        run, modality, _ = bids.get_matching_run(recording, template)
 
     # See if we have collected the run in our new bidsmap
-    if not bids.exist_run(bidsmap_new, 'DICOM', '', run):
+    if not bids.exist_run(bidsmap_new, recording.type, '', run):
 
         # Copy the filled-in run over to the new bidsmap
-        bidsmap_new = bids.append_run(bidsmap_new, 'DICOM', modality, run)
+        bidsmap_new = bids.append_run(bidsmap_new, recording.type, modality, run)
 
         # Communicate with the user if the run was not present in bidsmap_old or in template
-        LOGGER.info(f"New '{modality}' sample found: {dicomfile}")
+        LOGGER.info("New '{}' sample found: {}"
+                    .format(modality, recording.files[recording.index]))
 
-        # Launch a GUI to ask the user for help if the new run comes from the template (i.e. was not yet in the old bidsmap)
+        # Launch a GUI to ask the user for help if the new run comes 
+        # from the template (i.e. was not yet in the old bidsmap)
         if gui and gui.interactive==2 and index is None:
             # Open the interactive edit window to get the new mapping
-            dialog_edit = bidseditor.EditDialog(dicomfile, modality, bidsmap_new, template, gui.subprefix, gui.sesprefix)
+            dialog_edit = bidseditor.EditDialog(dicomfile, modality, bidsmap_new, 
+                                                template, 
+                                                gui.subprefix, gui.sesprefix)
             dialog_edit.exec()
 
             # Get the result
             if dialog_edit.result() == 1:           # The user has finished the edit
                 bidsmap_new = dialog_edit.target_bidsmap
             elif dialog_edit.result() in [0, 2]:    # The user has canceled / aborted the edit
-                answer = QMessageBox.question(None, 'BIDSmapper', 'Do you want to abort and quit the bidsmapper?',
+                answer = QMessageBox.question(None, 
+                                              'BIDSmapper', 
+                                              'Do you want to abort and quit the bidsmapper?',
                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
                 if answer==QMessageBox.No:
                     pass
@@ -82,122 +93,6 @@ def build_dicommap(dicomfile: str, bidsmap_new: dict, bidsmap_old: dict, templat
 
             else:
                 LOGGER.debug(f'Unexpected result {dialog_edit.result()} from the edit dialog')
-
-    return bidsmap_new
-
-
-def build_parmap(parfile: str, bidsmap_new: dict, bidsmap_old: dict) -> dict:
-    """
-    All the logic to map PAR/REC fields onto bids labels go into this function
-
-    :param parfile:     The full-path name of the source PAR-file
-    :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
-    :return:            The bidsmap with new entries in it
-    """
-
-    # Input checks
-    if not parfile or not bidsmap_old['PAR']:
-        return bidsmap_new
-
-    # TODO: Loop through all bidsmodalities and runs
-
-    return bidsmap_new
-
-
-def build_p7map(p7file: str, bidsmap_new: dict, bidsmap_old: dict) -> dict:
-    """
-    All the logic to map P*.7-fields onto bids labels go into this function
-
-    :param p7file:      The full-path name of the source P7-file
-    :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
-    :return:            The bidsmap with new entries in it
-    """
-
-    # Input checks
-    if not p7file or not bidsmap_old['P7']:
-        return bidsmap_new
-
-    # TODO: Loop through all bidsmodalities and runs
-
-    return bidsmap_new
-
-
-def build_niftimap(niftifile: str, bidsmap_new: dict, bidsmap_old: dict, template: dict, gui: object) -> dict:
-    """
-    All the logic to map dicom-attributes (fields/tags) onto bids-labels go into this function
-
-    :param niftifile:   The full-path name of the source dicom-file
-    :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
-    :param template:    The bidsmap template with the default heuristics
-    :param gui:         If not None, the user will not be asked for help if an unknown run is encountered
-    :return:            The bidsmap with new entries in it
-    """
-
-    # Input checks
-    if not niftifile or (not template['Nifti'] and not bidsmap_old['Nifti']):
-        LOGGER.info('No Nifti information found in the bidsmap and template')
-        return bidsmap_new
-
-    # See if we can find a matching run in the old bidsmap
-    run, modality, index = bids.get_matching_run(niftifile, bidsmap_old)
-
-    # If not, see if we can find a matching run in the template
-    if index is None:
-        run, modality, _ = bids.get_matching_run(niftifile, template)
-
-    # See if we have collected the run in our new bidsmap
-    if not bids.exist_run(bidsmap_new, 'Nifti', '', run):
-
-        # Copy the filled-in run over to the new bidsmap
-        bidsmap_new = bids.append_run(bidsmap_new, 'Nifti', modality, run)
-
-        # Communicate with the user if the run was not present in bidsmap_old or in template
-        LOGGER.info(f"New '{modality}' sample found: {niftifile}")
-
-        # Launch a GUI to ask the user for help if the new run comes from the template (i.e. was not yet in the old bidsmap)
-        if gui and gui.interactive==2 and index is None:
-            # Open the interactive edit window to get the new mapping
-            dialog_edit = bidseditor.EditDialog(niftifile, modality, bidsmap_new, template, gui.subprefix, gui.sesprefix)
-            dialog_edit.exec()
-
-            # Get the result
-            if dialog_edit.result() == 1:           # The user has finished the edit
-                bidsmap_new = dialog_edit.target_bidsmap
-            elif dialog_edit.result() in [0, 2]:    # The user has canceled / aborted the edit
-                answer = QMessageBox.question(None, 'BIDSmapper', 'Do you want to abort and quit the bidsmapper?',
-                                              QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                if answer==QMessageBox.No:
-                    pass
-                if answer==QMessageBox.Yes:
-                    LOGGER.info('User has quit the bidsmapper')
-                    sys.exit()
-
-            else:
-                LOGGER.debug(f'Unexpected result {dialog_edit.result()} from the edit dialog')
-
-    return bidsmap_new
-
-
-def build_filesystemmap(runfolder: str, bidsmap_new: dict, bidsmap_old: dict) -> dict:
-    """
-    All the logic to map filesystem-info onto bids labels go into this function
-
-    :param runfolder:   The full-path name of the source folder
-    :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
-    :param automatic:   If True, the user will not be asked for help if an unknown run is encountered
-    :return:            The bidsmap with new entries in it
-    """
-
-    # Input checks
-    if not runfolder or not bidsmap_old['FileSystem']:
-        return bidsmap_new
-
-    # TODO: Loop through all bidsmodalities and runs
-
     return bidsmap_new
 
 
@@ -226,34 +121,41 @@ def build_pluginmap(runfolder: str, bidsmap_new: dict, bidsmap_old: dict) -> dic
     return bidsmap_new
 
 
-def bidsmapper(rawfolder: str, bidsfolder: str, bidsmapfile: str, templatefile: str, subprefix: str='sub-', sesprefix: str='ses-', interactive: bool=True) -> None:
+def bidsmapper(rawfolder: str, bidsfolder: str,
+               bidsmapfile: str, templatefile: str, 
+               subprefix: str='sub-', sesprefix: str='ses-', 
+               interactive: bool=True) -> None:
     """
-    Main function that processes all the subjects and session in the sourcefolder
-    and that generates a maximally filled-in bidsmap.yaml file in bidsfolder/code/bidscoin.
+    Main function that processes all the subjects and session 
+    in the sourcefolder and that generates a maximally filled-in 
+    bidsmap.yaml file in bidsfolder/code/bidscoin.
     Folders in sourcefolder are assumed to contain a single dataset.
 
-    :param rawfolder:       The root folder-name of the sub/ses/data/file tree containing the source data files
+    :param rawfolder:       The root folder-name of the sub/ses/data/file 
+    tree containing the source data files
     :param bidsfolder:      The name of the BIDS root folder
     :param bidsmapfile:     The name of the bidsmap YAML-file
     :param templatefile:    The name of the bidsmap template YAML-file
     :param subprefix:       The prefix common for all source subject-folders
     :param sesprefix:       The prefix common for all source session-folders
-    :param interactive:     If True, the user will be asked for help if an unknown run is encountered
+    :param interactive:     If True, the user will be asked for help 
+    if an unknown run is encountered
     :return:bidsmapfile:    The name of the mapped bidsmap YAML-file
     """
 
     # Input checking
     rawfolder  = os.path.abspath(os.path.realpath(os.path.expanduser(rawfolder)))
     bidsfolder = os.path.abspath(os.path.realpath(os.path.expanduser(bidsfolder)))
+    bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
 
     # Start logging
-    bids.setup_logging(os.path.join(bidsfolder, 'code', 'bidscoin', 'bidsmapper.log'))
+    bids.setup_logging(os.path.join(bidscodefolder, 'bidsmapper.log'))
     LOGGER.info('')
     LOGGER.info('-------------- START BIDSmapper ------------')
 
     # Get the heuristics for filling the new bidsmap
-    bidsmap_old, _ = bids.load_bidsmap(bidsmapfile,  os.path.join(bidsfolder,'code','bidscoin'))
-    template, _    = bids.load_bidsmap(templatefile, os.path.join(bidsfolder,'code','bidscoin'))
+    bidsmap_old, _ = bids.load_bidsmap(bidsmapfile,  bidscodefolder)
+    template, _    = bids.load_bidsmap(templatefile, bidscodefolder)
 
     # Create the new bidsmap as a copy / bidsmap skeleton 
     # with no modality entries (i.e. bidsmap with empty lists)
@@ -261,7 +163,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str, bidsmapfile: str, templatefile: 
         bidsmap_new = copy.deepcopy(bidsmap_old)
     else:
         bidsmap_new = copy.deepcopy(template)
-    for logic in ('DICOM', 'PAR', 'P7', 'Nifti', 'FileSystem'):
+    for logic in ('DICOM', 'PAR', 'P7', 'Nifti_dump', 'FileSystem'):
         if bidsmap_new[logic]:
             for modality in bids.bidsmodalities \
                     + (bids.unknownmodality, bids.ignoremodality):
@@ -284,14 +186,15 @@ def bidsmapper(rawfolder: str, bidsfolder: str, bidsmapfile: str, templatefile: 
         gui.sesprefix = sesprefix
 
         if gui.interactive == 2:
-            QMessageBox.information(mainwin, 'BIDS mapping workflow',
-                                    f"The bidsmapper will now scan {bidsfolder} and whenever "
-                                    f"it detects a new type of scan it will ask you to identify it.\n\n"
-                                    f"It is important that you choose the correct BIDS modality "
-                                    f"(e.g. 'anat', 'dwi' or 'func') and suffix (e.g. 'bold' or 'sbref').\n\n"
-                                    f"At the end you will be shown an overview of all the "
-                                    f"different scan types and BIDScoin options (as in the "
-                                    f"bidseditor) that you can then (re)edit to your needs")
+            QMessageBox.information(
+                    mainwin, 'BIDS mapping workflow',
+                    f"The bidsmapper will now scan {bidsfolder} and whenever "
+                    f"it detects a new type of scan it will ask you to identify it.\n\n"
+                    f"It is important that you choose the correct BIDS modality "
+                    f"(e.g. 'anat', 'dwi' or 'func') and suffix (e.g. 'bold' or 'sbref').\n\n"
+                    f"At the end you will be shown an overview of all the "
+                    f"different scan types and BIDScoin options (as in the "
+                    f"bidseditor) that you can then (re)edit to your needs")
 
     # Loop over all subjects and sessions and built up the bidsmap entries
     subjects = bids.lsdirs(rawfolder, subprefix + '*')
@@ -307,30 +210,14 @@ def bidsmapper(rawfolder: str, bidsfolder: str, bidsmapfile: str, templatefile: 
             LOGGER.info(f'Parsing: {session} (subject {n}/{len(subjects)})')
 
             for run in bids.lsdirs(session):
-
-                # Update / append the dicom mapping
-                if bidsmap_old['DICOM']:
-                    dicomfile   = bids.get_dicomfile(run)
-                    bidsmap_new = build_dicommap(dicomfile, bidsmap_new, bidsmap_old, template, gui)
-
-                # Update / append the PAR/REC mapping
-                if bidsmap_old['PAR']:
-                    parfile     = bids.get_parfile(run)
-                    bidsmap_new = build_parmap(parfile, bidsmap_new, bidsmap_old)
-
-                # Update / append the P7 mapping
-                if bidsmap_old['P7']:
-                    p7file      = bids.get_p7file(run)
-                    bidsmap_new = build_p7map(p7file, bidsmap_new, bidsmap_old)
-
-                # Update / append the nifti mapping
-                if bidsmap_old['Nifti']:
-                    niftifile   = bids.get_niftifile(run)
-                    bidsmap_new = build_niftimap(niftifile, bidsmap_new, bidsmap_old, template, gui)
-
-                # Update / append the file-system mapping
-                if bidsmap_old['FileSystem']:
-                    bidsmap_new = build_filesystemmap(run, bidsmap_new, bidsmap_old)
+                cls = MRI_select(run)
+                if cls is not None:
+                    t_name = cls.__name__
+                    if bidsmap_old[t_name]:
+                        recording = cls(run)
+                        bidsmap_new = build_bidsmap(recording, bidsmap_new, 
+                                                    bidsmap_old, template, 
+                                                    gui)
 
                 # Update / append the plugin mapping
                 if bidsmap_old['PlugIns']:
