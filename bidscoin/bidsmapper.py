@@ -23,7 +23,7 @@ try:
     from bidscoin import bidseditor
 except ImportError:
     import bids         # This should work if bidscoin was not pip-installed
-    import bidseditor
+    # import bidseditor
     from Modules.MRI.selector import select as MRI_select
 
 
@@ -52,25 +52,31 @@ def build_bidsmap(recording, bidsmap_new: dict, bidsmap_old: dict, template: dic
         return bidsmap_new
 
     # See if we can find a matching run in the old bidsmap
-    run, modality, index = bids.get_matching_run(recording, bidsmap_old)
+    bids.get_matching_run(recording, bidsmap_old[recording.type])
 
     # If not, see if we can find a matching run in the template
-    if index is None:
-        run, modality, _ = bids.get_matching_run(recording, template)
+    if not recording.modality:
+        bids.get_matching_run(recording, template[recording.type])
+
+    if not recording.modality:
+        LOGGER.error("Unable to find modality for sample {}"
+                     .format(recording.currentFile()))
+        return bidsmap_new
 
     # See if we have collected the run in our new bidsmap
-    if not bids.exist_run(bidsmap_new, recording.type, '', run):
+    if not bids.exist_run(recording, bidsmap_new):
 
         # Copy the filled-in run over to the new bidsmap
-        bidsmap_new = bids.append_run(bidsmap_new, recording.type, modality, run)
+        bidsmap_new = bids.append_run(recording, bidsmap_new)
 
         # Communicate with the user if the run was not present in bidsmap_old or in template
         LOGGER.info("New '{}' sample found: {}"
-                    .format(modality, recording.files[recording.index]))
+                    .format(recording.modality, 
+                            recording.currentFile()))
 
         # Launch a GUI to ask the user for help if the new run comes 
         # from the template (i.e. was not yet in the old bidsmap)
-        if gui and gui.interactive==2 and index is None:
+        if gui and gui.interactive == 2 and recording.modality == "":
             # Open the interactive edit window to get the new mapping
             dialog_edit = bidseditor.EditDialog(dicomfile, modality, bidsmap_new, 
                                                 template, 
@@ -85,9 +91,9 @@ def build_bidsmap(recording, bidsmap_new: dict, bidsmap_old: dict, template: dic
                                               'BIDSmapper', 
                                               'Do you want to abort and quit the bidsmapper?',
                                               QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-                if answer==QMessageBox.No:
+                if answer == QMessageBox.No:
                     pass
-                if answer==QMessageBox.Yes:
+                if answer == QMessageBox.Yes:
                     LOGGER.info('User has quit the bidsmapper')
                     sys.exit()
 
@@ -144,7 +150,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     """
 
     # Input checking
-    rawfolder  = os.path.abspath(os.path.realpath(os.path.expanduser(rawfolder)))
+    rawfolder = os.path.abspath(os.path.realpath(os.path.expanduser(rawfolder)))
     bidsfolder = os.path.abspath(os.path.realpath(os.path.expanduser(bidsfolder)))
     bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
 
@@ -154,8 +160,8 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     LOGGER.info('-------------- START BIDSmapper ------------')
 
     # Get the heuristics for filling the new bidsmap
-    bidsmap_old, _ = bids.load_bidsmap(bidsmapfile,  bidscodefolder)
-    template, _    = bids.load_bidsmap(templatefile, bidscodefolder)
+    bidsmap_old, _ = bids.load_bidsmap(bidsmapfile, bidscodefolder)
+    template, _ = bids.load_bidsmap(templatefile, bidscodefolder)
 
     # Create the new bidsmap as a copy / bidsmap skeleton 
     # with no modality entries (i.e. bidsmap with empty lists)
@@ -163,12 +169,12 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
         bidsmap_new = copy.deepcopy(bidsmap_old)
     else:
         bidsmap_new = copy.deepcopy(template)
-    for logic in ('DICOM', 'PAR', 'P7', 'Nifti_dump', 'FileSystem'):
-        if bidsmap_new[logic]:
-            for modality in bids.bidsmodalities \
-                    + (bids.unknownmodality, bids.ignoremodality):
-                if modality in bidsmap_new[logic]:
-                    bidsmap_new[logic][modality] = None
+    for logic in bidsmap_new:
+        if logic == "Options" or logic == "PlugIns":
+            continue
+
+        for modality in bidsmap_new[logic]:
+            bidsmap_new[logic][modality] = None
 
     # Start with an empty skeleton if we didn't have an old bidsmap
     if not bidsmap_old:
@@ -214,7 +220,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                 if cls is not None:
                     t_name = cls.__name__
                     if bidsmap_old[t_name]:
-                        recording = cls(run)
+                        recording = cls(rec_path=run, bidsmap=bidsmap_old[t_name])
                         bidsmap_new = build_bidsmap(recording, bidsmap_new, 
                                                     bidsmap_old, template, 
                                                     gui)

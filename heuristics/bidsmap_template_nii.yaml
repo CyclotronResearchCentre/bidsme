@@ -33,20 +33,6 @@ PlugIns:
 # --------------------------------------------------------------------------------
 - ~                               # Either a fullpath name of the plugin or just the basename when it is in the default bidscoin/plugins folder
 
-DICOM: ~
-
-PAR: ~
-# --------------------------------------------------------------------------------
-# PAR key-value heuristics (Philips PAR fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
-P7: ~
-# --------------------------------------------------------------------------------
-# P*.7 key-value heuristics (GE fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
 Nifti_dump:
   subject: <<SourceFilePath>>     # <<SourceFilePath>> extracts the subject label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as subject-label instead, e.g. <PatientID>
   session: <<SourceFilePath>>     # <<SourceFilePath>> extracts the session label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as session-label instead, e.g. <StudyID>

@@ -13,7 +13,6 @@ import os.path
 import copy
 import glob
 import inspect
-import ast
 import re
 import logging
 import coloredlogs
@@ -357,8 +356,10 @@ def load_bidsmap(yamlfile: str='',
 
     return bidsmap, yamlfile
 
+
 def tr(s):
     return s.replace('\\', '\\\\')
+
 
 def save_bidsmap(filename: str, bidsmap: dict):
     """
@@ -373,7 +374,6 @@ def save_bidsmap(filename: str, bidsmap: dict):
     logger.info('Writing bidsmap to: ' + filename)
     with open(filename, 'w') as stream:
         yaml.dump(bidsmap, stream, transform=tr)
-
 
     # See if we can reload it, i.e. whether it is valid yaml...
     try:
@@ -439,7 +439,6 @@ def strip_suffix(run: dict) -> dict:
             # NB: This will leave the added '_' and '.' characters, 
             # but they will be taken out later (as they are not BIDS-valid)
             run['bids'][key] = run['bids'][key][0:-len(suffix)]
-
     return run
 
 
@@ -537,8 +536,7 @@ def delete_run(bidsmap: dict,
     return bidsmap
 
 
-def append_run(bidsmap: dict, source: str, modality: str,
-               run: dict, clean: bool=True) -> dict:
+def append_run(recording, bidsmap: dict) -> dict:
     """
     Append a run to the BIDS map
 
@@ -552,23 +550,25 @@ def append_run(bidsmap: dict, source: str, modality: str,
     """
 
     # Copy the values from the run to an empty dict
-    if clean:
-        run_ = dict(provenance={}, attributes={}, bids={})
+    run = dict(provenance="", attributes={}, bids={})
 
-        run_['provenance'] = run['provenance']
+    run['provenance'] = recording.currentFile()
+    run["bids"] = {lbl: val for lbl, val 
+                   in zip(recording.bidsmodalities[recording.modality],
+                          recording.labels)}
+    run["bids"]["suffix"] = recording.suffix
 
-        for key, value in run['attributes'].items():
-            run_['attributes'][key] = value
-        for key, value in run['bids'].items():
-            run_['bids'][key] = value
-
-        run = run_
-
-    if bidsmap[source][modality] is None:
-        bidsmap[source][modality] = [run]
+    if len(recording.main_attributes) > 0:
+        for key in recording.main_attributes:
+            run['attributes'][key] = recording.get_attribute(key)
     else:
-        bidsmap[source][modality].append(run)
+        for key, value in recording.attributes.items():
+            run['attributes'][key] = value
 
+    if bidsmap[recording.type][recording.modality] is None:
+        bidsmap[recording.type][recording.modality] = [run]
+    else:
+        bidsmap[recording.type][recording.modality].append(run)
     return bidsmap
 
 
@@ -627,36 +627,9 @@ def update_bidsmap(bidsmap: dict, source_modality: str,
     return bidsmap
 
 
-def match_attribute(longvalue, values) -> bool:
-    """
-    Compare the value items with / without *wildcard* 
-    with the longvalue string. If both longvalue
-    and values are a list then they are directly compared as is
-
-    Examples:
-        match_attribute('my_pulse_sequence_name', 'name') -> False
-        match_attribute('my_pulse_sequence_name', '*name*') -> True
-        match_attribute('T1_MPRAGE', '['T1w', 'MPRAGE']') -> False
-        match_attribute('T1_MPRAGE', '['T1w', 'T1_MPRAGE']') -> True
-        match_attribute('T1_MPRAGE', '['*T1w*', '*MPRAGE*']') -> True
-
-    :param longvalue:   The long string that is being searched in
-    :param values:      Either a list with search items or a string 
-                        that is matched one-to-one
-    :return:            True if a match is found or both longvalue 
-                        and values are identical or
-                        empty / None. False otherwise
-    """
-    if isinstance(values, list):
-        for val in values:
-            if tools.match_value(longvalue, val):
-                return True
-        return False
-    return tools.match_value(longvalue, values)
-
-
-def exist_run(bidsmap: dict, source: str, modality: str,
-              run_item: dict, matchbidslabels: bool=False) -> bool:
+def exist_run(recording,
+              bidsmap: dict,
+              matchbidslabels: bool=False) -> bool:
     """
     Checks if there is already an entry in runlist 
     with the same attributes and, optionally, 
@@ -675,59 +648,49 @@ def exist_run(bidsmap: dict, source: str, modality: str,
                             otherwise only run['attributes']
     :return:                True if the run exists in runlist
     """
-
-    if not modality:
-        for modality in bidsmodalities + (unknownmodality, ignoremodality):
-            if exist_run(bidsmap, source, modality, run_item, matchbidslabels):
-                return True
-
-    if not bidsmap[source] or not bidsmap[source][modality]:
+    modality = recording.modality
+    t_name = recording.type
+    if modality not in bidsmap[t_name] or not bidsmap[t_name][modality]:
         return False
-
-    for run in bidsmap[source][modality]:
-
-        # Begin with match = False only if all attributes are empty
-        match = any([run_item['attributes'][key] is not None 
-                     for key in run_item['attributes']])
-
+    res = False
+    for run in bidsmap[t_name][modality]:
+        if run == "subject" or run == "session":
+            continue
+        match_one = False
+        match_all = True
         # Search for a case where all run_item items 
         # match with the run_item items
-        for itemkey, itemvalue in run_item['attributes'].items():
-            # Matching bids-labels which exist in one modality 
-            # but not in the other -> None
-            value = run['attributes'].get(itemkey, None)   
-            match = match and match_attribute(itemvalue, value)
-            if not match:
-                # There is no point in searching further within 
-                # the run_item now that we've found a mismatch
-                break                                       
+        for itemkey, itemvalue in run['attributes'].items():
+            if recording.get_attribute(itemkey) == itemvalue:
+                match_one = True
+            else:
+                match_all = False
+                break
+        res = match_one and match_all
 
         # See if the bidslabels also all match. This is probably 
         # not very useful, but maybe one day...
-        if matchbidslabels and match:
-            for itemkey, itemvalue in run_item['bids'].items():
+        if matchbidslabels and res:
+            match_one = False
+            match_all = True
+            for itemkey, itemvalue in run['bids'].items():
+                if itemkey not in recording.bidsmodalities:
+                    logger.warning("{}:{}: BIDS label {} not a valid label"
+                                   .format(recording.type, recording.modality,
+                                           itemkey))
+                    continue
                 # Matching bids-labels which exist in one modality 
                 # but not in the other -> None
-                value = run['bids'].get(itemkey, None)      
-                match = match and value == itemvalue
-                if not match:
-                    # There is no point in searching further within 
-                    # the run_item now that we've found a mismatch
-                    break                                   
+                if recording.get_label(itemkey) == itemvalue:
+                    match_one = True
+                else:
+                    match_all = False
+        res = match_one and match_all
 
-        # Stop searching if we found a matching run_item 
-        # (i.e. which is the case if match is still True after all run tests).
-        # TODO: maybe count how many instances, could perhaps be useful info
-        if match:
-            return True
-
-    return False
+    return res
 
 
-def get_matching_run(recording, bidsmap: dict, 
-                     modalities: tuple = bidsmodalities 
-                     + (ignoremodality, unknownmodality)
-                     ) -> tuple:
+def get_matching_run(recording, bidsmap: dict):
     """
     Find the first run in the bidsmap with dicom attributes 
     that match with the dicom file. 
@@ -737,9 +700,6 @@ def get_matching_run(recording, bidsmap: dict,
     :param dicomfile:   The full pathname of the dicom-file
     :param bidsmap:     Full bidsmap data structure, with all options,
                         BIDS labels and attributes, etc
-    :param modalities:  The modality in which a matching run is searched for. 
-                        Default = bidsmodalities + 
-                        (ignoremodality, unknownmodality)
     :return:            (run, modality, index) The matching and filled-in 
                         /cleaned run item, modality and list index as in 
                         run = bidsmap[DICOM][modality][index]
@@ -747,67 +707,30 @@ def get_matching_run(recording, bidsmap: dict,
                         if there is no match, the run is still populated 
                         with info from the dicom-file
     """
-
-    source = recording.type
-    modalities = recording.bidsmodalities + (ignoremodality, unknownmodality)
-    run_ = dict(provenance={}, attributes={}, bids={})
-
     # Loop through all bidsmodalities and runs; all info goes into run_
-    for modality in modalities:
-        if modality not in bidsmap[source]: 
+    for modality in recording.bidsmodalities:
+        if modality not in bidsmap: 
             logger.warning("{}: Missing {} modality"
-                           .format(source, modality))
+                           .format(recording.type, modality))
             continue
+        if bidsmap[modality] is None: continue
 
-        if bidsmap[source][modality] is None: continue
+        for index, run in enumerate(bidsmap[modality]):
+            if recording.match_run(run):
+                recording.set_labels(modality, bidsmap[modality][index])
+                recording.set_main_attributes(bidsmap[modality][index])
+                break
 
-        for index, run in enumerate(bidsmap[source][modality]):
-            # The CommentedMap API is not guaranteed for the future 
-            # so keep this line as an alternative
-            run_ = dict(provenance={}, attributes={}, bids={})
-            # Normally match==True, but make match==False 
-            # if all attributes are empty
-            match = any([run['attributes'][attrkey] is 
-                         not None 
-                         for attrkey in run['attributes']])
-
-            # Try to see if the dicomfile matches all of 
-            # attributes and fill all of them
-            for attrkey, attrvalue in run['attributes'].items():
-
-                # Check if the attribute value matches with 
-                # the info from the dicomfile
-                dicomvalue = recording.get_field(attrkey)
-                if attrvalue:
-                    match = match and match_attribute(dicomvalue, attrvalue)
-
-                # Fill the empty attribute with the info from the dicomfile
-                run_['attributes'][attrkey] = dicomvalue
-
-            # Try to fill the bids-labels
-            for bidskey, bidsvalue in run['bids'].items():
-
-                # Replace the dynamic bids values
-                run_['bids'][bidskey] = recording.get_dynamic_field(bidsvalue)
-
-                # SeriesDescriptions (and ProtocolName?) may get a suffix 
-                # like '_SBRef' from the vendor, try to strip it off
-                run_ = strip_suffix(run_)
-
-            # Stop searching the bidsmap if we have a match. 
-            # TODO: check if there are more matches (i.e. conflicts)
-            if match:
-                run_['provenance'] = recording.currentFile()
-                return run_, modality, index
-
-    # We don't have a match (all tests failed, 
-    # so modality should be the *last* one, 
-    # i.e. unknownmodality)
-    logger.debug("Could not find a matching run in the bidsmap for {} -> {}"
-                 .format(recording.currentFile(), modality))
-    run_['provenance'] = recording.currentFile()
-
-    return run_, modality, None
+    if recording.modality == "":
+        # We don't have a match (all tests failed, 
+        # so modality should be the *last* one, 
+        # i.e. unknownmodality)
+        if "extra_data" in bidsmap:
+            recording.set_labels("", bidsmap["extra_data"])
+        else:
+            recording.set_labels("", dict())
+        logger.debug("Could not find a matching run in the bidsmap for {} -> {}"
+                     .format(recording.currentFile(), modality))
 
 
 def get_subid_sesid(recording,
@@ -836,7 +759,7 @@ def get_subid_sesid(recording,
     """
 
     # Add default value for subid and sesid (e.g. for the bidseditor)
-    dicompath = os.path.dirname(str(recording.currentFile()))
+    dicompath = os.path.dirname(recording.rec_path)
     if subid == '<<SourceFilePath>>':
         subid = dicompath.rsplit(os.sep + subprefix, 1)[1].split(os.sep)[0]
     else:
@@ -857,169 +780,6 @@ def get_subid_sesid(recording,
                 re.sub(f'^{sesprefix}', '', sesid))
 
     return subid, sesid
-
-
-def get_bidsname(subid: str, sesid: str,
-                 modality: str, 
-                 run: dict, runindex: str= '',
-                 subprefix: str= 'sub-', sesprefix: str= 'ses-') -> str:
-    """
-    Composes a filename as it should be according to the BIDS standard 
-    using the BIDS labels in run
-
-    :param subid:       The subject identifier,
-                        i.e. name of the subject folder
-                        (e.g. 'sub-001' or just '001'). Can be left empty
-    :param sesid:       The optional session identifier, 
-                        i.e. name of the session folder 
-                        (e.g. 'ses-01' or just '01'). Can be left empty
-    :param modality:    The bidsmodality (choose from bids.bidsmodalities)
-    :param run:         The run mapping with the BIDS labels
-    :param runindex:    The optional runindex label (e.g. 'run-01'). 
-                        Can be left ''
-    :param subprefix:   The optional subprefix (e.g. 'sub-'). 
-                        Used to parse the sub-value from the provenance 
-                        as default subid
-    :param sesprefix:   The optional sesprefix (e.g. 'ses-'). 
-                        If it is found in the provenance then a default 
-                        sesid will be set
-    :return:            The composed BIDS file-name (without file-extension)
-    """
-    assert modality in bidsmodalities + (unknownmodality, ignoremodality)
-
-    # Try to update the sub/ses-ids
-    subid, sesid = get_subid_sesid(run['provenance'], subid, sesid, 
-                                   subprefix, sesprefix)
-
-    # Validate and do some checks to allow for dragging the run entries 
-    # between the different modality-sections
-    run = copy.deepcopy(run) # Avoid side effects when changing run
-    for bidslabel in bidslabels:
-        if bidslabel not in run['bids']:
-            run['bids'][bidslabel] = None
-        else:
-            # TO FIX -- N.B.
-            run['bids'][bidslabel] = tools.cleanup_value(
-                    get_dynamic_value(run['bids'][bidslabel],
-                                      run['provenance']))
-
-    # Use the clean-up runindex
-    if not runindex:
-        runindex = run['bids']['run']
-
-    # Compose the BIDS filename (-> switch statement)
-    if modality == 'anat':
-
-        # bidsname: 
-        #   sub-<participant_label>
-        #   [_ses-<session_label>]
-        #   [_acq-<label>]
-        #   [_ce-<label>]
-        #   [_rec-<label>]
-        #   [_run-<index>]
-        #   [_mod-<label>]
-        #   _suffix
-        bidsname = '{sub}{_ses}{_acq}{_ce}{_rec}{_run}{_mod}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            _acq    = add_prefix('_acq-', run['bids']['acq']),
-            _ce     = add_prefix('_ce-', run['bids']['ce']),
-            _rec    = add_prefix('_rec-', run['bids']['rec']),
-            _run    = add_prefix('_run-', runindex),
-            _mod    = add_prefix('_mod-', run['bids']['mod']),
-            suffix  = run['bids']['suffix'])
-
-    elif modality == 'func':
-
-        # bidsname: 
-        #   sub-<label>
-        #   [_ses-<label>]
-        #   _task-<label>
-        #   [_acq-<label>]
-        #   [_ce-<label>]
-        #   [_dir-<label>]
-        #   [_rec-<label>]
-        #   [_run-<index>]
-        #   [_echo-<index>]
-        #   _<contrast_label>.nii[.gz]
-        bidsname = '{sub}{_ses}_{task}{_acq}{_ce}{_dir}{_rec}{_run}{_echo}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            task    = f"task-{run['bids']['task']}",
-            _acq    = add_prefix('_acq-',  run['bids']['acq']),
-            _ce     = add_prefix('_ce-',   run['bids']['ce']),
-            _dir    = add_prefix('_dir-',  run['bids']['dir']),
-            _rec    = add_prefix('_rec-',  run['bids']['rec']),
-            _run    = add_prefix('_run-',  runindex),
-            _echo   = add_prefix('_echo-', run['bids']['echo']),
-            suffix  = run['bids']['suffix'])
-
-    elif modality == 'dwi':
-
-        # bidsname: sub-<label>[_ses-<label>][_acq-<label>][_dir-<label>][_run-<index>]_dwi.nii[.gz]
-        bidsname = '{sub}{_ses}{_acq}{_dir}{_run}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            _acq    = add_prefix('_acq-', run['bids']['acq']),
-            _dir    = add_prefix('_dir-', run['bids']['dir']),
-            _run    = add_prefix('_run-', runindex),
-            suffix  = run['bids']['suffix'])
-
-    elif modality == 'fmap':
-
-        # TODO: add more fieldmap logic?
-
-        # bidsname: sub-<label>[_ses-<label>][_acq-<label>][_ce-<label>]_dir-<label>[_run-<index>]_epi.nii[.gz]
-        bidsname = '{sub}{_ses}{_acq}{_ce}{_dir}{_run}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            _acq    = add_prefix('_acq-', run['bids']['acq']),
-            _ce     = add_prefix('_ce-',  run['bids']['ce']),
-            _dir    = add_prefix('_dir-', run['bids']['dir']),
-            _run    = add_prefix('_run-', runindex),
-            suffix  = run['bids']['suffix'])
-
-    elif modality == 'beh':
-
-        # bidsname: sub-<participant_label>[_ses-<session_label>]_task-<task_name>_suffix
-        bidsname = '{sub}{_ses}_{task}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            task    = f"task-{run['bids']['task']}",
-            suffix  = run['bids']['suffix'])
-
-    elif modality == 'pet':
-
-        # bidsname: sub-<participant_label>[_ses-<session_label>]_task-<task_label>[_acq-<label>][_rec-<label>][_run-<index>]_suffix
-        bidsname = '{sub}{_ses}_{task}{_acq}{_rec}{_run}_{suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            task    = f"task-{run['bids']['task']}",
-            _acq    = add_prefix('_acq-', run['bids']['acq']),
-            _rec    = add_prefix('_rec-', run['bids']['rec']),
-            _run    = add_prefix('_run-', runindex),
-            suffix  = run['bids']['suffix'])
-
-    elif modality == unknownmodality or modality == ignoremodality:
-
-        # bidsname: sub-<participant_label>[_ses-<session_label>]_acq-<label>[..][_suffix]
-        bidsname = '{sub}{_ses}{_task}_{acq}{_ce}{_rec}{_dir}{_run}{_echo}{_mod}{_suffix}'.format(
-            sub     = subid,
-            _ses    = add_prefix('_', sesid),
-            _task   = add_prefix('_task-', run['bids']['task']),
-            acq     = f"acq-{run['bids']['acq']}",
-            _ce     = add_prefix('_ce-',   run['bids']['ce']),
-            _rec    = add_prefix('_rec-',  run['bids']['rec']),
-            _dir    = add_prefix('_dir-',  run['bids']['dir']),
-            _run    = add_prefix('_run-',  runindex),
-            _echo   = add_prefix('_echo-', run['bids']['echo']),
-            _mod    = add_prefix('_mod-',  run['bids']['mod']),
-            _suffix = add_prefix('_',      run['bids']['suffix']))
-
-    else:
-        raise ValueError(f'Critical error: modality "{modality}" not implemented, please inform the developers about this error')
-
-    return bidsname
 
 
 def get_bidsvalue(bidsname: str, bidskey: str, newvalue: str= '') -> str:

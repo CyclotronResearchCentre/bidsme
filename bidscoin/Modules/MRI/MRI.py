@@ -1,5 +1,6 @@
 import os
 import logging
+import re
 
 from tools import tools
 
@@ -8,19 +9,37 @@ logger = logging.getLogger(__name__)
 
 class MRI(object):
     __slots__ = [
-                 "index",
-                 "files",
+                 "sub", "ses",
+                 "modality",
+                 "attributes", "labels", "suffix", 
+                 "main_attributes",
+                 "index", "files", "rec_path",
                  "type",
-                 "rec_path"]
+                 ]
 
-    bidsmodalities = ('fmap', 'anat', 'func', 'dwi', 'beh', 'pet')
-    bidslabels = ('task', 'acq', 'ce', 'rec', 'dir', 'run', 'mod',
-                  'echo', 'suffix', 'IntendedFor')
+    bidsmodalities = {
+            "anat" : ("acq", "ce", "rec", "mod", "run"),
+            "func" : ("task", "acq", "ce", "dir", "rec", "run", "echo"),
+            "dwi"  : ("acq", "dir", "run"),
+            "fmap" : ("acq", "ce", "dir", "run"),
+            "beh"  : ("task")
+            }
+
+    ignoremodality = 'leave_out'
+    unknownmodality = 'extra_data'
+
     def __init__(self):
         self.type = "None"
         self.files = list()
         self.rec_path = ""
         self.index = -1
+        self.attributes = dict()
+        self.labels = dict()
+        self.suffix = ""
+        self.modality = ""
+        self.main_attributes = list()
+        self.sub = ""
+        self.ses = ""
 
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
@@ -42,19 +61,26 @@ class MRI(object):
     def get_field(self, field: str):
         raise NotImplemented
 
+    def get_attribute(self, attribute: str):
+        if attribute in self.attributes:
+            return self.attributes[attribute]
+        else:
+            res = self.get_field(attribute)
+            self.attributes[attribute] = res
+            return res
+
     def get_dynamic_field(self, field: str):
         val = field
         if not field or not isinstance(field, str) or\
                 field.startswith('<<'):
             return field
         if field.startswith('<') and field.endswith('>'):
-            val = self.get_field(field[1:-1])
+            val = self.get_attribute(field[1:-1])
             if not val:
                 return field
             else:
                 val = tools.cleanup_value(val)
         return val
-
 
     def loadNextFile(self) -> bool:
         if self.index + 1 >= len(self.files):
@@ -123,7 +149,7 @@ class MRI(object):
         if not os.path.isdir(rec_path):
             raise NotADirectoryError("Path {} is not a folder"
                                      .format(rec_path))
-        self.rec_path = rec_path
+        self.rec_path = os.path.normpath(rec_path)
         self.clearCache()
         self.files.clear()
 
@@ -142,3 +168,147 @@ class MRI(object):
         logger.debug("Found {} files in {}"
                      .format(len(self.files), self.rec_path))
         return len(self.files)
+
+    def set_attributes(self, bidsmap) -> None:
+        self.attributes = dict()
+        if bidsmap is not None:
+            for modality in bidsmap:
+                if bidsmap[modality] and \
+                        isinstance(bidsmap[modality], list):
+                    for run in bidsmap[modality]:
+                        if "attributes" in run and run['attributes']:
+                            for attkey in run['attributes']:
+                                if self.index > 0:
+                                    self.attributes[attkey] = \
+                                            self.get_field(attkey)
+
+    def set_main_attributes(self, run: dict):
+        self.main_attributes = [attkey 
+                                for attkey, attval 
+                                in run['attributes'].items()
+                                if attval]
+
+    def set_labels(self, modality, run=dict()):
+        self.suffix = ""
+        self.modality = ""
+        self.labels = list()
+        if not modality:
+            return
+        run = run["bids"]
+        self.suffix = run["suffix"]
+        if modality in self.bidsmodalities:
+            self.labels = [None] * len(self.bidsmodalities[modality])
+            for index, key in enumerate(self.bidsmodalities[modality]):
+                if key in run and run[key]:
+                    val = self.get_dynamic_field(run[key])
+                    if isinstance(val, str):
+                        if val.lower().endswith(self.suffix.lower()):
+                            val = val[:-len(self.suffix)]
+                    self.labels[index] = val
+
+            self.modality = modality
+        elif modality == 'leave_out':
+                self.modality = modality
+        else:
+            self.modality = ''
+            self.labels = list()
+            for key in run:
+                if key != "suffix":
+                    val = self.get_dynamic_field(run[key])
+                    if isinstance(val, str):
+                        if val.lower().ends_with(self.suffix.lower()):
+                            val = val[:-len(self.suffix)]
+                    self.labels.append(key)
+
+    def match_attribute(self, attribute, pattern) -> bool:
+        attval = self.get_attribute(attribute)
+        if isinstance(pattern, list):
+            for val in pattern:
+                if tools.match_value(attval, val):
+                    return True
+            return False
+        return tools.match_value(attval, pattern)
+
+    def match_run(self, run):
+        if run is None:
+            logger.debug("{}: trying to match empty runs"
+                         .format(self.type))
+            return False
+        match_one = False
+        match_all = True
+        for attrkey, attrvalue in run['attributes'].items():
+            if not attrvalue:
+                continue
+            res = self.match_attribute(attrkey, attrvalue)
+            match_one = match_one or res
+            match_all = match_all and res
+            if not match_all:
+                break
+        return match_one and match_all
+
+    def get_bidsname(self):
+        tags_list = list()
+        if self.sub:
+            tags_list.append(self.sub)
+        if self.ses:
+            tags_list.append(self.ses)
+        for key in self.bidsmodalities[self.modality]:
+            if key in self.labels and self.labels[key]:
+                tags_list.append(key + "-" 
+                                 + tools.cleanup_value(self.labels[key]))
+
+        if self.suffix:
+            tags_list.append(tools.cleanup_value(self.suffix))
+        return "_".join(tags_list)
+
+    def get_id_folder(self, prefix: str):
+        if self.rec_path == "":
+            logger.error("Recording path not defined")
+            return
+
+        # recording path means to be organized as 
+        # ..../sub-xxx/[ses-yyy]/sequence/files
+        try:
+            subid = self.rec_path.rsplit("/" + prefix, 1)[1]\
+                    .split(os.sep)[0]
+        except Exception:
+            raise ValueError("Failed to extract '{}' form {}"
+                             .format(prefix, self.rec_path))
+        return subid
+
+    def set_subid_sesid(self, subid: str, sesid: str,
+                        subprefix: str="sub-",
+                        sesprefix: str="ses-"):
+        """
+        Extract the cleaned-up subid and sesid from the pathname 
+        or from the dicom file if subid/sesid == '<<SourceFilePath>>'
+
+        :param subid:       The subject identifier, 
+                            i.e. name of the subject folder 
+                            (e.g. 'sub-001' or just '001'). Can be left empty
+        :param sesid:       The optional session identifier, 
+                            i.e. name of the session folder 
+                            (e.g. 'ses-01' or just '01')
+        :return:            Updated (subid, sesid) tuple,
+                            including the sub/sesprefix
+        """
+        # Add default value for subid and sesid (e.g. for the bidseditor)
+        if subid == "":
+            raise ValueError("{}: subid value must be non-empty")
+        if subid == '<<SourceFilePath>>':
+            subid = self.get_id_folder("sub-")
+        else:
+            subid = self.get_dynamic_field(subid)
+        if sesid: 
+            if sesid == '<<SourceFilePath>>':
+                sesid = self.get_id_folder("ses-")
+            else:
+                sesid = self.get_dynamic_value(sesid)
+        # Add sub- and ses- prefixes if they are not there
+        self.subid = 'sub-' + tools.cleanup_value(
+                re.sub('^sub-', '', subid))
+        if sesid:
+            self.sesid = 'ses-' + tools.cleanup_value(
+                     re.sub('^ses-', '', sesid))
+        else:
+            self.sesid = ''
