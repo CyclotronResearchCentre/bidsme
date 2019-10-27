@@ -23,6 +23,16 @@ class Nifti_dump(MRI):
         if bidsmap:
             self.set_attributes(bidsmap)
 
+    def dump(self):
+        if self._DICOMDICT_CACHE:
+            return str(self._DICOMDICT_CACHE)
+        elif len(self.files) > 0:
+            self.loadFile(0)
+            return str(self._DICOMDICT_CACHE)
+        else:
+            logger.error("No defined files")
+            return "No defined files"
+
     @classmethod
     def isValidFile(cls, file: str) -> bool:
         """
@@ -58,7 +68,7 @@ class Nifti_dump(MRI):
             return json.load(f)["acqpar"][0]
 
     def loadFile(self, index: int) -> None:
-        path = self.files[index]
+        path = os.path.join(self.rec_path,self.files[index])
         if not self.isValidFile(path):
             raise ValueError("{} is not valid {} file"
                              .format(path, self.name))
@@ -70,7 +80,7 @@ class Nifti_dump(MRI):
             self.isSiemens = (self._DICOMDICT_CACHE["Manufacturer"]
                               == "SIEMENS ")
             for key in self.attributes:
-                self.attributes[key] = get_field(key)
+                self.attributes[key] = self.get_field(key)
         self.index = index
 
     def get_field(self, field: str):

@@ -28,7 +28,7 @@ class MRI(object):
     ignoremodality = 'leave_out'
     unknownmodality = 'extra_data'
 
-    def __init__(self):
+    def __init__(self, bidsmap=None, rec_path=""):
         self.type = "None"
         self.files = list()
         self.rec_path = ""
@@ -57,6 +57,9 @@ class MRI(object):
 
     def loadFile(self, index: int) -> None:
         raise NotImplementedError
+
+    def dump(self):
+        return NotImplementedError
 
     def get_field(self, field: str):
         raise NotImplemented
@@ -132,9 +135,12 @@ class MRI(object):
         logger.warning(f'Cannot find >{index} {self.type} files in: {folder}')
         return None
 
-    def currentFile(self):
+    def currentFile(self, base=False):
         if self.index >= 0 and self.index < len(self.files):
-            return self.files[self.index]
+            if base:
+                return self.files[self.index]
+            else:
+                return os.path.join(self._rec_path,self.files[self.index])
         return None
 
     def set_rec_path(self, rec_path:str) -> int:
@@ -159,7 +165,7 @@ class MRI(object):
                 continue
             full_path = os.path.join(self.rec_path, file)
             if self.isValidFile(full_path):
-                    self.files.append(full_path)
+                    self.files.append(file)
         if len(self.files) == 0:
             logger.warning("No valid {} files found in {}"
                            .format(self.type, self.rec_path))

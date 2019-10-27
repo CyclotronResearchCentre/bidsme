@@ -442,7 +442,7 @@ def strip_suffix(run: dict) -> dict:
     return run
 
 
-def dir_bidsmap(bidsmap: dict, source: str) -> list:
+def dir_bidsmap(bidsmap: dict, source: str="") -> list:
     """
     Make a provenance list of all the runs in the bidsmap[source]
 
@@ -453,15 +453,33 @@ def dir_bidsmap(bidsmap: dict, source: str) -> list:
     """
 
     provenance = []
-    for modality in bidsmap[source]:
-        if modality in ("subject", "session"):
-            continue
-        if bidsmap[source][modality]:
-            for run in bidsmap[source][modality]:
-                provenance.append(run['provenance'])
-                if not run['provenance']:
-                    logger.warning(f'The bidsmap run {modality} run does '
-                                   'not contain provenance data')
+    if source == "":
+        for source in bidsmap:
+            if source in ("Options", "PlugIns"):
+                continue
+            for modality in bidsmap[source]:
+                if modality in ("subject", "session"):
+                    continue
+                if bidsmap[source][modality]:
+                    for run in bidsmap[source][modality]:
+                        provenance.append(run['provenance'])
+                        if not run['provenance']:
+                            logger.warning(f'The bidsmap run {modality} run does '
+                                           'not contain provenance data')
+    else:
+        if source not in bidsmap or not bidsmap[source]:
+            logger.error("Can't find '{}' in bidsmap")
+            return provenance
+        for modality in bidsmap[source]:
+            if modality in ("subject", "session"):
+                continue
+            if bidsmap[source][modality]:
+                for run in bidsmap[source][modality]:
+                    provenance.append(run['provenance'])
+                    if not run['provenance']:
+                        logger.warning(f'The bidsmap run {modality} run does '
+                                       'not contain provenance data')
+
     provenance.sort()
     return provenance
 

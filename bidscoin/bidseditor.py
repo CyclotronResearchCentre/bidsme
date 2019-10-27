@@ -30,9 +30,8 @@ try:
 except ImportError:
     import bids             # This should work if bidscoin was not pip-installed
     from Modules.MRI.selector import select_by_name as MRI_select_by_name
+    from Modules.MRI.selector import select as MRI_select
 
-# SOURCE = 'DICOM'            # TODO: allow for non-DICOM (e.g. PAR/REC) edits
-# SOURCE = 'Nifti_dump'
 
 LOGGER = logging.getLogger('bidscoin')
 logFormatter = logging.Formatter("[%(levelname)-7.7s]:%(asctime)s:%(name)s:%(filename)s:%(lineno)d %(message)s",
@@ -125,13 +124,15 @@ class myWidgetItem(QTableWidgetItem):
 
 class InspectWindow(QDialog):
 
-    def __init__(self, filename, dicomdict):
+    def __init__(self, filename, recording):
         super().__init__()
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(ICON_FILENAME), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(ICON_FILENAME),
+                       QtGui.QIcon.Normal, 
+                       QtGui.QIcon.Off)
         self.setWindowIcon(icon)
-        self.setWindowTitle(f"Inspect {SOURCE} file")
+        self.setWindowTitle("Inspect {} file".format(recording.type))
 
         layout = QVBoxLayout(self)
 
@@ -145,11 +146,25 @@ class InspectWindow(QDialog):
         label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         layout.addWidget(label)
 
-        text        = str(dicomdict)
+        try:
+            index = recording.files.index(basename)
+            recording.loadFile(index)
+            text = recording.dump()
+        except ValueError as e:
+            err = "No valid file '{}' in {}".format(basename, 
+                                                    recording.rec_path)
+            LOGGER.error(err)
+            text = err
+        except Exception as e:
+            err = str(e)
+            LOGGER.error(err)
+            text = err
         textBrowser = QTextBrowser(self)
         textBrowser.insertPlainText(text)
         textBrowser.setLineWrapMode(False)
-        self.scrollbar = textBrowser.verticalScrollBar()        # For setting the slider to the top (can only be done after self.show()
+        # For setting the slider to the top 
+        # (can only be done after self.show()
+        self.scrollbar = textBrowser.verticalScrollBar()        
         layout.addWidget(textBrowser)
 
         buttonBox = QDialogButtonBox(self)
@@ -184,7 +199,6 @@ class MainWindow(QMainWindow):
 class Ui_MainWindow(MainWindow):
 
     def setupUi(self, MainWindow, 
-                source,
                 bidsfolder, sourcefolder, 
                 bidsmap_filename, 
                 input_bidsmap, output_bidsmap, template_bidsmap,
@@ -202,9 +216,10 @@ class Ui_MainWindow(MainWindow):
         self.template_bidsmap = template_bidsmap
         self.subprefix        = subprefix
         self.sesprefix        = sesprefix
-        self.SOURCE           = source
 
         self.has_edit_dialog_open = None
+
+        self.recording_list = []
 
         # Set-up the tabs
         self.tabwidget = QtWidgets.QTabWidget()
@@ -223,17 +238,26 @@ class Ui_MainWindow(MainWindow):
 
         # Set-up the buttons
         buttonBox = QDialogButtonBox()
-        buttonBox.setStandardButtons(QDialogButtonBox.Save | QDialogButtonBox.Reset | QDialogButtonBox.Help)
-        buttonBox.button(QDialogButtonBox.Help).setToolTip('Go to the online BIDScoin documentation')
-        buttonBox.button(QDialogButtonBox.Save).setToolTip('Save the Options and BIDS-map to disk if you are satisfied with all the BIDS output names')
-        buttonBox.button(QDialogButtonBox.Reset).setToolTip('Reload the options and BIDS-map from disk')
+        buttonBox.setStandardButtons(QDialogButtonBox.Save |\
+                QDialogButtonBox.Reset | \
+                QDialogButtonBox.Help)
+        buttonBox.button(QDialogButtonBox.Help)\
+                .setToolTip('Go to the online BIDScoin documentation')
+        buttonBox.button(QDialogButtonBox.Save)\
+                .setToolTip('Save the Options and BIDS-map to disk if '
+                            'you are satisfied with all the BIDS output names')
+        buttonBox.button(QDialogButtonBox.Reset)\
+                .setToolTip('Reload the options and BIDS-map from disk')
         buttonBox.helpRequested.connect(self.get_help)
-        buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.reload)
-        buttonBox.button(QDialogButtonBox.Save).clicked.connect(self.save_bidsmap_to_file)
+        buttonBox.button(QDialogButtonBox.Reset).clicked\
+                .connect(self.reload)
+        buttonBox.button(QDialogButtonBox.Save).clicked\
+                .connect(self.save_bidsmap_to_file)
 
         # Set-up the main layout
         centralwidget = QtWidgets.QWidget(self.MainWindow)
-        centralwidget.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
+        centralwidget.setLocale(QtCore.QLocale(QtCore.QLocale.English,
+                                               QtCore.QLocale.UnitedStates))
         centralwidget.setObjectName("centralwidget")
         top_layout = QtWidgets.QVBoxLayout(centralwidget)
         top_layout.addWidget(tabwidget)
@@ -241,7 +265,9 @@ class Ui_MainWindow(MainWindow):
 
         self.MainWindow.setCentralWidget(centralwidget)
 
-        # Restore the samples_table stretching after the main window has been sized / current tabindex has been set (otherwise the main window can become too narrow)
+        # Restore the samples_table stretching after the main window 
+        # has been sized / current tabindex has been set 
+        # (otherwise the main window can become too narrow)
         header = self.samples_table.horizontalHeader()
         header.setSectionResizeMode(1, QHeaderView.Stretch)
 
@@ -325,13 +351,15 @@ class Ui_MainWindow(MainWindow):
         """When double clicked, show popup window. """
         if item.column() == 1:
             row = item.row()
-            provenance = self.samples_table.item(row, 5)
-            filename = provenance.text()
-            if bids.is_dicomfile(filename):
-                dicomdict = pydicom.dcmread(filename, force=True)
-                self.popup = InspectWindow(filename, dicomdict)
+            filename = self.samples_table.item(row, 5).text()
+            dirname, basename = os.path.split(filename)
+            cls = select(dirname)
+            if cls is not None:
+                recording = cls(rec_path=dirname)
+                self.popup = InspectWindow(basename, recording)
                 self.popup.show()
-                self.popup.scrollbar.setValue(0)     # This can only be done after self.popup.show()
+                # This can only be done after self.popup.show()
+                self.popup.scrollbar.setValue(0)     
             else:
                 LOGGER.warning(f"Could not read: {filename}")
 
@@ -343,7 +371,9 @@ class Ui_MainWindow(MainWindow):
         self.model = QFileSystemModel()
         model = self.model
         model.setRootPath('')
-        model.setFilter(QtCore.QDir.NoDotAndDotDot | QtCore.QDir.AllDirs | QtCore.QDir.Files)
+        model.setFilter(QtCore.QDir.NoDotAndDotDot | 
+                        QtCore.QDir.AllDirs | 
+                        QtCore.QDir.Files)
         tree = QTreeView()
         tree.setModel(model)
         tree.setAnimated(False)
@@ -363,17 +393,22 @@ class Ui_MainWindow(MainWindow):
         self.tabwidget.addTab(tab1, "")
 
     def subses_cell_was_changed(self, row, column):
-        """Subject or session value has been changed in subject-session table. """
+        """
+        Subject or session value has been changed 
+        in subject-session table. 
+        """
+        source = "Nifti_dump"
         if column == 1:
             key = self.subses_table.item(row, 0).text()
             value = self.subses_table.item(row, 1).text()
-            oldvalue = self.output_bidsmap[self.SOURCE][key]
+            oldvalue = self.output_bidsmap[source][key]
 
             # Only if cell was actually clicked, update
             if key and value!=oldvalue:
-                LOGGER.warning(f"Expert usage: User has set {self.SOURCE}['{key}'] "
+                LOGGER.warning(f"Expert usage: User has set "
+                               "{self.SOURCE}['{key}'] "
                                "from '{oldvalue}' to '{value}'")
-                self.output_bidsmap[self.SOURCE][key] = value
+                self.output_bidsmap[source][key] = value
                 self.update_subses_and_samples(self.output_bidsmap)
 
     def tool_cell_was_changed(self, tool, idx, row, column):
@@ -592,29 +627,33 @@ class Ui_MainWindow(MainWindow):
         self.tabwidget.addTab(tab2, "")
 
     def update_subses_and_samples(self, output_bidsmap):
-        """(Re)populates the sample list with bidsnames according to the bidsmap"""
+        """
+        (Re)populates the sample list with bidsnames 
+        according to the bidsmap
+        """
         # input main window / output from edit window -> output main window
         self.output_bidsmap = output_bidsmap
         subses_table        = self.subses_table
         samples_table       = self.samples_table
+        source = "Nifti_dump"
 
         subses_table.setItem(0, 0, myWidgetItem("subject", iseditable=False))
         subses_table.setItem(1, 0, myWidgetItem("session", iseditable=False))
-        subses_table.setItem(0, 1, myWidgetItem(self.output_bidsmap[self.SOURCE]['subject']))
-        subses_table.setItem(1, 1, myWidgetItem(self.output_bidsmap[self.SOURCE]['session']))
+        subses_table.setItem(0, 1, myWidgetItem(self.output_bidsmap[source]['subject']))
+        subses_table.setItem(1, 1, myWidgetItem(self.output_bidsmap[source]['session']))
 
         idx = 0
         samples_table.setSortingEnabled(False)
         for modality in bids.bidsmodalities + (bids.unknownmodality, bids.ignoremodality):
-            runs = self.output_bidsmap[self.SOURCE][modality]
+            runs = self.output_bidsmap[source][modality]
             if not runs:
                 continue
             for run in runs:
                 provenance = run['provenance']
                 provenance_file = os.path.basename(provenance)
                 ordered_file_index = self.ordered_file_index[provenance]
-                bidsname = bids.get_bidsname(output_bidsmap[self.SOURCE]['subject'],
-                                             output_bidsmap[self.SOURCE]['session'],
+                bidsname = bids.get_bidsname(output_bidsmap[source]['subject'],
+                                             output_bidsmap[source]['session'],
                                              modality, run, 
                                              '', self.subprefix, self.sesprefix)
                 subid = bids.get_bidsvalue(bidsname, 'sub')
@@ -673,25 +712,27 @@ class Ui_MainWindow(MainWindow):
     def set_tab_bidsmap(self):
         """Set the SOURCE file sample listing tab.  """
 
-        # Set the Participant labels table
-        subses_label = QLabel('Participant labels')
-        subses_label.setToolTip('Subject/session mapping')
-
-        self.subses_table = myQTableWidget()
-        subses_table = self.subses_table
-        subses_table.setToolTip('Use <<SourceFilePath>> to parse the subject and (optional) session label from the pathname\n'
-                                'Use <YourDicomFieldName> (e.g. <PatientID>) to extract the subject and (optional) session label from the DICOM header')
-        subses_table.setMouseTracking(True)
-        subses_table.setRowCount(2)
-        subses_table.setColumnCount(2)
-        horizontal_header = subses_table.horizontalHeader()
-        horizontal_header.setVisible(False)
-        horizontal_header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        horizontal_header.setSectionResizeMode(1, QHeaderView.Stretch)
-        subses_table.cellChanged.connect(self.subses_cell_was_changed)
-
         # Set the BIDSmap table
-        provenance = bids.dir_bidsmap(self.input_bidsmap, self.SOURCE)
+        provenance = bids.dir_bidsmap(self.input_bidsmap)
+        for source in self.input_bidsmap:
+            if source in ("Options", "PlugIns"):
+                continue
+            for modality in self.input_bidsmap[source]:
+                if modality in ("subject", "session"):
+                    continue
+                if self.input_bidsmap[source][modality]:
+                    for run in self.input_bidsmap[source][modality]:
+                        provenance = os.path.basename(self.input_bidsmap[source][modality][run]['provenance'])
+                        recording = MRI_select_by_name(source)(rec_path=provenance,
+                                                   bidsmap=self.input_bidsmap[source][modality])
+        for f in provenance:
+            cls = MRI_select(f)
+            if cls is None:
+                LOGGER.error("Can't guess type of file {}"
+                             .format(f))
+                continue
+
+
         ordered_file_index = {}                                         # The mapping between the ordered provenance and an increasing file-index
         for file_index, file_name in enumerate(provenance):
             ordered_file_index[file_name] = file_index
@@ -706,19 +747,29 @@ class Ui_MainWindow(MainWindow):
         samples_table = self.samples_table
         samples_table.setMouseTracking(True)
         samples_table.setShowGrid(True)
-        samples_table.setColumnCount(6)
+        samples_table.setColumnCount(7)
         samples_table.setRowCount(num_files)
-        samples_table.setHorizontalHeaderLabels(['', f'{self.SOURCE} input', 'BIDS modality', 'BIDS output', 'Action', 'Provenance'])
+        samples_table.setHorizontalHeaderLabels'', 
+                                                 'input',
+                                                 'type',
+                                                 'BIDS modality', 
+                                                 'BIDS output', 
+                                                 'Action', 
+                                                 'Provenance'
+                                                 ])
         samples_table.setSortingEnabled(True)
         samples_table.sortByColumn(0, QtCore.Qt.AscendingOrder)
         header = samples_table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)    # Temporarily set it to ResizeToContents to have Qt set the right window width -> set to Stretch in setupUI -> not reload
+        # Temporarily set it to ResizeToContents to have Qt set 
+        # the right window width -> set to Stretch in setupUI -> not reload
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)    
         header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(3, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
-        samples_table.setColumnHidden(2, True)
-        samples_table.setColumnHidden(5, True)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        # samples_table.setColumnHidden(2, True)
+        # samples_table.setColumnHidden(5, True)
         samples_table.itemDoubleClicked.connect(self.inspect_dicomfile)
 
         self.update_subses_and_samples(self.output_bidsmap)
@@ -793,11 +844,16 @@ class Ui_MainWindow(MainWindow):
 
     def on_double_clicked(self, index):
         filename = self.model.fileInfo(index).absoluteFilePath()
-        if bids.is_dicomfile(filename):
-            dicomdict = pydicom.dcmread(filename, force=True)
-            self.popup = InspectWindow(filename, dicomdict)
+        dirname, basename = os.path.split(filename)
+        cls = select(dirname)
+        if cls is not None:
+            recording = cls(rec_path=dirname)
+            self.popup = InspectWindow(basename, recording)
             self.popup.show()
-            self.popup.scrollbar.setValue(0)  # This can only be done after self.popup.show()
+            # This can only be done after self.popup.show()
+            self.popup.scrollbar.setValue(0)     
+        else:
+            LOGGER.warning(f"Could not read: {filename}")
 
     def show_about(self):
         """ """
@@ -1058,10 +1114,14 @@ class EditDialog(QDialog):
         """When double clicked, show popup window. """
         if row == 1 and column == 1:
             filename = self.target_run['provenance']
-            if bids.is_dicomfile(filename):
-                dicomdict = pydicom.dcmread(filename, force=True)
-                self.popup = InspectWindow(filename, dicomdict)
-                self.popup.exec()
+            dirname, basename = os.path.split(filename)
+            cls = select(dirname)
+            if cls is not None:
+                recording = cls(rec_path=dirname)
+                self.popup = InspectWindow(basename, recording)
+                self.popup.show()
+                # This can only be done after self.popup.show()
+                self.popup.scrollbar.setValue(0)     
             else:
                 LOGGER.warning(f"Could not read: {filename}")
 
@@ -1339,10 +1399,11 @@ def bidseditor(bidsfolder: str, sourcefolder: str='', bidsmapfile: str='', templ
             raise Exception("[{}] not in {} (template)".format(SOURCE, templatefile))
         MRI_cls = MRI_select_by_name(SOURCE)
         if MRI_cls is None:
-            raise Exception("Can't find class corresponding to {}"
-                            .format(SOURCE))
+            LOGGER.error("Can't find class corresponding to {}"
+                         .format(SOURCE))
+            continue
 
-        modalities = MRI_cls.bidsmodalities + (bids.unknownmodality, bids.ignoremodality)
+        modalities = MRI_cls.bidsmodalities 
         for modality in modalities:
             if modality not in template_bidsmap[SOURCE]:
                 LOGGER.warning("{} not in {}[{}]".format(modality, templatefile, SOURCE))
@@ -1367,18 +1428,17 @@ def bidseditor(bidsfolder: str, sourcefolder: str='', bidsmapfile: str='', templ
                 if sourcefolder:
                     break
 
-        # Start the Qt-application
-        app = QApplication(sys.argv)
-        app.setApplicationName(f'{bidsmapfile} - BIDS editor [{SOURCE}]')
-        mainwin = MainWindow()
-        gui = Ui_MainWindow()
-        gui.setupUi(mainwin, 
-                    SOURCE,
-                    bidsfolder, sourcefolder, 
-                    bidsmapfile, input_bidsmap, output_bidsmap, template_bidsmap, 
-                    subprefix=subprefix, sesprefix=sesprefix)
-        mainwin.show()
-        app.exec()
+    # Start the Qt-application
+    app = QApplication(sys.argv)
+    app.setApplicationName(f'{bidsmapfile} - BIDS editor [{SOURCE}]')
+    mainwin = MainWindow()
+    gui = Ui_MainWindow()
+    gui.setupUi(mainwin, 
+                bidsfolder, sourcefolder, 
+                bidsmapfile, input_bidsmap, output_bidsmap, template_bidsmap, 
+                subprefix=subprefix, sesprefix=sesprefix)
+    mainwin.show()
+    app.exec()
 
     LOGGER.info('-------------- FINISHED! -------------------')
     LOGGER.info('')
@@ -1391,55 +1451,56 @@ if __name__ == "__main__":
     # Parse the input arguments and run bidseditor
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description=textwrap.dedent(__doc__),
-                                     epilog=textwrap.dedent("""
-                                         examples:
-                                           bidseditor.py /project/foo/bids
-                                           bidseditor.py /project/foo/bids -t bidsmap_dccn.yaml
-                                           bidseditor.py /project/foo/bids -b my/custom/bidsmap.yaml
+                                     epilog=textwrap.dedent(
+                                     """
+                                     examples:
+                                       bidseditor.py /project/foo/bids
+                                       bidseditor.py /project/foo/bids -t bidsmap_dccn.yaml
+                                       bidseditor.py /project/foo/bids -b my/custom/bidsmap.yaml
 
-                                         Here are a few tips & tricks:
-                                         -----------------------------
+                                     Here are a few tips & tricks:
+                                     -----------------------------
 
-                                         DICOM Attributes
-                                           An (DICOM) attribute label can also be a list, in which case the BIDS labels / mapping
-                                           are applies if a (DICOM) attribute value is in this list. If the attribute value is
-                                           empty it is not used to identify the run. Wildcards can also be given, either as a single
-                                           '*', or enclosed by '*'. Examples:
-                                                SequenceName: '*'
-                                                SequenceName: '*epfid*'
-                                                SequenceName: ['epfid2d1rs', 'fm2d2r']
-                                                SequenceName: ['*epfid*', 'fm2d2r']
-                                            NB: Editing the DICOM attributes is normally not necessary and adviced against
+                                     DICOM Attributes
+                                       An (DICOM) attribute label can also be a list, in which case the BIDS labels / mapping
+                                       are applies if a (DICOM) attribute value is in this list. If the attribute value is
+                                       empty it is not used to identify the run. Wildcards can also be given, either as a single
+                                       '*', or enclosed by '*'. Examples:
+                                            SequenceName: '*'
+                                            SequenceName: '*epfid*'
+                                            SequenceName: ['epfid2d1rs', 'fm2d2r']
+                                            SequenceName: ['*epfid*', 'fm2d2r']
+                                        NB: Editing the DICOM attributes is normally not necessary and adviced against
 
-                                         Dynamic BIDS labels
-                                           The BIDS labels can be static, in which case the label is just a normal string, or dynamic,
-                                           when the string is enclosed with pointy brackets like `<attribute name>` or
-                                           `<<argument1><argument2>>`. In case of single pointy brackets the label will be replaced
-                                           during bidsmapper, bidseditor and bidscoiner runtime by the value of the (DICOM) attribute
-                                           with that name. In case of double pointy brackets, the label will be updated for each
-                                           subject/session during bidscoiner runtime. For instance, then the `run` label `<<1>>` in
-                                           the bids name will be replaced with `1` or increased to `2` if a file with runindex `1`
-                                           already exists in that directory.
+                                     Dynamic BIDS labels
+                                       The BIDS labels can be static, in which case the label is just a normal string, or dynamic,
+                                       when the string is enclosed with pointy brackets like `<attribute name>` or
+                                       `<<argument1><argument2>>`. In case of single pointy brackets the label will be replaced
+                                       during bidsmapper, bidseditor and bidscoiner runtime by the value of the (DICOM) attribute
+                                       with that name. In case of double pointy brackets, the label will be updated for each
+                                       subject/session during bidscoiner runtime. For instance, then the `run` label `<<1>>` in
+                                       the bids name will be replaced with `1` or increased to `2` if a file with runindex `1`
+                                       already exists in that directory.
 
-                                         Fieldmaps: suffix
-                                           Select 'magnitude1' if you have 'magnitude1' and 'magnitude2' data in one series-folder
-                                           (this is what Siemens does) -- the bidscoiner will automatically pick up the 'magnitude2'
-                                           data during runtime. The same holds for 'phase1' and 'phase2' data. See the BIDS
-                                           specification for more details on fieldmap suffixes
-                                           
-                                         Fieldmaps: IntendedFor
-                                           You can use the `IntendedFor` field to indicate for which runs (DICOM series) a fieldmap
-                                           was intended. The dynamic label of the `IntendedFor` field can be a list of string patterns
-                                           that is used to include all runs in a session that have that string pattern in their BIDS
-                                           file name. Example: use `<<task>>` to include all functional runs or `<<Stop*Go><Reward>>`
-                                           to include "Stop1Go"-, "Stop2Go"- and "Reward"-runs.
-                                           NB: The fieldmap might not be used at all if this field is left empty!
+                                     Fieldmaps: suffix
+                                       Select 'magnitude1' if you have 'magnitude1' and 'magnitude2' data in one series-folder
+                                       (this is what Siemens does) -- the bidscoiner will automatically pick up the 'magnitude2'
+                                       data during runtime. The same holds for 'phase1' and 'phase2' data. See the BIDS
+                                       specification for more details on fieldmap suffixes
+                                       
+                                     Fieldmaps: IntendedFor
+                                       You can use the `IntendedFor` field to indicate for which runs (DICOM series) a fieldmap
+                                       was intended. The dynamic label of the `IntendedFor` field can be a list of string patterns
+                                       that is used to include all runs in a session that have that string pattern in their BIDS
+                                       file name. Example: use `<<task>>` to include all functional runs or `<<Stop*Go><Reward>>`
+                                       to include "Stop1Go"-, "Stop2Go"- and "Reward"-runs.
+                                       NB: The fieldmap might not be used at all if this field is left empty!
 
-                                         Manual editing / inspection of the bidsmap
-                                           You can of course also directly edit or inspect the `bidsmap.yaml` file yourself with any
-                                           text editor. For instance to merge a set of runs that by adding a wildcard to a DICOM
-                                           attribute in one run item and then remove the other runs in the set. See ./docs/bidsmap.md
-                                           and ./heuristics/bidsmap_dccn.yaml for more information."""))
+                                     Manual editing / inspection of the bidsmap
+                                       You can of course also directly edit or inspect the `bidsmap.yaml` file yourself with any
+                                       text editor. For instance to merge a set of runs that by adding a wildcard to a DICOM
+                                       attribute in one run item and then remove the other runs in the set. See ./docs/bidsmap.md
+                                       and ./heuristics/bidsmap_dccn.yaml for more information."""))
 
     parser.add_argument('bidsfolder',           help='The destination folder with the (future) bids data')
     parser.add_argument('-s','--sourcefolder',  help='The source folder containing the raw data. If empty, it is derived from the bidsmap provenance information')
