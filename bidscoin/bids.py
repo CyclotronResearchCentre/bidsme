@@ -381,7 +381,7 @@ def save_bidsmap(filename: str, bidsmap: dict):
     except Exception:
         # Just trying again seems to help? :-)
         with open(filename, 'w') as stream:
-            yaml.dump(bidsmap, stream)
+            yaml.dump(bidsmap, stream, transform=tr)
         try:
             load_bidsmap(filename, '', False)
         except Exception:
