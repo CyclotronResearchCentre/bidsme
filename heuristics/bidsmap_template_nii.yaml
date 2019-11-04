@@ -23,7 +23,7 @@ Options:
     version: '2.3.1'              # BIDScoin version (should correspond with the version in ../bidscoin/version.txt)
     bidsignore: extra_data/       # Semicolon-separated list of entries that are added to the .bidsignore file (for more info, see BIDS specifications), e.g. extra_data/;pet/;myfile.txt;yourfile.csv
   dcm2niix:                       # See dcm2niix -h and https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#General_Usage for more info
-    path: module add dcm2niix;    # Command to set the path to dcm2niix (note the semi-colon), e.g. module add dcm2niix/1.0.20180622; or PATH=/opt/dcm2niix/bin:$PATH; or /opt/dcm2niix/bin/ or '"C:\Program Files\dcm2niix\"' (note the quotes to deal with the whitespace)
+    path: module add dcm2niix;    # Command to set the path to dcm2niix (note the semi-colon), e.g. module add dcm2niix/1.0.20180622; or PATH=/opt/dcm2niix/bin:$PATH; or /opt/dcm2niix/bin/ or ''C:\Program Files\dcm2niix\'' (note the quotes to deal with the whitespace)
     args: -b y -z y -i n          # Argument string that is passed to dcm2niix. Tip: SPM users may want to use '-z n' (which produces unzipped nifti's, see dcm2niix -h for more information)
 
 
@@ -62,14 +62,14 @@ Nifti_dump:
   - provenance: ~
     attributes: 
       <<: *anatattributes
-      ProtocolName: "localizer"
+      ProtocolName: 'localizer'
     bids:
       <<: *anatbids
       suffix: localizer
   - provenance: ~
     attributes: 
       <<: *anatattributes
-      ProtocolName: "t2_spc_da-fl_sag_p2_iso"
+      ProtocolName: 't2_spc_da-fl_sag_p2_iso'
     bids:
       <<: *anatbids
       suffix: FLAIR
@@ -78,7 +78,7 @@ Nifti_dump:
   - provenance: ~
     attributes: 
       Modality: ~
-      ProtocolName: ".*_bold_.*_invertpe"
+      ProtocolName: '.*_bold_.*_invertpe'
       SeriesDescription: ~
       ImageType: '.*MOSAIC'
       SequenceName: ~
@@ -103,7 +103,7 @@ Nifti_dump:
   - provenance: ~
     attributes: 
       Modality: ~
-      ProtocolName: ".*_bold_.*"
+      ProtocolName: '.*_bold_.*'
       SeriesDescription: ~
       ImageType: '.*MOSAIC'
       SequenceName: ~
@@ -169,9 +169,9 @@ Nifti_dump:
   - provenance: ~
     attributes: &fmapattributes
       Modality: ~
-      ProtocolName: "gre_field_mapping"
+      ProtocolName: 'gre_field_mapping'
       SeriesDescription: ~
-      ImageType: "ORIGINAL\\PRIMARY\\M\\ND"
+      ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
       SequenceName: ~
       SequenceVariant: ~
       ScanningSequence: ~
@@ -198,7 +198,7 @@ Nifti_dump:
   - provenance: ~
     attributes: 
       <<: *fmapattributes
-      ImageType: "ORIGINAL\\PRIMARY\\P\\ND "
+      ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
       EchoNumbers: 1
     bids:
       <<: *fmapbids
@@ -206,7 +206,7 @@ Nifti_dump:
   - provenance: ~
     attributes: 
       <<: *fmapattributes
-      ImageType: "ORIGINAL\\PRIMARY\\P\\ND "
+      ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
       EchoNumbers: 2
     bids:
       <<: *fmapbids
@@ -320,226 +320,3 @@ Nifti_dump:
       mod: ~
       suffix: ~
 
-
-# --------------------------------------------------------------------------------
-# Nifti key-value heuristics (Nifti fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
-FileSystem:
-# --------------------------------------------------------------------------------
-# File system key-value heuristics (these file- and foldernames will be mapped
-# to the BIDS labels; Special substitutions can be performed using python's
-# Format Specification Mini-Language)
-# --------------------------------------------------------------------------------
-  subject: <<SourceFilePath>>       # <<SourceFilePath>> extracts the subject label from the source directory during bidscoiner runtime
-  session: <<SourceFilePath>>       # <<SourceFilePath>> extracts the session label from the source directory during bidscoiner runtime
-  anat:       # ----------------------- All anatomical series --------------------
-  - attributes: &anatattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &anatbids_file
-      acq: <FileName>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      mod: ~
-      suffix: T1w
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2w
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T1rho
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T1map
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2map
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2star
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: FLAIR
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: FLASH
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PD
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PDmap
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PDT2
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: inplaneT1
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: inplaneT2
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: angio
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: defacemask
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: SWImagandphase
-
-  func:       # ----------------------- All functional series --------------------
-  - attributes: &funcattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &funcbids_file
-      task: <FileName>
-      acq: ~
-      rec: ~
-      run: <<1>>
-      echo: ~
-      suffix: bold
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      suffix: sbref
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      suffix: events
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      recording: <FileName>
-      suffix: physio
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      recording: <FileName>
-      suffix: stim
-
-  dwi:        # ----------------------- All diffusion series ---------------------
-  - attributes: &dwiattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &dwibids_file
-      acq: <FileName>
-      run: <<1>>
-      suffix: dwi
-
-  fmap:       # ----------------------- All fieldmap series ----------------------
-  - attributes: &fmapattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &fmapbids_file
-      acq: <FileName>
-      run: <<1>>
-      dir: ~
-      suffix: magnitude1
-      IntendedFor: ~
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: magnitude2
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phasediff
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phase1
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phase2
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: magnitude
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: fieldmap
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: epi
-
-  beh:        # ----------------------- All behavioural data ---------------------
-  - attributes: &behattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &behbids_file
-      task: <FileName>
-      suffix: events
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: beh
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: physio
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: stim
-
-  extra_data: # ----------------------- All extra data ---------------------------
-  - attributes:
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids:
-      acq: ~
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      suffix: ~
-      mod: ~
-
-  leave_out:  # ----------------------- Data that will be left out ---------------
-  - attributes:
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids:
-      acq: ~
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      suffix: ~
-      mod: ~

@@ -357,10 +357,6 @@ def load_bidsmap(yamlfile: str='',
     return bidsmap, yamlfile
 
 
-def tr(s):
-    return s.replace('\\', '\\\\')
-
-
 def save_bidsmap(filename: str, bidsmap: dict):
     """
     Save the BIDSmap as a YAML text file
@@ -373,7 +369,7 @@ def save_bidsmap(filename: str, bidsmap: dict):
 
     logger.info('Writing bidsmap to: ' + filename)
     with open(filename, 'w') as stream:
-        yaml.dump(bidsmap, stream, transform=tr)
+        yaml.dump(bidsmap, stream)
 
     # See if we can reload it, i.e. whether it is valid yaml...
     try:
@@ -381,7 +377,7 @@ def save_bidsmap(filename: str, bidsmap: dict):
     except Exception:
         # Just trying again seems to help? :-)
         with open(filename, 'w') as stream:
-            yaml.dump(bidsmap, stream, transform=tr)
+            yaml.dump(bidsmap, stream)
         try:
             load_bidsmap(filename, '', False)
         except Exception:

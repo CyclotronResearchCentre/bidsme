@@ -3,6 +3,7 @@ from Modules.MRI.MRI import MRI
 import os
 import logging
 import json
+import pprint
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +26,12 @@ class Nifti_dump(MRI):
 
     def dump(self):
         if self._DICOMDICT_CACHE:
-            return str(self._DICOMDICT_CACHE)
+            return pprint.pformat(self._DICOMDICT_CACHE,
+                                  indent=2, width=40, compact=True)
         elif len(self.files) > 0:
             self.loadFile(0)
-            return str(self._DICOMDICT_CACHE)
+            return pprint.pformat(self._DICOMDICT_CACHE, 
+                                  indent=2, width=40, compact=True)
         else:
             logger.error("No defined files")
             return "No defined files"

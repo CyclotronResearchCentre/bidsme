@@ -9,13 +9,14 @@ logger = logging.getLogger(__name__)
 
 class MRI(object):
     __slots__ = [
-                 "sub", "ses",
                  "modality",
+                 "Subject", "Session",
                  "attributes", "labels", "suffix", 
                  "main_attributes",
                  "index", "files", "rec_path",
                  "type",
                  ]
+    Module = "MRI"
 
     bidsmodalities = {
             "anat" : ("acq", "ce", "rec", "mod", "run"),
@@ -25,8 +26,8 @@ class MRI(object):
             "beh"  : ("task")
             }
 
-    ignoremodality = 'leave_out'
-    unknownmodality = 'extra_data'
+    ignoremodality = '__ignore__'
+    unknownmodality = '__unknown__'
 
     def __init__(self, bidsmap=None, rec_path=""):
         self.type = "None"
@@ -34,12 +35,12 @@ class MRI(object):
         self.rec_path = ""
         self.index = -1
         self.attributes = dict()
-        self.labels = dict()
+        self.labels = list()
         self.suffix = ""
         self.modality = ""
-        self.main_attributes = list()
-        self.sub = ""
-        self.ses = ""
+        self.Subject = "<<SourceFilePath>>"
+        self.Session = "<<SourceFilepath>>"
+        self.main_attributes = set()
 
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
@@ -69,7 +70,8 @@ class MRI(object):
             return self.attributes[attribute]
         else:
             res = self.get_field(attribute)
-            self.attributes[attribute] = res
+            if res:
+                self.attributes[attribute] = res
             return res
 
     def get_dynamic_field(self, field: str):
@@ -140,7 +142,7 @@ class MRI(object):
             if base:
                 return self.files[self.index]
             else:
-                return os.path.join(self._rec_path,self.files[self.index])
+                return os.path.join(self.rec_path,self.files[self.index])
         return None
 
     def set_rec_path(self, rec_path:str) -> int:
@@ -182,11 +184,10 @@ class MRI(object):
                 if bidsmap[modality] and \
                         isinstance(bidsmap[modality], list):
                     for run in bidsmap[modality]:
-                        if "attributes" in run and run['attributes']:
-                            for attkey in run['attributes']:
-                                if self.index > 0:
-                                    self.attributes[attkey] = \
-                                            self.get_field(attkey)
+                        for attkey in run['attributes']:
+                            if self.index >= 0:
+                                self.attributes[attkey] = \
+                                        self.get_field(attkey)
 
     def set_main_attributes(self, run: dict):
         self.main_attributes = [attkey 
@@ -213,20 +214,14 @@ class MRI(object):
                     self.labels[index] = val
 
             self.modality = modality
-        elif modality == 'leave_out':
+        elif modality == self.ignoremodality:
                 self.modality = modality
         else:
-            self.modality = ''
-            self.labels = list()
-            for key in run:
-                if key != "suffix":
-                    val = self.get_dynamic_field(run[key])
-                    if isinstance(val, str):
-                        if val.lower().ends_with(self.suffix.lower()):
-                            val = val[:-len(self.suffix)]
-                    self.labels.append(key)
+            self.modality = self.unknownmodality
 
     def match_attribute(self, attribute, pattern) -> bool:
+        if not pattern:
+            return True
         attval = self.get_attribute(attribute)
         if isinstance(pattern, list):
             for val in pattern:
@@ -252,12 +247,32 @@ class MRI(object):
                 break
         return match_one and match_all
 
+    def getSubId(self):
+        if self.Subject == "":
+            return ""
+        elif self.Subject == '<<SourceFilePath>>':
+            subid = self.get_id_folder("sub-")
+        else:
+            subid = self.get_dynamic_field(self.Subject)
+        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
+
+    def getSesId(self):
+        if self.Session == "":
+            return ""
+        elif self.Session == '<<SourceFilePath>>':
+            subid = self.get_id_folder("ses-")
+        else:
+            subid = self.get_dynamic_field(self.Session)
+        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
+
     def get_bidsname(self):
         tags_list = list()
-        if self.sub:
-            tags_list.append(self.sub)
-        if self.ses:
-            tags_list.append(self.ses)
+        subid = self.getSubId()
+        if subid:
+            tags_list.append(subid)
+        sesid = self.getSesId()
+        if sesid:
+            tags_list.append(sesid)
         for key in self.bidsmodalities[self.modality]:
             if key in self.labels and self.labels[key]:
                 tags_list.append(key + "-" 
@@ -311,10 +326,10 @@ class MRI(object):
             else:
                 sesid = self.get_dynamic_value(sesid)
         # Add sub- and ses- prefixes if they are not there
-        self.subid = 'sub-' + tools.cleanup_value(
+        self.sub = 'sub-' + tools.cleanup_value(
                 re.sub('^sub-', '', subid))
         if sesid:
-            self.sesid = 'ses-' + tools.cleanup_value(
+            self.ses = 'ses-' + tools.cleanup_value(
                      re.sub('^ses-', '', sesid))
         else:
-            self.sesid = ''
+            self.ses = ''
