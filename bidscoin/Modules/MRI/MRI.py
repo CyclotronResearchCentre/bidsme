@@ -204,7 +204,7 @@ class MRI(object):
         run = run["bids"]
         self.suffix = run["suffix"]
         if modality in self.bidsmodalities:
-            self.labels = [None] * len(self.bidsmodalities[modality])
+            self.labels = [""] * len(self.bidsmodalities[modality])
             for index, key in enumerate(self.bidsmodalities[modality]):
                 if key in run and run[key]:
                     val = self.get_dynamic_field(run[key])

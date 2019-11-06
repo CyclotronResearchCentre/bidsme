@@ -85,4 +85,3 @@ class tab_bids_model(QAbstractTableModel):
                 self.values[idx] = run[tag]
         self.suffix = run["suffix"]
         self.layoutChanged.emit()
-

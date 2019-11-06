@@ -1,13 +1,15 @@
 import logging
+import webbrowser
 
 from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
                              QLabel, QTextBrowser, QDialogButtonBox,
                              QTableWidget, QTableWidgetItem,
                              QAbstractItemView,
-                             QTableView, QGroupBox, QComboBox)
+                             QTableView, QGroupBox, QComboBox,
+                             QMessageBox)
 
-from constants import ICON_FILENAME
+from constants import ICON_FILENAME, HELP_URLS, HELP_URL_DEFAULT
 
 from gui import defaults
 from gui.tab_attributes_model import tab_attributes_model
@@ -174,10 +176,10 @@ class EditSample(QDialog):
         buttonBox.button(QDialogButtonBox.Cancel).setToolTip('Discard the edits you made and close this window')
         buttonBox.button(QDialogButtonBox.Help).setToolTip('Go to the online BIDScoin documentation')
 
-        # buttonBox.accepted.connect(self.attributes.update_run)
-        # buttonBox.rejected.connect(partial(self.reject, False))
-        # buttonBox.helpRequested.connect(self.get_help)
-        # buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.reset)
+        buttonBox.accepted.connect(self.update_run)
+        buttonBox.rejected.connect(self.reject_run, False)
+        buttonBox.helpRequested.connect(self.get_help)
+        buttonBox.button(QDialogButtonBox.Reset).clicked.connect(self.reset_run)
 
         # Set-up the main layout
         layout_all = QVBoxLayout(self)
@@ -203,3 +205,42 @@ class EditSample(QDialog):
         self.attributes.setModality(self.attributes.modality,
                                     self.run_dropdown.currentIndex())
         self.bids.updateTags(self.attributes.run["bids"])
+
+    def update_run(self):
+        mod = self.recording.modality
+        r_id = self.attributes.run_id
+        if self.recording.modality == self.attributes.modality:
+            if self.bidsmap[mod][r_id]["provenance"] != self.recording.currentFile():
+                raise ValueError("Provenance file mismatch")
+            self.bidsmap[mod][r_id]["attributes"] = self.attributes.run["attributes"]
+
+        self.bidsmap[mod][r_id]["bids"]
+
+    def reset_run(self):
+        pass
+
+    def reject_run(self):
+        """Ask if the user really wants to close the window"""
+        self.raise_()
+        answer = QMessageBox.question(self, 'Edit BIDS mapping', 
+                                      "Closing window, do you want to "
+                                      "save the changes you made?",
+                                      QMessageBox.Yes | QMessageBox.No 
+                                      | QMessageBox.Cancel,
+                                      QMessageBox.Cancel)
+        if answer == QMessageBox.Yes:
+            logger.debug("Changes are accepted")
+            self.update_run()
+            self.done(1)
+            return
+        if answer == QMessageBox.No:
+            logger.debug("Changes are discarded")
+            self.done(2)
+            return
+        if answer == QMessageBox.Cancel:
+            return
+
+    def get_help(self):
+        """Open web page for help. """
+        help_url = HELP_URLS.get(self.recording.modality, HELP_URL_DEFAULT)
+        webbrowser.open(help_url)
