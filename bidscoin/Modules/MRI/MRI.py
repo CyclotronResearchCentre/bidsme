@@ -3,8 +3,58 @@ import logging
 import re
 
 from tools import tools
+from bidsMeta import MetaField
 
 logger = logging.getLogger(__name__)
+
+mri_meta_required = [
+        # funct specific
+        "RepetitionTime", "VolumeTiming", "TaskName",
+        # fmap specific
+        "IntendedFor"
+        ]
+
+mri_meta_recommended = [ 
+        # Scanner hardware
+        "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
+        "StationName", "SoftwareVersions",
+        "MagneticFieldStrength", "ReceiveCoilName", 
+        "ReceiveCoilActiveElements", 
+        "GradientSetType", "MRTransmitCoilSequence",
+        "MatrixCoilMode", "CoilCombinationMethod",
+        # Sequence Specifics
+        "PulseSequenceType", "ScanningSequence", "SequenceVariant",
+        "ScanOptions", "SequenceName", "PulseSequenceDetails",
+        "NonlinearGradientCorrection",
+        # In-Plane Spatial Encoding
+        "NumberShots", "ParallelReductionFactorInPlane", 
+        "ParallelAcquisitionTechnique", "PartialFourier",
+        "PartialFourierDirection", "PhaseEncodingDirection",
+        "EffectiveEchoSpacing", "TotalReadoutTime"
+        # Timing Parameters
+        "EchoTime", "InversionTime", "SliceTiming", 
+        "SliceEncodingDirection", "DwellTime",
+        # RF & Contrast
+        "FlipAngle", "MultibandAccelerationFactor",
+        # Slice Acceleration
+        "MultibandAccelerationFactor", 
+        # Anatomical landmarks
+        "AnatomicalLandmarkCoordinates", 
+        # Institution information
+        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
+        # funct specific
+        "NumberOfVolumesDiscardedByScanner", "NumberOfVolumesDiscardedByUser",
+        "DelayTime", "AcquisitionDuration", "DelayAfterTrigger",
+        "Instructions", "TaskDescription", "CogAtlasID", "CogPOID"
+        ]
+
+mri_meta_optional = [
+        # RF & Contrast
+        "NegativeContrast",
+        # anat specific
+        "ContrastBolusIngredient",
+
+        ]
 
 
 class MRI(object):
@@ -14,7 +64,8 @@ class MRI(object):
                  "attributes", "labels", "suffix", 
                  "main_attributes",
                  "index", "files", "rec_path",
-                 "type",
+                 "type", "converter",
+                 "metaFields"
                  ]
     Module = "MRI"
 
@@ -31,16 +82,23 @@ class MRI(object):
 
     def __init__(self, bidsmap=None, rec_path=""):
         self.type = "None"
+        self.converter = None
         self.files = list()
         self.rec_path = ""
         self.index = -1
         self.attributes = dict()
         self.labels = list()
         self.suffix = ""
-        self.modality = ""
+        self.modality = self.unknownmodality
         self.Subject = "<<SourceFilePath>>"
-        self.Session = "<<SourceFilepath>>"
+        self.Session = "<<SourceFilePath>>"
         self.main_attributes = set()
+
+        self.metaFields = {key:None for key in 
+                           mri_meta_required
+                           + mri_meta_recommended 
+                           + mri_meta_optional}
+
 
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
@@ -63,7 +121,10 @@ class MRI(object):
         return NotImplementedError
 
     def get_field(self, field: str):
-        raise NotImplemented
+        raise NotImplementedError
+
+    def convert(self, destination, config: dict) -> bool:
+        raise NotImplementedError
 
     def get_attribute(self, attribute: str):
         if attribute in self.attributes:
@@ -76,9 +137,13 @@ class MRI(object):
 
     def get_dynamic_field(self, field: str):
         val = field
-        if not field or not isinstance(field, str) or\
-                field.startswith('<<'):
+        if not field or not isinstance(field, str):
             return field
+        if field.startswith("<<"):
+            if field == "<<1>>":  # run
+                return self.index + 1
+            else: 
+                return field
         if field.startswith('<') and field.endswith('>'):
             val = self.get_attribute(field[1:-1])
             if not val:
@@ -91,6 +156,7 @@ class MRI(object):
         if self.index + 1 >= len(self.files):
             return False
         self.loadFile(self.index + 1)
+        return True
 
     def isComplete(self):
         raise NotImplementedError
@@ -179,11 +245,10 @@ class MRI(object):
 
     def set_attributes(self, bidsmap) -> None:
         self.attributes = dict()
-        if bidsmap is not None:
-            for modality in bidsmap:
-                if bidsmap[modality] and \
-                        isinstance(bidsmap[modality], list):
-                    for run in bidsmap[modality]:
+        if bidsmap:
+            for mod in list(self.bidsmodalities) + [self.ignoremodality]:
+                if mod in bidsmap and bidsmap[mod]:
+                    for run in bidsmap[mod]:
                         for attkey in run['attributes']:
                             if self.index >= 0:
                                 self.attributes[attkey] = \
@@ -201,23 +266,49 @@ class MRI(object):
         self.labels = list()
         if not modality:
             return
-        run = run["bids"]
-        self.suffix = run["suffix"]
         if modality in self.bidsmodalities:
-            self.labels = [""] * len(self.bidsmodalities[modality])
-            for index, key in enumerate(self.bidsmodalities[modality]):
-                if key in run and run[key]:
-                    val = self.get_dynamic_field(run[key])
-                    if isinstance(val, str):
-                        if val.lower().endswith(self.suffix.lower()):
-                            val = val[:-len(self.suffix)]
-                    self.labels[index] = val
-
             self.modality = modality
+            self.labels = [""] * len(self.bidsmodalities[modality])
+            if "bids" in run:
+                run = run["bids"]
+                self.suffix = run["suffix"]
+                for index, key in enumerate(self.bidsmodalities[modality]):
+                    if key in run and run[key]:
+                        val = self.get_dynamic_field(run[key])
+                        if isinstance(val, str):
+                            if val.lower().endswith(self.suffix.lower()):
+                                val = val[:-len(self.suffix)]
+                        self.labels[index] = val
+
         elif modality == self.ignoremodality:
                 self.modality = modality
         else:
             self.modality = self.unknownmodality
+
+    def update_labels(self, run):
+        if self.modality in (self.ignoremodality, self.unknownmodality):
+            return
+
+        run = run["bids"]
+        suffix = run["suffix"]
+        if suffix != self.suffix:
+            raise ValueError("Can't change suffix within same acquisition")
+
+        tags = self.bidsmodalities[self.modality]
+        for index, key in enumerate(tags):
+                    if key in run and run[key]:
+                        val = self.get_dynamic_field(run[key])
+                        if isinstance(val, str):
+                            if val.lower().endswith(self.suffix.lower()):
+                                val = val[:-len(self.suffix)]
+                        if val != self.labels[index]:
+                            logger.info("{}: Updated tag {} from {} to {}"
+                                        .format(self.files[self.index],
+                                                tags[index],
+                                                self.labels[index],
+                                                val))
+                        self.labels[index] = val
+
 
     def match_attribute(self, attribute, pattern) -> bool:
         if not pattern:
@@ -250,8 +341,11 @@ class MRI(object):
     def getSubId(self):
         if self.Subject == "":
             return ""
-        elif self.Subject == '<<SourceFilePath>>':
-            subid = self.get_id_folder("sub-")
+        elif self.Subject.startswith("<<"):
+            if self.Subject == '<<SourceFilePath>>':
+                subid = self.get_id_folder("sub-")
+            else:
+                raise ValueError("Illegal field value: {}".format(self.Subject))
         else:
             subid = self.get_dynamic_field(self.Subject)
         return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
@@ -259,11 +353,14 @@ class MRI(object):
     def getSesId(self):
         if self.Session == "":
             return ""
-        elif self.Session == '<<SourceFilePath>>':
-            subid = self.get_id_folder("ses-")
+        elif self.Session.startswith("<<"):
+            if self.Session == '<<SourceFilePath>>':
+                subid = self.get_id_folder("ses-")
+            else:
+                raise ValueError("Illegal field value: {}".format(self.Session))
         else:
             subid = self.get_dynamic_field(self.Session)
-        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
+        return 'ses-' + tools.cleanup_value(re.sub('^ses-', '', subid))
 
     def get_bidsname(self):
         tags_list = list()
@@ -273,10 +370,10 @@ class MRI(object):
         sesid = self.getSesId()
         if sesid:
             tags_list.append(sesid)
-        for key in self.bidsmodalities[self.modality]:
-            if key in self.labels and self.labels[key]:
+        for key, val in zip(self.bidsmodalities[self.modality], self.labels):
+            if val:
                 tags_list.append(key + "-" 
-                                 + tools.cleanup_value(self.labels[key]))
+                                 + tools.cleanup_value(val))
 
         if self.suffix:
             tags_list.append(tools.cleanup_value(self.suffix))
@@ -333,3 +430,22 @@ class MRI(object):
                      re.sub('^ses-', '', sesid))
         else:
             self.ses = ''
+
+    def generateMeta(self):
+        if not self.modality:
+            raise ValueError("Modality wasn't defined")
+
+        for key, field in self.metaFields.items():
+            if field and field.name:
+                field.value = self.get_field(field.name)
+        if "task" in self.bidsmodalities[self.modality]:
+            idx = self.bidsmodalities[self.modality].index("task")
+            if self.labels[idx]:
+                self.metaFields["task"] = MetaField("", "", self.labels[idx])
+
+    def exportMeta(self):
+        return {key: field.value for key,field in self.metaFields.items()
+                if field is not None
+                and field.value is not None}
+
+        

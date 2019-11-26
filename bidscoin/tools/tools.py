@@ -1,4 +1,8 @@
 import re
+import logging
+import subprocess
+
+logger = logging.getLogger(__name__)
 
 def cleanup_value(label):
     """
@@ -32,3 +36,25 @@ def match_value(val, regexp, force_str=False):
         regexp = regexp.strip()
         return (re.fullmatch(regexp, val) is not None)
     return val == regexp
+
+def run_command(command: str) -> bool:
+    """
+    Runs a command in a shell using subprocess.run(command, ..)
+
+    :param command: the command that is executed
+    :return:        True if the were no errors, False otherwise
+    """
+
+    logger.info(f"Running: {command}")
+    # TODO: investigate shell=False and capture_output=True for python 3.7
+    process = subprocess.runqqqcommand, shell=True,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+    logger.info(f"Output:\n{process.stdout.decode('utf-8')}")
+
+    if process.stderr.decode('utf-8') or process.returncode != 0:
+        logger.error("Failed to run {} (errorcode {})"
+                     .format(command, process.returncode))
+        return False
+
+    return True

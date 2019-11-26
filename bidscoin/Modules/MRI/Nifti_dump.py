@@ -1,4 +1,6 @@
 from Modules.MRI.MRI import MRI
+from bidsMeta import MetaField
+from tools import tools
 
 import os
 import logging
@@ -18,11 +20,55 @@ class Nifti_dump(MRI):
         self._DICOMFILE_CACHE = ""
         self.isSiemens = False
         self.type = "Nifti_dump"
+        self.converter = "cp"
 
         if rec_path:
             self.set_rec_path(rec_path)
         if bidsmap:
             self.set_attributes(bidsmap)
+
+        self.metaFields["RepetitionTime"] = MetaField("RepetitionTime", 0.001)
+        self.metaFields["Manufacturer"] = MetaField("Manufacturer")
+        self.metaFields["ManufacturerModelName"] = MetaField("ManufacturerModelName")
+        self.metaFields["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
+        self.metaFields["StationName"] = MetaField("StationName")
+        self.metaFields["SoftwareVersions"] = MetaField("SoftwareVersions")
+        self.metaFields["MagneticFieldStrength"] = MetaField("MagneticFieldStrength",1.)
+        self.metaFields["ReceiveCoilActiveElements"] = MetaField("CSASeriesHeaderInfo/CoilString")
+        self.metaFields["ScanningSequence"] = MetaField("ScanningSequence")
+        self.metaFields["SequenceVariant"] = MetaField("SequenceVariant")
+        self.metaFields["ScanOptions"] = MetaField("ScanOptions")
+        self.metaFields["SequenceName"] = MetaField("SequenceName")
+        self.metaFields["PhaseEncodingDirectionSign"] = MetaField(
+                "CSAImageHeaderInfo/PhaseEncodingDirectionPositive")
+        self.metaFields["EchoTime"] = MetaField("EchoTime",0.001)
+        self.metaFields["DwellTime"] = MetaField("Private_0019_1018",0.001)
+
+        self.metaFields["FlipAngle"] = MetaField("FlipAngle",1.)
+        self.metaFields["B1mapNominalFAValues"] = MetaField("B1mapNominalFAValues",1.)
+        self.metaFields["MixingTime"] = MetaField("B1mapMixingTime", 0.001)
+        self.metaFields["epiReadoutDuration"] = MetaField("epiReadoutDuration",0.001)
+        self.metaFields["ProtocolName"] = MetaField("ProtocolName")
+        self.metaFields["RFSpoilingPhaseIncrement"] = MetaField("RFSpoilingPhaseIncrement",1.)
+        self.metaFields["spoilingGradientMoment"] = MetaField("spoilingGradientMoment", 1.)
+        self.metaFields["spoilingGradientDuration"] = MetaField("spoilingGradientDuration", 0.001)
+        self.metaFields["BandwidthPerPixelRO"] = MetaField("BandwidthPerPixelRO",1.)
+        self.metaFields["NumberOfMeasurements"] = MetaField("NumberOfMeasurements",1)
+        self.metaFields["InstitutionName"] = MetaField("InstitutionName")
+        self.metaFields["InstitutionAddress"] = MetaField("InstitutionAddress")
+        self.metaFields["InstitutionalDepartmentName"] = MetaField("InstitutionalDepartmentName")
+
+
+    def convert(self, destination: str, options: dict) -> bool:
+        args = ""
+        if self.converter in options and "args" in options[self.converter]:
+            args = options[self.converter]["args"]
+        if not args:
+            args = ""
+        cmd = "cp " + args + self.currentFile() + " " \
+                + os.path.join(destination, 
+                               self.get_bidsname() + ".nii")
+        return tools.run_command(cmd)
 
     def dump(self):
         if self._DICOMDICT_CACHE:
@@ -88,14 +134,21 @@ class Nifti_dump(MRI):
 
     def get_field(self, field: str):
         try:
-            value = self._DICOMDICT_CACHE.get(field)
-            if not value:
-                for elem in self._DICOMDICT_CACHE.iterall():
-                    if elem.name == field:
-                        value = elem.value
-                        continue
+            if '/' in field:
+                fields = field.split('/')
+                value = self._DICOMDICT_CACHE.get(fields[0])
+                for f in fields[1:]:
+                    value = value[f]
+                
+            else:
+                value = self._DICOMDICT_CACHE.get(field)
+                if not value:
+                    for elem in self._DICOMDICT_CACHE.iterall():
+                        if elem.name == field:
+                            value = elem.value
+                            continue
         except Exception: 
-            logger.warning("Could not parse {} from {}"
+            logger.warning("Could not parse '{}' from {}"
                            .format(field, self._DICOMFILE_CACHE))
             value = None
 

@@ -18,6 +18,7 @@ class DICOM(MRI):
         self._DICOMFILE_CACHE = ""
         self.isSiemens = False
         self.type = "DICOM"
+        self.converter = "dcm2niix"
 
         if recording:
             self.set_rec_path(recording)
@@ -45,6 +46,25 @@ class DICOM(MRI):
                     return 'Modality' in dicomdict
         else:
             return False
+
+    def convert(self, destination: str, options: dict) -> bool:
+        if self.converter not in options:
+            raise ValueError("Missing configuration options for {}"
+                             .format(self.converter))
+        options = options['dcm2niix']
+        command = '{path}dcm2niix {args} -f "{filename}" '\
+                '-o "{outfolder}" "{infolder}"'\
+                .format(path      = options['path'],
+                        args      = options['args'],
+                        filename  = self.get_bidsname(),
+                        outfolder = destination,
+                        infolder  = self.rec_path)
+
+        if not bids.run_command(command):
+            return False
+        return True
+
+
 
     def loadFile(self, index: int) -> None:
         path = self.files[index]

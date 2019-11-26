@@ -137,29 +137,6 @@ def reporterrors():
                 "e.g. from pathnames")
 
 
-def run_command(command: str) -> bool:
-    """
-    Runs a command in a shell using subprocess.run(command, ..)
-
-    :param command: the command that is executed
-    :return:        True if the were no errors, False otherwise
-    """
-
-    logger.info(f"Running: {command}")
-    # TODO: investigate shell=False and capture_output=True for python 3.7
-    process = subprocess.run(command, shell=True,
-                             stdout=subprocess.PIPE, 
-                             stderr=subprocess.PIPE)
-    logger.info(f"Output:\n{process.stdout.decode('utf-8')}")
-
-    if process.stderr.decode('utf-8') or process.returncode != 0:
-        logger.error("Failed to run {} (errorcode {})"
-                     .format(command, process.returncode))
-        return False
-
-    return True
-
-
 def import_plugin(plugin: str):
     """
 
@@ -704,7 +681,7 @@ def exist_run(recording,
     return res
 
 
-def get_matching_run(recording, bidsmap: dict):
+def get_matching_run(recording, bidsmap: dict) -> int:
     """
     Find the first run in the bidsmap with dicom attributes 
     that match with the dicom file. 
@@ -721,6 +698,10 @@ def get_matching_run(recording, bidsmap: dict):
                         if there is no match, the run is still populated 
                         with info from the dicom-file
     """
+    recording.modality = recording.unknownmodality
+    recording.set_labels("")
+    run_id = -1
+
     # Loop through all bidsmodalities and runs; all info goes into run_
     for modality in recording.bidsmodalities:
         if modality not in bidsmap: 
@@ -733,18 +714,21 @@ def get_matching_run(recording, bidsmap: dict):
             if recording.match_run(run):
                 recording.set_labels(modality, bidsmap[modality][index])
                 recording.set_main_attributes(bidsmap[modality][index])
+                run_id = index
                 break
 
-    if recording.modality == "":
-        # We don't have a match (all tests failed, 
-        # so modality should be the *last* one, 
-        # i.e. unknownmodality)
-        if "extra_data" in bidsmap:
-            recording.set_labels("", bidsmap["extra_data"])
-        else:
-            recording.set_labels("", dict())
+    if recording.modality == recording.unknownmodality:
+        if recording.ignoremodality in bidsmap and bidsmap[recording.ignoremodality]:
+            for index, run in enumerate(bidsmap[recording.ignoremodality]):
+                if recording.match_run(run):
+                    recording.modality = recording.unknownmodality
+                    run_id = index
+                    break
+
+    if recording.modality == recording.unknownmodality:
         logger.debug("Could not find a matching run in the bidsmap for {} -> {}"
                      .format(recording.currentFile(), modality))
+    return run_id
 
 
 def get_subid_sesid(recording,
