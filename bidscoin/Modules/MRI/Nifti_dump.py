@@ -6,6 +6,7 @@ import os
 import logging
 import json
 import pprint
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -27,37 +28,64 @@ class Nifti_dump(MRI):
         if bidsmap:
             self.set_attributes(bidsmap)
 
-        self.metaFields["RepetitionTime"] = MetaField("RepetitionTime", 0.001)
-        self.metaFields["Manufacturer"] = MetaField("Manufacturer")
-        self.metaFields["ManufacturerModelName"] = MetaField("ManufacturerModelName")
-        self.metaFields["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
-        self.metaFields["StationName"] = MetaField("StationName")
-        self.metaFields["SoftwareVersions"] = MetaField("SoftwareVersions")
-        self.metaFields["MagneticFieldStrength"] = MetaField("MagneticFieldStrength",1.)
-        self.metaFields["ReceiveCoilActiveElements"] = MetaField("CSASeriesHeaderInfo/CoilString")
-        self.metaFields["ScanningSequence"] = MetaField("ScanningSequence")
-        self.metaFields["SequenceVariant"] = MetaField("SequenceVariant")
-        self.metaFields["ScanOptions"] = MetaField("ScanOptions")
-        self.metaFields["SequenceName"] = MetaField("SequenceName")
-        self.metaFields["PhaseEncodingDirectionSign"] = MetaField(
-                "CSAImageHeaderInfo/PhaseEncodingDirectionPositive")
-        self.metaFields["EchoTime"] = MetaField("EchoTime",0.001)
-        self.metaFields["DwellTime"] = MetaField("Private_0019_1018",0.001)
+        self.metaFields["RepetitionTime"]\
+            = MetaField("RepetitionTime", 0.001)
+        self.metaFields["Manufacturer"]\
+            = MetaField("Manufacturer")
+        self.metaFields["ManufacturerModelName"]\
+            = MetaField("ManufacturerModelName")
+        self.metaFields["DeviceSerialNumber"]\
+            = MetaField("DeviceSerialNumber")
+        self.metaFields["StationName"]\
+            = MetaField("StationName")
+        self.metaFields["SoftwareVersions"]\
+            = MetaField("SoftwareVersions")
+        self.metaFields["MagneticFieldStrength"]\
+            = MetaField("MagneticFieldStrength",1.)
+        self.metaFields["ReceiveCoilActiveElements"]\
+            = MetaField("CSASeriesHeaderInfo/CoilString")
+        self.metaFields["ScanningSequence"]\
+            = MetaField("ScanningSequence")
+        self.metaFields["SequenceVariant"]\
+            = MetaField("SequenceVariant")
+        self.metaFields["ScanOptions"]\
+            = MetaField("ScanOptions")
+        self.metaFields["SequenceName"]\
+            = MetaField("SequenceName")
+        self.metaFields["PhaseEncodingDirectionSign"]\
+            = MetaField(
+            "CSAImageHeaderInfo/PhaseEncodingDirectionPositive")
+        self.metaFields["EchoTime"]\
+            = MetaField("EchoTime",0.001)
+        self.metaFields["DwellTime"]\
+            = MetaField("Private_0019_1018",0.001)
 
-        self.metaFields["FlipAngle"] = MetaField("FlipAngle",1.)
-        self.metaFields["B1mapNominalFAValues"] = MetaField("B1mapNominalFAValues",1.)
-        self.metaFields["MixingTime"] = MetaField("B1mapMixingTime", 0.001)
-        self.metaFields["epiReadoutDuration"] = MetaField("epiReadoutDuration",0.001)
-        self.metaFields["ProtocolName"] = MetaField("ProtocolName")
-        self.metaFields["RFSpoilingPhaseIncrement"] = MetaField("RFSpoilingPhaseIncrement",1.)
-        self.metaFields["spoilingGradientMoment"] = MetaField("spoilingGradientMoment", 1.)
-        self.metaFields["spoilingGradientDuration"] = MetaField("spoilingGradientDuration", 0.001)
-        self.metaFields["BandwidthPerPixelRO"] = MetaField("BandwidthPerPixelRO",1.)
-        self.metaFields["NumberOfMeasurements"] = MetaField("NumberOfMeasurements",1)
-        self.metaFields["InstitutionName"] = MetaField("InstitutionName")
-        self.metaFields["InstitutionAddress"] = MetaField("InstitutionAddress")
-        self.metaFields["InstitutionalDepartmentName"] = MetaField("InstitutionalDepartmentName")
-
+        self.metaFields["FlipAngle"]\
+            = MetaField("FlipAngle",1.)
+        self.metaFields["B1mapNominalFAValues"]\
+            = MetaField("B1mapNominalFAValues",1.)
+        self.metaFields["MixingTime"]\
+            = MetaField("B1mapMixingTime", 0.001)
+        self.metaFields["epiReadoutDuration"]\
+            = MetaField("epiReadoutDuration",0.001)
+        self.metaFields["ProtocolName"]\
+            = MetaField("ProtocolName")
+        self.metaFields["RFSpoilingPhaseIncrement"]\
+            = MetaField("RFSpoilingPhaseIncrement",1.)
+        self.metaFields["spoilingGradientMoment"]\
+            = MetaField("spoilingGradientMoment", 1.)
+        self.metaFields["spoilingGradientDuration"]\
+            = MetaField("spoilingGradientDuration", 0.001)
+        self.metaFields["BandwidthPerPixelRO"]\
+            = MetaField("BandwidthPerPixelRO",1.)
+        self.metaFields["NumberOfMeasurements"]\
+            = MetaField("NumberOfMeasurements",1)
+        self.metaFields["InstitutionName"]\
+            = MetaField("InstitutionName")
+        self.metaFields["InstitutionAddress"]\
+            = MetaField("InstitutionAddress")
+        self.metaFields["InstitutionalDepartmentName"]\
+            = MetaField("InstitutionalDepartmentName")
 
     def convert(self, destination: str, options: dict) -> bool:
         args = ""
@@ -66,9 +94,16 @@ class Nifti_dump(MRI):
         if not args:
             args = ""
         cmd = "cp " + args + self.currentFile() + " " \
-                + os.path.join(destination, 
-                               self.get_bidsname() + ".nii")
+            + os.path.join(destination, 
+                           self.get_bidsname() + ".nii")
         return tools.run_command(cmd)
+
+    def acq_time(self) -> datetime:
+        date_stamp = int(self.get_field("AcquisitionDate"))
+        time_stamp = float(self.get_field("AcquisitionTime"))
+        days = date_stamp % 1
+        return datetime.fromordinal(date_stamp) \
+            + timedelta(days=days - 366, seconds=time_stamp)
 
     def dump(self):
         if self._DICOMDICT_CACHE:
@@ -139,7 +174,6 @@ class Nifti_dump(MRI):
                 value = self._DICOMDICT_CACHE.get(fields[0])
                 for f in fields[1:]:
                     value = value[f]
-                
             else:
                 value = self._DICOMDICT_CACHE.get(field)
                 if not value:

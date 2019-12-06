@@ -326,11 +326,6 @@ def load_bidsmap(yamlfile: str='',
                        .format(yamlfile, bidsmapversion, version())
                        )
 
-    # Make sure we get a proper list of plugins
-    if not bidsmap['PlugIns']:
-        bidsmap['PlugIns'] = []
-    bidsmap['PlugIns'] = [plugin for plugin in bidsmap['PlugIns'] if plugin]
-
     return bidsmap, yamlfile
 
 
@@ -698,7 +693,6 @@ def get_matching_run(recording, bidsmap: dict) -> int:
                         if there is no match, the run is still populated 
                         with info from the dicom-file
     """
-    recording.modality = recording.unknownmodality
     recording.set_labels("")
     run_id = -1
 

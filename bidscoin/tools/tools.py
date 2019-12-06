@@ -47,7 +47,7 @@ def run_command(command: str) -> bool:
 
     logger.info(f"Running: {command}")
     # TODO: investigate shell=False and capture_output=True for python 3.7
-    process = subprocess.runqqqcommand, shell=True,
+    process = subprocess.run(command, shell=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
     logger.info(f"Output:\n{process.stdout.decode('utf-8')}")
@@ -58,3 +58,9 @@ def run_command(command: str) -> bool:
         return False
 
     return True
+
+def change_ext(filename, new_ext):
+    pos = filename.rfind('.')
+    if pos > 0 :
+        filename = filename[:pos]
+    return filename + "." + new_ext

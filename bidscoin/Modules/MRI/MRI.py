@@ -1,9 +1,11 @@
 import os
 import logging
 import re
+from datetime import datetime
 
 from tools import tools
 from bidsMeta import MetaField
+from bidsMeta import BIDSfieldLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +67,9 @@ class MRI(object):
                  "main_attributes",
                  "index", "files", "rec_path",
                  "type", "converter",
-                 "metaFields"
+                 "metaFields",
+                 "rec_BIDSvalues",
+                 "sub_BIDSvalues"
                  ]
     Module = "MRI"
 
@@ -80,6 +84,36 @@ class MRI(object):
     ignoremodality = '__ignore__'
     unknownmodality = '__unknown__'
 
+    rec_BIDSfields = BIDSfieldLibrary()
+    rec_BIDSfields.AddField(
+        name="filename",
+        longName="File Name",
+        description="Path to the scan file")
+    rec_BIDSfields.AddField(
+        name="acq_time",
+        longName="Acquisition time",
+        description="Time corresponding to the first data "
+        "taken during the scan")
+
+    sub_BIDSfields = BIDSfieldLibrary()
+    sub_BIDSfields.AddField(
+            name="participant_id",
+            longName="Participant Id",
+            description="label identifying a particular subject")
+    sub_BIDSfields.AddField(
+        name="age",
+        longName="Age",
+        description="Age of a subject",
+        units="year")
+    sub_BIDSfields.AddField(
+        name="sex",
+        longName="Sex",
+        description="Sex of a subject",
+        levels={
+            "F"   : "Female",
+            "M"   : "Male"}
+            )
+    
     def __init__(self, bidsmap=None, rec_path=""):
         self.type = "None"
         self.converter = None
@@ -98,7 +132,8 @@ class MRI(object):
                            mri_meta_required
                            + mri_meta_recommended 
                            + mri_meta_optional}
-
+        self.rec_BIDSvalues = dict()
+        self.sub_BIDSvalues = dict()
 
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
@@ -115,6 +150,9 @@ class MRI(object):
         pass
 
     def loadFile(self, index: int) -> None:
+        raise NotImplementedError
+
+    def acq_time(self) -> datetime:
         raise NotImplementedError
 
     def dump(self):
@@ -262,7 +300,7 @@ class MRI(object):
 
     def set_labels(self, modality, run=dict()):
         self.suffix = ""
-        self.modality = ""
+        self.modality = self.unknownmodality
         self.labels = list()
         if not modality:
             return

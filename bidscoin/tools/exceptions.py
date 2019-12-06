@@ -47,3 +47,21 @@ class PluginModuleNotFound(PluginError):
     Raises if no plugin modules found in plugin file
     """
     code = 102
+
+class PluginInitEP(PluginError):
+    """
+    Raises if an error happens during the plugin initialisation
+    """
+    code = 110
+
+class PluginSessionEP(PluginError):
+    """
+    Raises if an error happens during the Subject/Session adjustement
+    """
+    code = 120
+
+class PluginRecordingEP(PluginError):
+    """
+    Raises if an error happens during the recording adjustement
+    """
+    code = 130

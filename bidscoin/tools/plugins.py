@@ -30,10 +30,15 @@ import tools.exceptions
 
 Logger = logging.getLogger(__name__)
 
-entry_points = dict()
+entry_points = {
+        "InitEP" : tools.exceptions.PluginInitEP,
+        "SessionEP" : tools.exceptions.PluginSessionEP,
+        "RecordingEP": tools.exceptions.PluginRecordingEP
+        }
 
 file = ""
 active_plugins = dict()
+
 
 def ImportPlugins(plugin_file):
     """
@@ -65,7 +70,15 @@ def ImportPlugins(plugin_file):
         return 0
 
     global file 
-    file = plugin_file
+
+    # trying full path
+    path, base = os.path.split(plugin_file)
+    if path == "":
+        file = os.path.join(os.path.dirname(__file__),
+                            "..", "plugins",
+                            base)
+    else:
+        file = plugin_file
 
     if not os.path.isfile(file):
         raise tools.exceptions.PluginNotfound("Plug-in file {} not found"
@@ -91,7 +104,28 @@ def ImportPlugins(plugin_file):
                        "no compatible functions found".format(pl_name))
     return len(active_plugins)
 
-def RunPlugin(entry, parameters, opt={}):
+
+def InitPlugin(cli_params, cfi_params):
+    """
+    Initialize the plugin by calling InitEP function with command line (args)
+    and configuration file (kwargs) arguments
+
+    Parameters
+    ----------
+    cli_params: list
+        list of command line parameters passed to plugin
+    cfi_params: dict
+        dictionary of parameters from configuration file passed to plugin
+    """
+    if cli_params or cfi_params:
+        if "InitEP" not in active_plugins:
+            raise tools.exception.PluginModuleNotFound(
+                    "Passed parameters but plugin "
+                    "but plugin don't have initializer")
+        RunPlugin("InitEP", *cli_params, **cfi_params)
+
+
+def RunPlugin(entry, *args, **kwargs):
     """
     Executes a given function from plugin, recovers the exit code of plugin
     and transforms it into corresponding exception.
@@ -114,10 +148,10 @@ def RunPlugin(entry, parameters, opt={}):
         return
     result = 0
     try:
-        if opt:
-            result = active_plugins[entry](*parameters, **opt)
+        if kwargs:
+            result = active_plugins[entry](*args, **kwargs)
         else:
-            result = active_plugins[entry](*parameters)
+            result = active_plugins[entry](*args)
     except tools.exceptions.PluginError:
         raise
     except Exception as e:
@@ -129,4 +163,3 @@ def RunPlugin(entry, parameters, opt={}):
                                 .format(entry, result))
         e.code += result % 10
         raise e
-
