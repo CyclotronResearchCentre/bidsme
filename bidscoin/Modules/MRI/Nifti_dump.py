@@ -5,6 +5,7 @@ from tools import tools
 import os
 import logging
 import json
+import shutil
 import pprint
 from datetime import datetime, timedelta
 
@@ -97,6 +98,11 @@ class Nifti_dump(MRI):
             + os.path.join(destination, 
                            self.get_bidsname() + ".nii")
         return tools.run_command(cmd)
+
+    def copy_file(self, destination):
+        shutil.copy(self.currentFile(), destination)
+        shutil.copy(tools.change_ext(self.currentFile(),"json"),
+                    destination)
 
     def acq_time(self) -> datetime:
         date_stamp = int(self.get_field("AcquisitionDate"))
@@ -191,7 +197,7 @@ class Nifti_dump(MRI):
         elif isinstance(value, int):
             return int(value)
         else:
-            return str(value)
+            return str(value).strip()
 
     def clearCache(self) -> None:
         self._DICOMDICT_CACHE = None

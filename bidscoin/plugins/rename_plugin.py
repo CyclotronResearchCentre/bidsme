@@ -1,9 +1,15 @@
 import os
 import pandas
+import glob
+import shutil
 
 import bids
-import tools.exceptions as exceptions
+import logging
 
+logger = logging.getLogger(__name__)
+
+source = None
+destination = None
 df_subjects = None
 
 excel_col_list = {'Patient' : 'pat',
@@ -12,13 +18,28 @@ excel_col_list = {'Patient' : 'pat',
                   'Contrôle' : "cnt",
                   'S_A_E.1': "cnt_sae",
                   '1.1': "cnt_1", '2.1': "cnt_2", '3.1': "cnt_3",
-              }
+                  }
 
-def SubjectEP(session, subject_file=""):
-    if subject_file == "":
-        subject_file = os.path.join(session.in_path, "Appariement.xlsx")
+
+def InitEP(**kwargs):
+    global source
+    global destination
+    global subject_file
+
+    source = kwargs["source"]
+    destination = kwargs["source"]
+
+    if "subjects" in kwargs:
+        subject_file = kwargs["subjects"]
+    else:
+        subject_file = os.path.join(source, "Appariement.xlsx")
+    if not os.path.isfile(subject_file):
+        raise FileNotFoundError(str(subject_file))
+
+
+def SubjectEP(session):
     global df_subjects
-    global excel_col_list
+
     if df_subjects is None:
         df_subjects = pandas.read_excel(subject_file,
                                         sheet_name=0, header=0,
@@ -26,9 +47,9 @@ def SubjectEP(session, subject_file=""):
         df_subjects.rename(index=str, columns=excel_col_list,inplace=True)
         df_subjects = df_subjects[df_subjects['pat'].notnull()
                                   | df_subjects['cnt'].notnull()]
-    
+
     # looking for subject in table
-    sub_id = int(session.subject)
+    sub_id = int(session["subject"])
     index = df_subjects.loc[df_subjects["pat"] == sub_id].index 
     status = 0
     prefix = "pat"
@@ -46,7 +67,7 @@ def SubjectEP(session, subject_file=""):
     E = int(l[2])
 
     line = ["n/a"] * 9
-    line[0] = "sub-" + session.subject
+    line[0] = "sub-" + session["subject"]
     line[1] = l[0]
     line[2] = l[1]
     line[3] = l[2]
@@ -61,22 +82,66 @@ def SubjectEP(session, subject_file=""):
     line[8] = "ses-{}".format(df_subjects.loc[index, prefix + "_3"])
 
     ses = sorted([os.path.basename(s) for s in 
-                  bids.lsdirs(os.path.join(session.in_path, 
-                                           session.subject
-                                           )
-                              )
+                  bids.lsdirs(os.path.join(source, session["subject"]))
                   ])
     scans = df_subjects.loc[index, prefix + "_1":prefix + "_3"].to_list()
-    session.scans = dict()
+    session["scans"] = dict()
     for name, scan in zip(scans, ses):
-        session.scans[scan] = name
+        session["scans"][scan] = name
 
     # creating tsv file
-    with open(os.path.join(session.out_path, "participants.tsv"), "a") as f:
+    tsv_file = os.path.join(destination, "participants.tsv")
+    if not os.path.isfile(tsv_file):
+        with open(tsv_file, 'w') as f:
+            f.write("\t".join(("participant_id",
+                               "sex",
+                               "age",
+                               "score",
+                               "group",
+                               "paired",
+                               "ses_1",
+                               "ses_2",
+                               "ses_3")
+                              )
+                    )
+            f.write("\n")
+    with open(os.path.join(destination, "participants.tsv"), "a") as f:
         f.write("\t".join(line))
         f.write("\n")
-        
+
     return 0
 
+
 def SessionEP(session):
-    session.session = session.scans[session.session]
+    session["session"] = session["scans"][session["session"]]
+
+
+def RecordingEP(session, recording):
+    if session["session"] == "STROOP":
+        return 0
+
+    logs = os.path.dirname(recording.rec_path) + "/inp"
+    if not os.path.isdir(logs):
+        raise NotADirectoryError(logs)
+
+    aux_d = os.path.join(session["path"], "aux")
+    if not os.path.isdir(aux_d):
+        os.makedirs(aux_d)
+
+    # Task log file
+    # FCsepNBack_003_1.log
+    task_fl = glob.glob(logs + "/FCsepNBack*.log")
+    for file in task_fl:
+        shutil.copy(file, aux_d)
+
+    # KSS log file
+    # KSS_Vas_003_2.log
+    kss_fl = glob.glob(logs + "/KSS_Vas*.log")
+    for file in kss_fl:
+        shutil.copy(file, aux_d)
+
+    return 0
+
+
+# def FileEP(session, path, recording):
+#     pass

@@ -1,8 +1,28 @@
+import os
 import re
+import glob
 import logging
 import subprocess
 
 logger = logging.getLogger(__name__)
+
+
+def lsdirs(folder: str, wildcard: str='*'):
+    """
+    Gets all directories in a folder, ignores files
+
+    :param folder:      The full pathname of the folder
+    :param wildcard:    Simple (glob.glob) shell-style wildcards. 
+                        Foldernames starting with a dot are special cases that 
+                        are not matched by '*' and '?' patterns.") wildcard
+    :return:            Iterable filter object with all directories in a folder
+    """
+
+    if wildcard:
+        folder = os.path.join(folder, wildcard)
+    return [fname for fname in sorted(glob.glob(folder))
+            if os.path.isdir(fname)]
+
 
 def cleanup_value(label):
     """

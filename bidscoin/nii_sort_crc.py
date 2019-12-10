@@ -7,25 +7,16 @@ Sorts and renames NII files into local sub-direcories
 creates in destination directory participants.tsv with subject
 information from external source
 """
-
-"""
-TODO:
-    possibility to not have sessions and/or subjects 
-        (use PatientID and StudyID)
-    plugins to rename subject and session
-"""
-
-
 import os
-import re
 import warnings
-import json
-import shutil
-import importlib.util
 
 import bids
+
+import tools.tools as tools
 import tools.plugins as plugins
 import tools.exceptions as exceptions
+
+from Modules.MRI.selector import select as MRI_select
 
 
 class SubjectEPerror(exceptions.PluginError):
@@ -41,100 +32,123 @@ class SessionEPerror(exceptions.PluginError):
     """
     code = 120
 
+class RecordingEPerror(exceptions.PluginError):
+    """
+    Raises if error occured in RecordingEP plugin
+    """
+    code = 130
+
+class FileEPerror(exceptions.PluginError):
+    """
+    Raises if error occured in FileEP plugin
+    """
+    code = 140
 
 plugins.entry_points = {
+        "InitEP" : exceptions.PluginError,
         "SubjectEP" : SubjectEPerror,
-        "SessionEP" : SessionEPerror
+        "SessionEP" : SessionEPerror,
+        "RecordingEP" : RecordingEPerror,
+        "FileEP" : FileEPerror
         }
 
-def sortsession(destination: str, 
-                sub: str, ses: str,
-                niifiles: list) -> None: 
 
-    if len(niifiles) == 0:
-        print('>> No files to process')
-        return
-    print('>> Processing: sub-{}/ses-{} ({} files)'
-          .format(sub,ses,len(niifiles)))
+def sortsession(destination: str, 
+                scan: dict,
+                recording: object) -> None: 
+
+    print(">> Processing: sub '{}', ses '{}' ({} files)"
+          .format(scan["subject"],scan["session"],len(recording.files)))
+
     outfolder = os.path.join(destination, 
-                             "sub-" + sub,
-                             "ses-" + ses)
+                             bids.add_prefix("sub-",scan["subject"]),
+                             bids.add_prefix("ses-",scan["session"]))
+
     if not os.path.isdir(outfolder):
         os.makedirs(outfolder)
 
-    for niifile in niifiles:
-        json_file = niifile[:-len(".nii")] + ".json"
-        with open(json_file, "r") as f:
-            meta = json.load(f)["acqpar"][0]
+    recording.index = -1
+    while recording.loadNextFile():
+        seriesnr = recording.get_rec_no()
+        if seriesnr:
+            seriesnr = str(seriesnr) + "-"
+        seriesdescr = recording.get_rec_id()
 
-        seriesnr = meta["SeriesNumber"]
-        seriesdescr = meta["SeriesDescription"].strip()
-        acqnumber = meta["AcquisitionNumber"]
-        instnumber = meta["InstanceNumber"]
-
-        if not seriesnr:
-            warnings.warn('No SeriesNumber found, skipping: {}'
-                          .format(niifile))
-            continue
-        if not seriesdescr:
-            seriesdescr = meta['ProtocolName'].strip()
-            if not seriesdescr:
-                seriesdescr = 'unknown_protocol'
-                warnings.warn('No SeriesDecription or '
-                              'ProtocolName found for: {}'
-                              .format(niifile))
-        serie = os.path.join(outfolder, "{}-{}".format(seriesnr, seriesdescr))
+        serie = os.path.join(outfolder, 
+                             "{}/{}{}".format(recording.Module,
+                                              seriesnr, seriesdescr))
+        plugins.RunPlugin("FileEP", scan, serie, recording)
         if not os.path.isdir(serie):
-            os.mkdir(serie)
-        shutil.copy(niifile, serie)
-        shutil.copy(json_file, serie)
+            os.makedirs(serie)
+        recording.copy_file(serie)
 
-class CScan():
-    def __init__(self):
-        self.subject = ""
-        self.session = ""
-        self.in_path = ""
-        self.out_path = ""
 
-def sortsessions(session: str, destination:str,
+def sortsessions(source: str, destination:str,
                  subjectid: str='', sessionid: str='',
-                 niifolder: str='nii',
+                 recfolder: list=[''],
+                 rectypes: list=[''],
+                 sessions: bool=True,
                  plugin_file: str="",
                  plugin_opt: dict={}) -> None:
 
     # Input checking
-    session = os.path.abspath(os.path.expanduser(session))
+    source = os.path.realpath(source)
 
     plugins.ImportPlugins(plugin_file)
-    scan = CScan()
-    scan.in_path = session
-    scan.out_path = destination
+    plugin_opt["source"] = source
+    plugin_opt["destination"] = destination
+    plugins.InitPlugin(plugin_opt)
 
-    # Define the sessionfolder, collect all DICOM files and run sortsession()
-    folders = bids.lsdirs(session, subjectid + '*')
+    scan = {"subject": "", "session": "", "path": ""}
+
+    folders = tools.lsdirs(source, subjectid + '*')
+
     for f in folders:
-        scan.subject = os.path.basename(f)[len(subjectid):]
-        plugins.RunPlugin("SubjectEP", [scan], opt=plugin_opt)
-        # get name of subject from folder name
-        sfolders = bids.lsdirs(f, sessionid + '*')
-        for s in sfolders:
-            scan.session = os.path.basename(s)
-            if plugins.RunPlugin("SessionEP", [scan], opt=plugin_opt) is None:
-                scan.session = os.path.basename(scan.session)[len(sessionid):]
+        scan["subject"] = os.path.basename(f)[len(subjectid):]
+        plugins.RunPlugin("SubjectEP", scan)
 
-            path = os.path.join(s, niifolder)
-            if not os.path.isdir(path):
-                warnings.warn("Sub: {}, Ses:{}: {} don't exists "
-                              "or not a folder"
-                              .format(scan.subject,scan.session,path))
-                continue
-            niifiles = [os.path.join(path, niifile) 
-                        for niifile in os.listdir(path)
-                        if niifile.endswith(".nii")]
-            sortsession(destination,
-                        scan.subject, 
-                        scan.session, 
-                        niifiles)
+        # get name of subject from folder name
+        if sessions:
+            sfolders = bids.lsdirs(f, sessionid + '*')
+        else:
+            sfolders = [f]
+
+        for s in sfolders:
+            if sessions:
+                scan["session"] = os.path.basename(s)
+            else:
+                scan["session"] = ''
+            plugins.RunPlugin("SessionEP", scan)
+
+            scan["path"] = os.path.join(destination, 
+                                        bids.add_prefix("sub-",
+                                                        scan["subject"]),
+                                        bids.add_prefix("ses-",
+                                                        scan["session"]))
+
+            for rec_f, rec_t in zip(recfolder, rectypes):
+                path = os.path.join(s, rec_f)
+                if not os.path.isdir(path):
+                    warnings.warn("Sub: '{}', Ses: '{}' : '{}' don't exists "
+                                  "or not a folder"
+                                  .format(scan["subject"],
+                                          scan["session"],
+                                          path))
+                    continue
+                cls = MRI_select(path, rec_t)
+                if cls is None:
+                    warnings.warn("Unable to identify data in folder {}"
+                                  .format(path))
+                    continue
+                recording = cls(rec_path=path)
+                if not recording or len(recording.files) == 0:
+                    warnings.warn("unable to load data in folder {}"
+                                  .format(path))
+
+                plugins.RunPlugin("RecordingEP", scan, recording)
+                sortsession(destination,
+                            scan, 
+                            recording)
 
 
 # Shell usage
@@ -158,9 +172,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=CustomFormatter,
                                      description=textwrap.dedent(__doc__),
                                      epilog='examples:\n')
-    parser.add_argument('niisource',
+    parser.add_argument('source',
                         help='The name of the root folder containing ' 
-                        'the dicomsource/[sub/][ses/]nii'),
+                        'the recording file source/[sub/][ses/]<type>'),
     parser.add_argument('destination',
                         help='The name of the folder where sotred ' 
                         'files will be placed'),
@@ -173,9 +187,17 @@ if __name__ == "__main__":
                         'in niisource/subject/session '
                         'subfolders (e.g. "ses-")',
                         default=''),
-    parser.add_argument('-n', '--niifolder',
-                        help='The name of folder containing all nii files',
-                        default='nii')
+    parser.add_argument('-r', '--recfolder',
+                        help='Comma-separated list of folders with all '
+                        'recording files files',
+                        default='')
+    parser.add_argument('-t', '--rectype',
+                        help='Comma-separated list of types associated '
+                        'with recfolder folders. Must have same dimentions.',
+                        default='')
+    parser.add_argument('--no-session',
+                        help='Dataset do not contains session',
+                        action='store_true')
     parser.add_argument('-p', '--plugin',
                         help="Path to a plugin file",
                         default="")
@@ -185,14 +207,18 @@ if __name__ == "__main__":
                         help="Options passed to plugin in form "
                         "-o OptName=OptValue, several options can be passed",
                         action=appPluginOpt,
+                        default={},
                         nargs="+"
                         )
+
     args = parser.parse_args()
 
-    sortsessions(session=args.niisource,
+    sortsessions(source=args.source,
                  destination=args.destination,
                  subjectid=args.subjectid,
                  sessionid=args.sessionid,
-                 niifolder=args.niifolder,
+                 recfolder=args.recfolder.split(','),
+                 rectypes=args.rectype.split(','),
+                 sessions=not args.no_session,
                  plugin_file=args.plugin,
                  plugin_opt=args.plugin_opt)

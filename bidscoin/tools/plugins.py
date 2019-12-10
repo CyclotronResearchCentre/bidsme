@@ -105,24 +105,22 @@ def ImportPlugins(plugin_file):
     return len(active_plugins)
 
 
-def InitPlugin(cli_params, cfi_params):
+def InitPlugin(cfi_params):
     """
     Initialize the plugin by calling InitEP function with command line (args)
     and configuration file (kwargs) arguments
 
     Parameters
     ----------
-    cli_params: list
-        list of command line parameters passed to plugin
     cfi_params: dict
         dictionary of parameters from configuration file passed to plugin
     """
-    if cli_params or cfi_params:
+    if cfi_params:
         if "InitEP" not in active_plugins:
             raise tools.exception.PluginModuleNotFound(
                     "Passed parameters but plugin "
                     "but plugin don't have initializer")
-        RunPlugin("InitEP", *cli_params, **cfi_params)
+        RunPlugin("InitEP", **cfi_params)
 
 
 def RunPlugin(entry, *args, **kwargs):

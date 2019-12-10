@@ -164,6 +164,9 @@ class MRI(object):
     def convert(self, destination, config: dict) -> bool:
         raise NotImplementedError
 
+    def copy_file(self, destination) -> None:
+        raise NotImplementedError
+
     def get_attribute(self, attribute: str):
         if attribute in self.attributes:
             return self.attributes[attribute]
@@ -189,6 +192,19 @@ class MRI(object):
             else:
                 val = tools.cleanup_value(val)
         return val
+
+    def get_rec_no(self):
+        return self.get_field("SeriesNumber")
+
+    def get_rec_id(self):
+        seriesdescr = self.get_field("SeriesDescription")
+        if not seriesdescr:
+            seriesdescr = self.get_field("ProtocolName")
+        if not seriesdescr:
+            Logger.warn("Unable to get recording Id for file {}"
+                        .format(self.currentFile()))
+            seriesdescr = "unknown"
+        return seriesdescr
 
     def loadNextFile(self) -> bool:
         if self.index + 1 >= len(self.files):
