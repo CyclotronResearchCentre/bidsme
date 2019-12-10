@@ -9,6 +9,7 @@ information from external source
 """
 import os
 import warnings
+import logging
 
 import bids
 
@@ -18,6 +19,9 @@ import tools.exceptions as exceptions
 
 from Modules.MRI.selector import select as MRI_select
 
+
+logger = logging.getLogger("bidssort")
+bids.setup_logging("")
 
 class SubjectEPerror(exceptions.PluginError):
     """
@@ -57,8 +61,10 @@ def sortsession(destination: str,
                 scan: dict,
                 recording: object) -> None: 
 
-    print(">> Processing: sub '{}', ses '{}' ({} files)"
-          .format(scan["subject"],scan["session"],len(recording.files)))
+    logger.info("Processing: sub '{}', ses '{}' ({} files)"
+                .format(scan["subject"],
+                        scan["session"],
+                        len(recording.files)))
 
     outfolder = os.path.join(destination, 
                              bids.add_prefix("sub-",scan["subject"]),
@@ -109,7 +115,7 @@ def sortsessions(source: str, destination:str,
 
         # get name of subject from folder name
         if sessions:
-            sfolders = bids.lsdirs(f, sessionid + '*')
+            sfolders = tools.lsdirs(f, sessionid + '*')
         else:
             sfolders = [f]
 
@@ -129,20 +135,20 @@ def sortsessions(source: str, destination:str,
             for rec_f, rec_t in zip(recfolder, rectypes):
                 path = os.path.join(s, rec_f)
                 if not os.path.isdir(path):
-                    warnings.warn("Sub: '{}', Ses: '{}' : '{}' don't exists "
-                                  "or not a folder"
-                                  .format(scan["subject"],
-                                          scan["session"],
-                                          path))
+                    logger.warning("Sub: '{}', Ses: '{}' : '{}' don't exists "
+                                   "or not a folder"
+                                   .format(scan["subject"],
+                                           scan["session"],
+                                           path))
                     continue
                 cls = MRI_select(path, rec_t)
                 if cls is None:
-                    warnings.warn("Unable to identify data in folder {}"
+                    logger.warning("Unable to identify data in folder {}"
                                   .format(path))
                     continue
                 recording = cls(rec_path=path)
                 if not recording or len(recording.files) == 0:
-                    warnings.warn("unable to load data in folder {}"
+                    logger.warning("unable to load data in folder {}"
                                   .format(path))
 
                 plugins.RunPlugin("RecordingEP", scan, recording)

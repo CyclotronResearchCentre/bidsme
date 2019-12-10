@@ -4,6 +4,7 @@ import glob
 import shutil
 
 import bids
+from tools import tools 
 import logging
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ def SubjectEP(session):
     line[8] = "ses-{}".format(df_subjects.loc[index, prefix + "_3"])
 
     ses = sorted([os.path.basename(s) for s in 
-                  bids.lsdirs(os.path.join(source, session["subject"]))
+                  tools.lsdirs(os.path.join(source, session["subject"]))
                   ])
     scans = df_subjects.loc[index, prefix + "_1":prefix + "_3"].to_list()
     session["scans"] = dict()

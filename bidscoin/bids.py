@@ -76,39 +76,41 @@ def setup_logging(log_file: str, debug: bool=False) -> logging.Logger:
     :return:            Logger object
      """
     # Create the log dir if it does not exist
-    logdir = os.path.dirname(log_file)
-    os.makedirs(logdir, exist_ok=True)
+    if log_file != "":
+        logdir = os.path.dirname(log_file)
+        os.makedirs(logdir, exist_ok=True)
 
-    # Derive the name of the error logfile from the normal log_file
-    error_file = os.path.splitext(log_file)[0] + '.errors'
+        # Derive the name of the error logfile from the normal log_file
+        error_file = os.path.splitext(log_file)[0] + '.errors'
+
+        # Set & add the log filehandler
+        loghandler = logging.FileHandler(log_file)
+        loghandler.setLevel(logging.DEBUG)
+        loghandler.setFormatter(formatter)
+        loghandler.set_name('loghandler')
+        logger.addHandler(loghandler)
+
+        # Set & add the error / warnings handler
+        errorhandler = logging.FileHandler(error_file, mode='w')
+        errorhandler.setLevel(logging.WARNING)
+        errorhandler.setFormatter(formatter)
+        errorhandler.set_name('errorhandler')
+        logger.addHandler(errorhandler)
+
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
 
     # Set the format and logging level
     fmt = '%(asctime)s - %(name)s - %(levelname)s %(message)s'
     datefmt = '%Y-%m-%d %H:%M:%S'
     formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-    if debug:
-        logger.setLevel(logging.DEBUG)
-    else:
-        logger.setLevel(logging.INFO)
+    logger.setLevel(level)
 
     # Set & add the streamhandler and 
     # add some color to those boring terminal logs! :-)
-    coloredlogs.install(level='DEBUG', fmt=fmt, datefmt=datefmt)
-
-    # Set & add the log filehandler
-    loghandler = logging.FileHandler(log_file)
-    loghandler.setLevel(logging.DEBUG)
-    loghandler.setFormatter(formatter)
-    loghandler.set_name('loghandler')
-    logger.addHandler(loghandler)
-
-    # Set & add the error / warnings handler
-    errorhandler = logging.FileHandler(error_file, mode='w')
-    errorhandler.setLevel(logging.WARNING)
-    errorhandler.setFormatter(formatter)
-    errorhandler.set_name('errorhandler')
-    logger.addHandler(errorhandler)
-
+    coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
     return logger
 
 
@@ -232,23 +234,6 @@ def test_plugins(plugin: str='') -> bool:
 
     else:
         return False
-
-
-def lsdirs(folder: str, wildcard: str='*'):
-    """
-    Gets all directories in a folder, ignores files
-
-    :param folder:      The full pathname of the folder
-    :param wildcard:    Simple (glob.glob) shell-style wildcards. 
-                        Foldernames starting with a dot are special cases that 
-                        are not matched by '*' and '?' patterns.") wildcard
-    :return:            Iterable filter object with all directories in a folder
-    """
-
-    if wildcard:
-        folder = os.path.join(folder, wildcard)
-    return [fname for fname in sorted(glob.glob(folder))
-            if os.path.isdir(fname)]
 
 
 def load_bidsmap(yamlfile: str='',
