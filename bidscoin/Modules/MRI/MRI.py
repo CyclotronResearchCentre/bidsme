@@ -114,7 +114,7 @@ class MRI(object):
             "M"   : "Male"}
             )
     
-    def __init__(self, bidsmap=None, rec_path=""):
+    def __init__(self, rec_path=""):
         self.type = "None"
         self.converter = None
         self.files = list()
@@ -143,7 +143,21 @@ class MRI(object):
         return False
 
     @classmethod
+    def isValidModality(cls, modality: str, 
+                        include_unknown: bool=True) -> bool:
+        passed = False
+        if include_unknown and modality == cls.ignoremodality:
+            passed = True
+        if modality in cls.bidsmodalities:
+            passed = True
+        return passed
+
+    @classmethod
     def isValidFile(cls, file: str) -> bool:
+        raise NotImplementedError
+
+    @classmethod
+    def get_type(cls):
         raise NotImplementedError
 
     def clearCache(self) -> None:
@@ -308,36 +322,34 @@ class MRI(object):
                                 self.attributes[attkey] = \
                                         self.get_field(attkey)
 
-    def set_main_attributes(self, run: dict):
-        self.main_attributes = [attkey 
-                                for attkey, attval 
-                                in run['attributes'].items()
-                                if attval]
+    def set_main_attributes(self, run):
+        if run:
+            self.main_attributes = [attkey 
+                                    for attkey, attval 
+                                    in run.attribute.items()
+                                    if attval]
+        else:
+            self.main_attributes = []
 
-    def set_labels(self, modality, run=dict()):
+    def set_labels(self, run=None):
         self.suffix = ""
         self.modality = self.unknownmodality
         self.labels = list()
-        if not modality:
+        if not run:
             return
-        if modality in self.bidsmodalities:
-            self.modality = modality
-            self.labels = [""] * len(self.bidsmodalities[modality])
-            if "bids" in run:
-                run = run["bids"]
-                self.suffix = run["suffix"]
-                for index, key in enumerate(self.bidsmodalities[modality]):
-                    if key in run and run[key]:
-                        val = self.get_dynamic_field(run[key])
-                        if isinstance(val, str):
-                            if val.lower().endswith(self.suffix.lower()):
-                                val = val[:-len(self.suffix)]
-                        self.labels[index] = val
+    
+        if run.modality in self.bidsmodalities:
+            self.modality = run.modality
+            tags = self.bidsmodalities[run.modality]
+            self.labels = [""] * len(tags)
+            self.suffix = run.suffix
 
-        elif modality == self.ignoremodality:
-                self.modality = modality
-        else:
-            self.modality = self.unknownmodality
+            for index, key in enumerate(tags):
+                if key in run.entity and run.entity[key]:
+                    val = self.get_dynamic_field(run.entity[key])
+                    self.labels[index] = val
+        elif run.modality == self.ignoremodality:
+                self.modality = run.modality
 
     def update_labels(self, run):
         if self.modality in (self.ignoremodality, self.unknownmodality):
@@ -382,7 +394,7 @@ class MRI(object):
             return False
         match_one = False
         match_all = True
-        for attrkey, attrvalue in run['attributes'].items():
+        for attrkey, attrvalue in run.attribute.items():
             if not attrvalue:
                 continue
             res = self.match_attribute(attrkey, attrvalue)

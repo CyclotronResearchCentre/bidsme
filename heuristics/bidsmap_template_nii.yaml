@@ -16,307 +16,296 @@
 
 
 Options:
-# --------------------------------------------------------------------------------
-# General options
-# --------------------------------------------------------------------------------
-  bidscoin:
-    version: '2.3.1'              # BIDScoin version (should correspond with the version in ../bidscoin/version.txt)
-    bidsignore: extra_data/       # Semicolon-separated list of entries that are added to the .bidsignore file (for more info, see BIDS specifications), e.g. extra_data/;pet/;myfile.txt;yourfile.csv
-  dcm2niix:                       # See dcm2niix -h and https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#General_Usage for more info
-    path: module add dcm2niix;    # Command to set the path to dcm2niix (note the semi-colon), e.g. module add dcm2niix/1.0.20180622; or PATH=/opt/dcm2niix/bin:$PATH; or /opt/dcm2niix/bin/ or ''C:\Program Files\dcm2niix\'' (note the quotes to deal with the whitespace)
-    args: -b y -z y -i n          # Argument string that is passed to dcm2niix. Tip: SPM users may want to use '-z n' (which produces unzipped nifti's, see dcm2niix -h for more information)
+  version: '2.3.1'
+  bidsignore: extra_data/ 
 
 
 PlugIns:
-# --------------------------------------------------------------------------------
-# List of plugins to edit the key-value heuristics / perform additional operations
-# --------------------------------------------------------------------------------
-- ~                               # Either a fullpath name of the plugin or just the basename when it is in the default bidscoin/plugins folder
+  path: ~
+  options: ~
 
-Nifti_dump:
-  subject: <<SourceFilePath>>     # <<SourceFilePath>> extracts the subject label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as subject-label instead, e.g. <PatientID>
-  session: <<SourceFilePath>>     # <<SourceFilePath>> extracts the session label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as session-label instead, e.g. <StudyID>
-  anat:       # ----------------------- All anatomical series --------------------
-  - provenance: ~                 # The fullpath name of the DICOM file from which the attributes are read. Serves also as a look-up key to find a run in the bidsmap
-    attributes: &anatattributes
-      Modality: ~
-      ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: &anatbids
-      acq: ~
-      ce: ~
-      rec: ~
-      run: <<1>>
-      mod: ~
+MRI:
+  Nifti_dump:
+    anat:
+    - provenance: ~
+      attributes: &anatattributes
+        Modality: ~
+        ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: &anatbids
+        acq: ~
+        ce: ~
+        rec: ~
+        run: <<1>>
+        mod: ~
       suffix: T1w
-  - provenance: ~
-    attributes: 
-      <<: *anatattributes
-      ProtocolName: 'localizer'
-    bids:
-      <<: *anatbids
+    - provenance: ~
+      attributes: 
+        <<: *anatattributes
+        ProtocolName: 'localizer'
+      bids:
+        <<: *anatbids
       suffix: localizer
-  - provenance: ~
-    attributes: 
-      <<: *anatattributes
-      ProtocolName: 't2_spc_da-fl_sag_p2_iso'
-    bids:
-      <<: *anatbids
+    - provenance: ~
+      attributes: 
+        <<: *anatattributes
+        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
+      bids:
+        <<: *anatbids
       suffix: FLAIR
 
-  func:       # ----------------------- All functional series --------------------
-  - provenance: ~
-    attributes: 
-      Modality: ~
-      ProtocolName: '.*_bold_.*_invertpe'
-      SeriesDescription: ~
-      ImageType: '.*MOSAIC'
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: &funcbids
-      task: <SeriesDescription>
-      acq: ~
-      ce: ~
-      dir: PE
-      rec: ~
-      run: <<1>>
-      echo: <EchoNumbers>
+    func:
+    - provenance: ~
+      attributes: 
+        Modality: ~
+        ProtocolName: '.*_bold_.*_invertpe'
+        SeriesDescription: ~
+        ImageType: '.*MOSAIC'
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: &funcbids
+        task: <SeriesDescription>
+        acq: ~
+        ce: ~
+        dir: PE
+        rec: ~
+        run: <<1>>
+        echo: <EchoNumbers>
       suffix: BOLD
 
-  - provenance: ~
-    attributes: 
-      Modality: ~
-      ProtocolName: '.*_bold_.*'
-      SeriesDescription: ~
-      ImageType: '.*MOSAIC'
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: 
-      task: <SeriesDescription>
-      acq: ~
-      ce: ~
-      dir: EP
-      rec: ~
-      run: <<1>>
-      echo: <EchoNumbers>
+    - provenance: ~
+      attributes: 
+        Modality: ~
+        ProtocolName: '.*_bold_.*'
+        SeriesDescription: ~
+        ImageType: '.*MOSAIC'
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: 
+        task: <SeriesDescription>
+        acq: ~
+        ce: ~
+        dir: EP
+        rec: ~
+        run: <<1>>
+        echo: <EchoNumbers>
       suffix: BOLD
-  dwi:        # ----------------------- All diffusion series ---------------------
-  - provenance: ~
-    attributes: 
-      Modality: ~
-      ProtocolName: '.*_diff_.*_invertpe'
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: 
-      acq: ~
-      dir: EP
-      run: <<1>>
+    dwi:
+    - provenance: ~
+      attributes: 
+        Modality: ~
+        ProtocolName: '.*_diff_.*_invertpe'
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: 
+        acq: ~
+        dir: EP
+        run: <<1>>
       suffix: dwi
-  - provenance: ~
-    attributes: 
-      Modality: ~
-      ProtocolName: '.*_diff_.*'
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: 
-      acq: ~
-      dir: PE
-      run: <<1>>
+    - provenance: ~
+      attributes: 
+        Modality: ~
+        ProtocolName: '.*_diff_.*'
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: 
+        acq: ~
+        dir: PE
+        run: <<1>>
       suffix: dwi
-  fmap:       # ----------------------- All fieldmap series ----------------------
-  - provenance: ~
-    attributes: &fmapattributes
-      Modality: ~
-      ProtocolName: 'gre_field_mapping'
-      SeriesDescription: ~
-      ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: 1
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: &fmapbids
-      acq: <SeriesDescription>
-      ce: ~
-      dir: ~
-      run: <<1>>
+    fmap:
+    - provenance: ~
+      attributes: &fmapattributes
+        Modality: ~
+        ProtocolName: 'gre_field_mapping'
+        SeriesDescription: ~
+        ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: 1
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: &fmapbids
+        acq: <SeriesDescription>
+        ce: ~
+        dir: ~
+        run: <<1>>
       suffix: magnitude1
-      IntendedFor: ~
-  - provenance: ~
-    attributes: 
-      <<: *fmapattributes
-      EchoNumbers: 2
-    bids:
-      <<: *fmapbids
+    - provenance: ~
+      attributes: 
+        <<: *fmapattributes
+        EchoNumbers: 2
+      bids:
+        <<: *fmapbids
       suffix: magnitude2
-  - provenance: ~
-    attributes: 
-      <<: *fmapattributes
-      ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
-      EchoNumbers: 1
-    bids:
-      <<: *fmapbids
+    - provenance: ~
+      attributes: 
+        <<: *fmapattributes
+        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
+        EchoNumbers: 1
+      bids:
+        <<: *fmapbids
       suffix: phase1
-  - provenance: ~
-    attributes: 
-      <<: *fmapattributes
-      ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
-      EchoNumbers: 2
-    bids:
-      <<: *fmapbids
+    - provenance: ~
+      attributes: 
+        <<: *fmapattributes
+        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
+        EchoNumbers: 2
+      bids:
+        <<: *fmapbids
       suffix: phase2
-  beh:        # ----------------------- All behavioural data ---------------------
-  - provenance: ~
-    attributes: &behattributes
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-    bids: &behbids
-      task: <SeriesDescription>
+    beh:
+    - provenance: ~
+      attributes: &behattributes
+        Modality: ~
+        ProtocolName: ~
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+      bids: &behbids
+        task: <SeriesDescription>
       suffix: events
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
+    - provenance: ~
+      attributes: *behattributes
+      bids:
+        <<: *behbids
       suffix: beh
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
+    - provenance: ~
+      attributes: *behattributes
+      bids:
+        <<: *behbids
       suffix: physio
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
+    - provenance: ~
+      attributes: *behattributes
+      bids:
+        <<: *behbids
       suffix: stim
 
-  pet:        # ----------------------- All PET series ---------------------------
-  - provenance: ~
-    attributes: &petattributes
-      Modality: PT
-      SeriesDescription: ~
-      Radiopharmaceutical: ~
-      ImageType: ~
-      SliceThickness: ~
-      PixelSpacing: ~
-      Rows: ~
-      Columns: ~
-    bids: &petbids
-      task: <SeriesDescription>
-      acq: <Radiopharmaceutical>
-      rec: ~
-      run: <<1>>
+    pet:
+    - provenance: ~
+      attributes: &petattributes
+        Modality: PT
+        SeriesDescription: ~
+        Radiopharmaceutical: ~
+        ImageType: ~
+        SliceThickness: ~
+        PixelSpacing: ~
+        Rows: ~
+        Columns: ~
+      bids: &petbids
+        task: <SeriesDescription>
+        acq: <Radiopharmaceutical>
+        rec: ~
+        run: <<1>>
       suffix: pet
 
-  extra_data: # ----------------------- All extra data ---------------------------
-  - provenance: ~
-    attributes:
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids:
-      acq: <SeriesDescription>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: <EchoNumbers>
-      dir: <InPlanePhaseEncodingDirection>
-      run: <<1>>
-      mod: ~
+    extra_data:
+    - provenance: ~
+      attributes:
+        Modality: ~
+        ProtocolName: ~
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+        PhaseEncodingDirection: ~
+      bids:
+        acq: <SeriesDescription>
+        rec: ~
+        ce: ~
+        task: ~
+        echo: <EchoNumbers>
+        dir: <InPlanePhaseEncodingDirection>
+        run: <<1>>
+        mod: ~
       suffix: ~
 
-  leave_out:  # ----------------------- Data that will be left out ---------------
-  - provenance: ~
-    attributes:
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids:
-      acq: <SeriesDescription>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: <EchoNumbers>
-      dir: <InPlanePhaseEncodingDirection>
-      run: <<1>>
-      mod: ~
+    leave_out:
+    - provenance: ~
+      attributes:
+        Modality: ~
+        ProtocolName: ~
+        SeriesDescription: ~
+        ImageType: ~
+        SequenceName: ~
+        SequenceVariant: ~
+        ScanningSequence: ~
+        MRAcquisitionType: ~
+        SliceThickness: ~
+        FlipAngle: ~
+        EchoNumbers: ~
+        EchoTime: ~
+        RepetitionTime: ~
+        PhaseEncodingDirection: ~
+      bids:
+        acq: <SeriesDescription>
+        rec: ~
+        ce: ~
+        task: ~
+        echo: <EchoNumbers>
+        dir: <InPlanePhaseEncodingDirection>
+        run: <<1>>
+        mod: ~
       suffix: ~
 

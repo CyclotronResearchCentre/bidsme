@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class Nifti_dump(MRI):
     __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE","isSiemens"]
 
-    def __init__(self, bidsmap=None, rec_path=""):
+    def __init__(self, rec_path=""):
         super().__init__()
 
         self._DICOMDICT_CACHE = None
@@ -26,8 +26,6 @@ class Nifti_dump(MRI):
 
         if rec_path:
             self.set_rec_path(rec_path)
-        if bidsmap:
-            self.set_attributes(bidsmap)
 
         self.metaFields["RepetitionTime"]\
             = MetaField("RepetitionTime", 0.001)
@@ -205,3 +203,7 @@ class Nifti_dump(MRI):
 
     def isComplete(self):
         return True
+
+    @classmethod
+    def get_type(cls):
+        return "Nifti_dump"

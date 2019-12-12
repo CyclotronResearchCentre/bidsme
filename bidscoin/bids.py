@@ -10,13 +10,11 @@ https://github.com/dangom/dac2bids/blob/master/dac2bids.py
 
 # Global imports
 import os.path
-import copy
 import glob
 import inspect
 import re
 import logging
 import coloredlogs
-import subprocess
 from importlib import util
 from ruamel.yaml import YAML
 from tools import tools
@@ -75,6 +73,18 @@ def setup_logging(log_file: str, debug: bool=False) -> logging.Logger:
     :param debug:       Set log level to DEBUG if debug==True
     :return:            Logger object
      """
+
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+
+    # Set the format and logging level
+    fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
+    datefmt = '%Y-%m-%d %H:%M:%S'
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+    logger.setLevel(level)
+
     # Create the log dir if it does not exist
     if log_file != "":
         logdir = os.path.dirname(log_file)
@@ -96,17 +106,6 @@ def setup_logging(log_file: str, debug: bool=False) -> logging.Logger:
         errorhandler.setFormatter(formatter)
         errorhandler.set_name('errorhandler')
         logger.addHandler(errorhandler)
-
-    if debug:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-
-    # Set the format and logging level
-    fmt = '%(asctime)s - %(name)s - %(levelname)s %(message)s'
-    datefmt = '%Y-%m-%d %H:%M:%S'
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-    logger.setLevel(level)
 
     # Set & add the streamhandler and 
     # add some color to those boring terminal logs! :-)
