@@ -396,7 +396,7 @@ latest/02-common-principles.html
         if filename[-5:] != ".json":
             raise ValueError("filename must end with '.json'")
         if os.path.isfile(filename):
-            Logger.warning("JSON file {} already exists. It will be replaced."
+            logger.warning("JSON file {} already exists. It will be replaced."
                            .format(filename))
         struct = dict()
 
