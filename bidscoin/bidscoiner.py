@@ -35,9 +35,9 @@ LOGGER = logging.getLogger('bidscoin')
 tmpDir = None
 
 
-def coin_dicom(session: str, bidsmap: dict, 
-               bidsfolder: str, personals: dict, 
-               subprefix: str, sesprefix: str) -> None:
+def coin(session: str, bidsmap: dict, 
+         bidsfolder: str, personals: dict, 
+         subprefix: str, sesprefix: str) -> None:
     """
     Converts the session dicom-files into BIDS-valid nifti-files 
     in the corresponding bidsfolder and extracts personals 
@@ -220,13 +220,10 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                                     'code', 
                                     'bidscoin', 'bidscoiner.log'))
     LOGGER.info('')
-    LOGGER.info(f'-------------- START BIDScoiner {bids.version()}: '
-                'BIDS {bids.bidsversion()} ------------')
-    LOGGER.info(f'>>> bidscoiner sourcefolder={rawfolder} '
-                'bidsfolder={bidsfolder} subjects={subjects} '
-                'force={force}'
-                f' participants={participants} bidsmap={bidsmapfile} '
-                'subprefix={subprefix} sesprefix={sesprefix}')
+    LOGGER.info('-------------- START BIDScoiner ------------')
+    LOGGER.info('-------------- START BIDScoiner ------------')
+    LOGGER.info('bidscoin ver {}'.format(bids.version()))
+    LOGGER.info('bids ver {}'.format(bids.bidsversion()))
 
     # Creating temporary directory
     global tmpDir
@@ -317,8 +314,8 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
             sessions = [subject]
         for session in sessions:
             # Update / append the dicom mapping
-            coin_dicom(session, bidsmap, bidsfolder, personals,
-                       subprefix, sesprefix)
+            coin(session, bidsmap, bidsfolder, personals,
+                 subprefix, sesprefix)
 
     # Synchronizing subject list
     new_sub_file = os.path.join(tmpDir, "participants.tsv")

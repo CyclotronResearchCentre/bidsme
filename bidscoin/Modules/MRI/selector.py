@@ -2,6 +2,8 @@ from Modules.MRI.DICOM import DICOM
 from Modules.MRI.Nifti_dump import Nifti_dump
 
 types_list = {"MRI": (DICOM, Nifti_dump)}
+ignoremodality = "__ignore__"
+unknownmodality = "__unknown__"
 
 
 def select(folder: str, module: str=""):

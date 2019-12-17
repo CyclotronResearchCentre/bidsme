@@ -49,12 +49,12 @@ def match_value(val, regexp, force_str=False):
     if force_str:
         val = str(val).strip()
         regexp = regexp.strip()
-        return (re.fullmatch(regexp, val) is not None)
+        return re.fullmatch(regexp, val) is not None
 
     if isinstance(regexp, str):
         val = str(val).strip()
         regexp = regexp.strip()
-        return (re.fullmatch(regexp, val) is not None)
+        return re.fullmatch(regexp, val) is not None
     return val == regexp
 
 def run_command(command: str) -> bool:

@@ -28,40 +28,19 @@ except ImportError:
     # import bidseditor
     from Modules.MRI import selector
     import bidsmap
+    from tools import info
     from tools import tools
+    from tools.yaml import yaml
 
 
-logger = logging.getLogger('bidscoin')
+logger = logging.getLogger()
+logger.name = os.path.splitext(os.path.basename(__file__))[0]
 
-
-def build_pluginmap(runfolder: str, bidsmap_new: dict, bidsmap_old: dict) -> dict:
-    """
-    Call the plugin to map info onto bids labels
-
-    :param runfolder:   The full-path name of the source folder
-    :param bidsmap_new: The bidsmap that we are building
-    :param bidsmap_old: Full BIDS heuristics data structure, with all options, BIDS labels and attributes, etc
-    :return:            The bidsmap with new entries in it
-    """
-
-    # Input checks
-    if not runfolder or not bidsmap_new['PlugIns']:
-        return bidsmap_new
-
-    for plugin in bidsmap_new['PlugIns']:
-
-        # Load and run the plugin-module
-        module = bids.import_plugin(plugin)
-        if 'bidsmapper_plugin' in dir(module):
-            logger.debug(f"Running plug-in: {plugin}.bidsmapper_plugin('{runfolder}', bidsmap_new, bidsmap_old)")
-            bidsmap_new = module.bidsmapper_plugin(runfolder, bidsmap_new, bidsmap_old)
-
-    return bidsmap_new
 
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
                bidsmapfile: str, templatefile: str, 
-               interactive: bool=True) -> None:
+               interactive: bool=False) -> None:
     """
     Main function that processes all the subjects and session 
     in the sourcefolder and that generates a maximally filled-in 
@@ -82,37 +61,32 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     rawfolder = os.path.abspath(rawfolder)
     bidsfolder = os.path.abspath(bidsfolder)
     bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
+    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
 
     # Start logging
-    bids.setup_logging(os.path.join(bidscodefolder, 'bidsmapper.log'), True)
+    info.setup_logging(logger, bidscodefolder, 'INFO')
     logger.info('')
     logger.info('-------------- START BIDSmapper ------------')
+    logger.info('bidscoin ver {}'.format(info.version()))
+    logger.info('bids ver {}'.format(info.bidsversion()))
+
+    # removing old unknown files
+    if os.path.isfile(bidsunknown):
+        os.remove(bidsunknown)
 
     # Get the heuristics for filling the new bidsmap
     # bidsmap_old, _ = bids.load_bidsmap(bidsmapfile, bidscodefolder)
     # template, _ = bids.load_bidsmap(templatefile, bidscodefolder)
-    bidsmap_new = bidsmap.bidsmap(bidsmapfile)
+    logger.info("loading template bidsmap {}".format(templatefile))
     template = bidsmap.bidsmap(templatefile)
+    
+    logger.info("loading working bidsmap {}".format(bidsmapfile))
+    bidsmap_new = bidsmap.bidsmap(bidsmapfile)
 
-    # Start the Qt-application
-    gui = interactive
-    if gui:
-        app = QApplication(sys.argv)
-        app.setApplicationName('BIDS editor')
-        mainwin = bidseditor.MainWindow()
-        gui = bidseditor.Ui_MainWindow()
-        gui.interactive = interactive
-
-        if gui.interactive == 2:
-            QMessageBox.information(
-                    mainwin, 'BIDS mapping workflow',
-                    f"The bidsmapper will now scan {bidsfolder} and whenever "
-                    f"it detects a new type of scan it will ask you to identify it.\n\n"
-                    f"It is important that you choose the correct BIDS modality "
-                    f"(e.g. 'anat', 'dwi' or 'func') and suffix (e.g. 'bold' or 'sbref').\n\n"
-                    f"At the end you will be shown an overview of all the "
-                    f"different scan types and BIDScoin options (as in the "
-                    f"bidseditor) that you can then (re)edit to your needs")
+    logger.info("creating bidsmap for unknown modalities")
+    bidsmap_unk = {mod:{t.__name__:list() 
+                        for t in types}
+                   for mod, types in selector.types_list.items()}
 
     # Loop over all subjects and sessions and built up the bidsmap entries
     subjects = tools.lsdirs(rawfolder, 'sub-*')
@@ -142,20 +116,26 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                         continue
                     t_name = cls.get_type()
                     recording = cls(rec_path=run)
-                    modality, r_index, r_obj = bidsmap_new.match_run(recording)
-                    if not modality:
-                        logger.debug("No run found in bidsmap. "
-                                    "Looking into template")
-                        modality, r_index, r_obj = template.match_run(recording)
+                    recording.index = -1
+                    while recording.loadNextFile():
+                        modality, r_index, r_obj = bidsmap_new.match_run(recording)
                         if not modality:
-                            logger.error("{}: No compatible run found"
-                                         .format(os.path.basename(run)))
-                            continue
-                        modality, r_index, run = bidsmap_new.add_run(
-                                r_obj,
-                                recording.Module,
-                                recording.get_type()
-                                )
+                            logger.warning("No run found in bidsmap. "
+                                           "Looking into template")
+                            modality, r_index, r_obj = template.match_run(recording,
+                                                                          fix=True)
+                            if not modality:
+                                logger.error("{}: No compatible run found"
+                                             .format(os.path.basename(run)))
+                                bidsmap_unk[module][t_name]\
+                                        .append({"provenance":recording.currentFile(),
+                                                 "attributes":recording.attributes})
+                                continue
+                            modality, r_index, run = bidsmap_new.add_run(
+                                    r_obj,
+                                    recording.Module,
+                                    recording.get_type()
+                                    )
 
     # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
     os.makedirs(os.path.join(bidsfolder,'code','bidscoin'), exist_ok=True)
@@ -164,24 +144,24 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     # Save the bidsmap to the bidsmap YAML-file
     bidsmap_new.save(bidsmapfile, empty_attributes=False)
 
-    # (Re)launch the bidseditor UI_MainWindow
-    if gui:
-        QMessageBox.information(mainwin, 'BIDS mapping workflow',
-                                f"The bidsmapper has finished scanning {rawfolder}\n\n"
-                                f"Please carefully check all the different BIDS output names "
-                                f"and BIDScoin options and (re)edit them to your needs.\n\n"
-                                f"You can always redo this step later by re-running the "
-                                f"bidsmapper or by just running the bidseditor tool")
-
-        logger.info('Opening the bidseditor')
-        gui.setupUi(mainwin, bidsfolder, rawfolder, bidsmapfile, bidsmap_new, copy.deepcopy(bidsmap_new), template, subprefix=subprefix, sesprefix=sesprefix)
-        mainwin.show()
-        app.exec()
+    # Scanning unknowing and exporting them to yaml file
+    d = dict()
+    for mod in bidsmap_unk:
+        for t in bidsmap_unk[mod]:
+            if bidsmap_unk[mod][t]:
+                if mod not in d:
+                    d[mod] = dict()
+                d[mod][t] = bidsmap_unk[mod][t]
+    if len(d) > 0:
+        logger.error("Was unable to identify several recordings. "
+                     "See {} for details".format(bidsunknown))
+        with open(bidsunknown, 'w') as stream:
+            yaml.dump(d, stream)
 
     logger.info('-------------- FINISHED! -------------------')
     logger.info('')
 
-    bids.reporterrors()
+    info.reporterrors(logger)
 
 
 # Shell usage
@@ -215,7 +195,7 @@ if __name__ == "__main__":
                         'heuristics (this could be provided by your institute).'
                         'If the bidsmap filename is relative (i.e. no "/" '
                         'in the name) then it is assumed to be located in '
-                        'bidsfolder/code/bidscoin. '
+                        'bidscoin/heuristics/. '
                         'Default: bidsmap_template.yaml',
                         default='bidsmap_template.yaml')
     parser.add_argument('-i','--interactive',
@@ -235,9 +215,17 @@ if __name__ == "__main__":
                         help='Show the BIDS and BIDScoin version',
                         action='version', 
                         version='BIDS-version:\t\t{}\nBIDScoin-version:\t{}'
-                        .format(bids.bidsversion(), bids.version()))
+                        .format(info.bidsversion(), info.version()))
     args = parser.parse_args()
 
+    if os.path.dirname(args.bidsmap) == "":
+        args.bidsmap = os.path.join(args.bidsfolder, 
+                                    "code/bidscoin",
+                                    args.bidsmap)
+    if os.path.dirname(args.template) == "":
+        args.template = os.path.join(os.path.dirname(__file__),
+                                     "../heuristics",
+                                     args.template)
     bidsmapper(rawfolder=args.sourcefolder,
                bidsfolder=args.bidsfolder,
                bidsmapfile=args.bidsmap,

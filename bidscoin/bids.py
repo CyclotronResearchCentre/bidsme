@@ -14,7 +14,6 @@ import glob
 import inspect
 import re
 import logging
-import coloredlogs
 from importlib import util
 from ruamel.yaml import YAML
 from tools import tools
@@ -36,106 +35,6 @@ unknownmodality = 'extra_data'
 bidslabels = ('task', 'acq', 'ce', 'rec', 'dir', 'run',
               'mod', 'echo', 'suffix', 'IntendedFor')
 
-
-def bidsversion() -> str:
-    """
-    Reads the BIDS version from the BIDSVERSION.TXT file
-
-    :return:    The BIDS version number
-    """
-
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 
-                           'bidsversion.txt')) as fid:
-        version = fid.read().strip()
-
-    return str(version)
-
-
-def version() -> str:
-    """
-    Reads the BIDSCOIN version from the VERSION.TXT file
-
-    :return:    The BIDSCOIN version number
-    """
-
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)),
-                           'version.txt')) as fid:
-        version = fid.read().strip()
-
-    return str(version)
-
-
-def setup_logging(log_file: str, debug: bool=False) -> logging.Logger:
-    """
-    Setup the logging
-
-    :param log_file:    Name of the logfile
-    :param debug:       Set log level to DEBUG if debug==True
-    :return:            Logger object
-     """
-
-    if debug:
-        level = logging.DEBUG
-    else:
-        level = logging.INFO
-
-    # Set the format and logging level
-    fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
-    datefmt = '%Y-%m-%d %H:%M:%S'
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
-    logger.setLevel(level)
-
-    # Create the log dir if it does not exist
-    if log_file != "":
-        logdir = os.path.dirname(log_file)
-        os.makedirs(logdir, exist_ok=True)
-
-        # Derive the name of the error logfile from the normal log_file
-        error_file = os.path.splitext(log_file)[0] + '.errors'
-
-        # Set & add the log filehandler
-        loghandler = logging.FileHandler(log_file)
-        loghandler.setLevel(logging.DEBUG)
-        loghandler.setFormatter(formatter)
-        loghandler.set_name('loghandler')
-        logger.addHandler(loghandler)
-
-        # Set & add the error / warnings handler
-        errorhandler = logging.FileHandler(error_file, mode='w')
-        errorhandler.setLevel(logging.WARNING)
-        errorhandler.setFormatter(formatter)
-        errorhandler.set_name('errorhandler')
-        logger.addHandler(errorhandler)
-
-    # Set & add the streamhandler and 
-    # add some color to those boring terminal logs! :-)
-    coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
-    return logger
-
-
-def reporterrors():
-
-    for filehandler in logger.handlers:
-        if filehandler.name == 'errorhandler':
-
-            errorfile = filehandler.baseFilename
-            if os.path.getsize(errorfile):
-                with open(errorfile, 'r') as fid:
-                    errors = fid.read()
-                logger.info(f"The following BIDScoin errors and "
-                            "warnings were reported:\n\n{40*'>'}"
-                            "\n{errors}{40*'<'}\n")
-
-            else:
-                logger.info(f'No BIDScoin errors or warnings were reported')
-                logger.info('')
-
-        elif filehandler.name == 'loghandler':
-            logfile = filehandler.baseFilename
-
-    logger.info(f'For the complete log see: {logfile}')
-    logger.info("NB: logfiles may contain identifiable information, "
-                "e.g. from pathnames")
 
 
 def import_plugin(plugin: str):

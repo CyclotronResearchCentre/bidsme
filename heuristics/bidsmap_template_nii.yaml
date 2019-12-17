@@ -52,13 +52,6 @@ MRI:
     - provenance: ~
       attributes: 
         <<: *anatattributes
-        ProtocolName: 'localizer'
-      bids:
-        <<: *anatbids
-      suffix: localizer
-    - provenance: ~
-      attributes: 
-        <<: *anatattributes
         ProtocolName: 't2_spc_da-fl_sag_p2_iso'
       bids:
         <<: *anatbids
@@ -235,77 +228,9 @@ MRI:
         <<: *behbids
       suffix: stim
 
-    pet:
+    __ignore__:
     - provenance: ~
-      attributes: &petattributes
-        Modality: PT
-        SeriesDescription: ~
-        Radiopharmaceutical: ~
-        ImageType: ~
-        SliceThickness: ~
-        PixelSpacing: ~
-        Rows: ~
-        Columns: ~
-      bids: &petbids
-        task: <SeriesDescription>
-        acq: <Radiopharmaceutical>
-        rec: ~
-        run: <<1>>
-      suffix: pet
-
-    extra_data:
-    - provenance: ~
+      suffix: ""
       attributes:
-        Modality: ~
-        ProtocolName: ~
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
-        PhaseEncodingDirection: ~
-      bids:
-        acq: <SeriesDescription>
-        rec: ~
-        ce: ~
-        task: ~
-        echo: <EchoNumbers>
-        dir: <InPlanePhaseEncodingDirection>
-        run: <<1>>
-        mod: ~
-      suffix: ~
-
-    leave_out:
-    - provenance: ~
-      attributes:
-        Modality: ~
-        ProtocolName: ~
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
-        PhaseEncodingDirection: ~
-      bids:
-        acq: <SeriesDescription>
-        rec: ~
-        ce: ~
-        task: ~
-        echo: <EchoNumbers>
-        dir: <InPlanePhaseEncodingDirection>
-        run: <<1>>
-        mod: ~
-      suffix: ~
-
+        ProtocolName: 'localizer'
+      bids: {}
