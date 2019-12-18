@@ -86,7 +86,7 @@ class Nifti_dump(MRI):
         self.metaFields["InstitutionalDepartmentName"]\
             = MetaField("InstitutionalDepartmentName")
 
-    def convert(self, destination: str, options: dict) -> bool:
+    def convert(self, destination: str, options: dict={}) -> bool:
         args = ""
         if self.converter in options and "args" in options[self.converter]:
             args = options[self.converter]["args"]

@@ -93,7 +93,6 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     if not subjects:
         logger.warning('No subjects found in: {}/sub-*'
                        .format(rawfolder))
-        gui = None
 
     for n, subject in enumerate(subjects,1):
         sessions = tools.lsdirs(subject, 'ses-*')
@@ -131,6 +130,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                                         .append({"provenance":recording.currentFile(),
                                                  "attributes":recording.attributes})
                                 continue
+                            r_obj.template = True
                             modality, r_index, run = bidsmap_new.add_run(
                                     r_obj,
                                     recording.Module,

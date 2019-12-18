@@ -16,7 +16,6 @@ bidsfolder/code/bidscoin/bidscoiner.log file.
 
 import os
 import sys
-import re
 import shutil
 import pandas as pd
 import json
@@ -29,15 +28,17 @@ except ImportError:
     import bids         # This should work if bidscoin was not pip-installed
     from tools import tools
     from tools import plugins
-    from Modules.MRI.selector import select as MRI_select
+    from tools import info
+    import bidsmap as Bidsmap
+    from Modules.MRI import selector
 
-LOGGER = logging.getLogger('bidscoin')
+logger = logging.getLogger()
+logger.name = os.path.splitext(os.path.basename(__file__))[0]
 tmpDir = None
 
 
 def coin(session: str, bidsmap: dict, 
-         bidsfolder: str, personals: dict, 
-         subprefix: str, sesprefix: str) -> None:
+         bidsfolder: str, personals: dict) -> None:
     """
     Converts the session dicom-files into BIDS-valid nifti-files 
     in the corresponding bidsfolder and extracts personals 
@@ -52,134 +53,117 @@ def coin(session: str, bidsmap: dict,
     :return:            Nothing
     """
 
-    if not bids.lsdirs(session):
-        LOGGER.warning('No run subfolder(s) found in: ' + session)
+    if not tools.lsdirs(session):
+        logger.warning('No run subfolder(s) found in: ' + session)
         return
 
     # Process all the dicom run subfolders
-    for runfolder in bids.lsdirs(session):
-        cls = MRI_select(runfolder)
-        if cls is None:
-            LOGGER.warning("Unable to identify data in folder {}"
-                           .format(runfolder))
-            continue
-        # Get a dicom-file
-        dicomfile = cls(rec_path=runfolder, bidsmap=bidsmap[cls.__name__])
-        LOGGER.info("Folder {} is {}"
-                    .format(runfolder, dicomfile.type))
-        if not dicomfile: 
-            raise ValueError("Unable to load folder {}".format(runfolder))
-        # run, modality, index = bids.get_matching_run(dicomfile, bidsmap)
-        LOGGER.info(f'Processing: {runfolder}')
-        run_id = bids.get_matching_run(dicomfile, bidsmap[cls.__name__])
-
-        # Check if we should ignore this run
-        if dicomfile.modality == dicomfile.ignoremodality:
-            LOGGER.info('Modality {} ignored. Leaving out: {}'
-                        .format(dicomfile.modality, runfolder))
+    for module in tools.lsdirs(session):
+        module = os.path.basename(module)
+        if module not in selector.types_list:
             continue
 
-        if dicomfile.modality == dicomfile.unknownmodality:
-            LOGGER.error("Unknown modality. Leaving out: {}"
-                         .format(runfolder))
-            raise KeyError("Unknown modality")
+        for runfolder in tools.lsdirs(session,module + "/*"):
+            logger.info('Processing: {}'.format(runfolder))
+            cls = selector.select(runfolder, module)
+            if cls is None:
+                logger.warning("Unable to identify data in folder {}"
+                               .format(runfolder))
+                continue
+            # Get a recording
+            recording = cls(rec_path=runfolder)
+            seq = os.path.basename(runfolder)
+            sub = recording.getSubId()
+            ses = recording.getSesId()
+            logger.debug("Subject: {}; Session: {}".format(sub, ses))
+            bidsses = os.path.join(bidsfolder, sub, ses)
 
-        if dicomfile.modality == "":
-            LOGGER.error("Empty modality. Leaving out: {}"
-                         .format(runfolder))
-            raise KeyError("Unknown modality")
+            recording.sub_BIDSvalues["participant_id"] = sub
 
-        run = bidsmap[cls.__name__][dicomfile.modality][run_id]
-        dicomfile.Subject = bidsmap[cls.__name__]["subject"]
-        dicomfile.Session = bidsmap[cls.__name__]["session"]
+            # plugin entry point for name and json adjustements
+            plugins.RunPlugin("SessionEP", recording)
 
-        sub = dicomfile.getSubId()
-        ses = dicomfile.getSesId()
-        LOGGER.debug("Subject: {}; Session: {}".format(sub, ses))
-        bidsses = os.path.join(bidsfolder, sub, ses)
-        bidsmodality = os.path.join(bidsses, dicomfile.modality)
-        LOGGER.debug("Output path: {}".format(bidsses))
-        LOGGER.debug("Modality path: {}".format(bidsmodality))
-        os.makedirs(bidsmodality, exist_ok=True)
-
-        dicomfile.sub_BIDSvalues["participant_id"] = sub
-
-        # plugin entry point for name and json adjustements
-        plugins.RunPlugin("SessionEP", dicomfile)
-
-        sub_tsv = os.path.join(tmpDir,
-                               'participants.tsv'
-                               )
-        if os.path.isfile(sub_tsv):
-            with open(sub_tsv, "a") as f:
-                f.write(dicomfile.sub_BIDSfields.GetLine(
-                    dicomfile.sub_BIDSvalues))
-                f.write('\n')
-        else:
-            with open(sub_tsv, "w") as f:
-                f.write(dicomfile.sub_BIDSfields.GetHeader())
-                f.write('\n')
-                f.write(dicomfile.sub_BIDSfields.GetLine(
-                    dicomfile.sub_BIDSvalues))
-                f.write('\n')
-            dicomfile.sub_BIDSfields.DumpDefinitions(
-                    tools.change_ext(sub_tsv,"json"))
-
-        # Loop over all files in given session
-        dicomfile.index = -1
-        while dicomfile.loadNextFile():
-            dicomfile.update_labels(run)
-            # Compose the BIDS filename using the matched run
-            bidsname = dicomfile.get_bidsname()
-            dicomfile.generateMeta()
-
-            # Check if file already exists 
-            if os.path.isfile(os.path.join(bidsmodality, bidsname + '.json')):
-                LOGGER.warning(os.path.join(bidsmodality, bidsname)
-                               + '.* already exists -- check your '
-                               'results carefully!')
-            if not dicomfile.convert(bidsmodality, bidsmap["Options"]):
-                LOGGER.error("Failed to convert {} using {}"
-                             .format(dicomfile.currentFile(),
-                                     dicomfile.converter))
-                raise ValueError("Convertion error")
-            with open(os.path.join(bidsmodality, bidsname + '.json'), 'w')\
-                    as f:
-                js_dict = dicomfile.exportMeta()
-                json.dump(js_dict, f, indent=2)
-
-            dicomfile.rec_BIDSvalues["filename"]\
-                = os.path.join(dicomfile.modality, bidsname) + ".nii"
-            dicomfile.rec_BIDSvalues["acq_time"]\
-                = dicomfile.acq_time().replace(microsecond=0)
-
-            # plugin entry point
-            plugins.RunPlugin("RecordingEP", dicomfile)
-
-            scans_tsv = os.path.join(bidsses,
-                                     '{}_{}_scans.tsv'
-                                     .format(sub, ses))
-            if os.path.isfile(scans_tsv):
-                with open(scans_tsv, "a") as f:
-                    f.write(dicomfile.rec_BIDSfields.GetLine(
-                        dicomfile.rec_BIDSvalues))
+            sub_tsv = os.path.join(tmpDir, 'participants.tsv')
+            if os.path.isfile(sub_tsv):
+                with open(sub_tsv, "a") as f:
+                    f.write(recording.sub_BIDSfields.GetLine(
+                        recording.sub_BIDSvalues))
                     f.write('\n')
             else:
-                with open(scans_tsv, "w") as f:
-                    f.write(dicomfile.rec_BIDSfields.GetHeader())
+                with open(sub_tsv, "w") as f:
+                    f.write(recording.sub_BIDSfields.GetHeader())
                     f.write('\n')
-                    f.write(dicomfile.rec_BIDSfields.GetLine(
-                        dicomfile.rec_BIDSvalues))
+                    f.write(recording.sub_BIDSfields.GetLine(
+                            recording.sub_BIDSvalues))
                     f.write('\n')
-                dicomfile.rec_BIDSfields.DumpDefinitions(
-                        tools.change_ext(scans_tsv,"json"))
+                recording.sub_BIDSfields.DumpDefinitions(
+                        tools.change_ext(sub_tsv,"json"))
+
+            recording.index = -1
+            while recording.loadNextFile():
+                modality, r_index, r_obj = bidsmap.match_run(recording)
+                if not modality:
+                    e = "{}/{}: No compatible run found"\
+                        .format(os.path.basename(seq, recording.index))
+                    logger.error(e)
+                    raise ValueError(e)
+                if modality == recording.ignoremodality:
+                    logger.info('{}/{}: ignored modality'
+                                .format(seq, recording.index))
+                    continue
+                recording.set_labels(r_obj)
+                bidsname = recording.get_bidsname()
+                recording.generateMeta()
+
+                # Check if file already exists 
+                bidsmodality = os.path.join(bidsses, recording.modality)
+                os.makedirs(bidsmodality, exist_ok=True)
+                if os.path.isfile(os.path.join(bidsmodality,
+                                               bidsname + '.json')):
+                    logger.warning(os.path.join(bidsmodality, bidsname)
+                                   + '.* already exists -- check your '
+                                   'results carefully!')
+                if not recording.convert(bidsmodality):
+                    logger.error("Failed to convert {} using {}"
+                                 .format(recording.currentFile(),
+                                         recording.converter))
+                    raise ValueError("Convertion error")
+                with open(os.path.join(bidsmodality, bidsname + '.json'), 'w')\
+                        as f:
+                    js_dict = recording.exportMeta()
+                    json.dump(js_dict, f, indent=2)
+
+                recording.rec_BIDSvalues["filename"]\
+                    = os.path.join(recording.modality, bidsname) + ".nii"
+                recording.rec_BIDSvalues["acq_time"]\
+                    = recording.acq_time().replace(microsecond=0)
+
+                # plugin entry point
+                plugins.RunPlugin("RecordingEP", recording)
+
+                scans_tsv = os.path.join(bidsses,
+                                         '{}_{}_scans.tsv'
+                                         .format(sub, ses))
+                if os.path.isfile(scans_tsv):
+                    with open(scans_tsv, "a") as f:
+                        f.write(recording.rec_BIDSfields.GetLine(
+                            recording.rec_BIDSvalues))
+                        f.write('\n')
+                else:
+                    with open(scans_tsv, "w") as f:
+                        f.write(recording.rec_BIDSfields.GetHeader())
+                        f.write('\n')
+                        f.write(recording.rec_BIDSfields.GetLine(
+                            recording.rec_BIDSvalues))
+                        f.write('\n')
+                    recording.rec_BIDSfields.DumpDefinitions(
+                            tools.change_ext(scans_tsv,"json"))
 
 
 def bidscoiner(rawfolder: str, bidsfolder: str, 
                subjects: tuple=(), force: bool=False, 
                participants: bool=False, 
                bidsmapfile: str='bidsmap.yaml', 
-               subprefix: str='sub-', sesprefix: str='ses-',
                options: list=[]) -> None:
     """
     Main function that processes all the subjects and session 
@@ -205,25 +189,21 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                             pathname is relative (i.e. no "/" in the name) 
                             then it is assumed to be located 
                             in bidsfolder/code/bidscoin
-    :param subprefix:       The prefix common for all source subject-folders
-    :param sesprefix:       The prefix common for all source session-folders
     :param options:         A list of parameters passed to plugin
     :return:                Nothing
     """
 
     # Input checking & defaults
-    rawfolder = os.path.abspath(os.path.realpath(rawfolder))
-    bidsfolder = os.path.abspath(os.path.realpath(bidsfolder))
+    rawfolder = os.path.abspath(rawfolder)
+    bidsfolder = os.path.abspath(bidsfolder)
+    bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
 
     # Start logging
-    bids.setup_logging(os.path.join(bidsfolder,
-                                    'code', 
-                                    'bidscoin', 'bidscoiner.log'))
-    LOGGER.info('')
-    LOGGER.info('-------------- START BIDScoiner ------------')
-    LOGGER.info('-------------- START BIDScoiner ------------')
-    LOGGER.info('bidscoin ver {}'.format(bids.version()))
-    LOGGER.info('bids ver {}'.format(bids.bidsversion()))
+    info.setup_logging(logger, bidscodefolder, 'INFO')
+    logger.info('')
+    logger.info('-------------- START BIDScoiner ------------')
+    logger.info('bidscoin ver {}'.format(info.version()))
+    logger.info('bids ver {}'.format(info.bidsversion()))
 
     # Creating temporary directory
     global tmpDir
@@ -232,12 +212,12 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
             prefix=os.path.basename(sys.argv[0]) + "_"
             ) + "/"
     except FileNotFoundError:
-        LOGGER.warning("TMPDIR: Failed to create temporary directory."
+        logger.warning("TMPDIR: Failed to create temporary directory."
                        "Will try current directory")
         tmpDir = tempfile.mkdtemp(
             prefix=os.path.basename(sys.argv[0]) + "_",dir="."
             ) + "/"
-    LOGGER.debug("Temporary directory: {}".format(tmpDir))
+    logger.debug("Temporary directory: {}".format(tmpDir))
 
     # Create a code/bidscoin subfolder
     os.makedirs(os.path.join(bidsfolder,'code','bidscoin'), exist_ok=True)
@@ -245,77 +225,67 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
     # Create a dataset description file if it does not exist
     dataset_file = os.path.join(bidsfolder, 'dataset_description.json')
     if not os.path.isfile(dataset_file):
-        LOGGER.warning("Dataset description file 'dataset_description.json' "
+        logger.warning("Dataset description file 'dataset_description.json' "
                        "not found in '{}'".format(bidsfolder))
 
     # Create a README file if it does not exist
     readme_file = os.path.join(bidsfolder, 'README')
     if not os.path.isfile(readme_file):
-        LOGGER.warning("Dataset readme file 'README' "
+        logger.warning("Dataset readme file 'README' "
                        "not found in '{}'".format(bidsfolder))
 
     # Get the bidsmap heuristics from the bidsmap YAML-file
-    bidsmap, _ = bids.load_bidsmap(bidsmapfile, 
-                                   os.path.join(bidsfolder, 
-                                                'code', 
-                                                'bidscoin'))
+    logger.info("loading bidsmap {}".format(bidsmapfile))
+    bidsmap = Bidsmap.bidsmap(bidsmapfile)
+
     if not bidsmap:
-        LOGGER.error(f'No bidsmap file found in {bidsfolder}. '
-                     'Please run the bidsmapper first and / or '
-                     'use the correct bidsfolder')
+        logger.error('Bidsmap file {} not found.'
+                     .format(bidsfolder))
         return
 
     # Load and initialize plugin
-    if bidsmap["PlugIns"]:
-        if "path" in bidsmap["PlugIns"]:
-            plugins.ImportPlugins(bidsmap["PlugIns"]["path"])
-            params = dict()
-            if "parameters" in bidsmap["PlugIns"]:
-                params = bidsmap["PlugIns"]["parameters"]
-            params["rawfolder"] = rawfolder
-            params["bidsfolder"] = rawfolder
-            plugins.InitPlugin(options, params)
+    if bidsmap.plugin_file:
+        plugins.ImportPlugins(bidsmap.plugin_file)
+        bidsmap.plugin_options["rawfolder"] = rawfolder
+        bidsmap.plugin_options["bidsfolder"] = bidsfolder
+        plugins.InitPlugin(bidsmap.plugin_opt)
 
     # Save options to the .bidsignore file
     bidsignore_items = [item.strip() 
                         for item in 
-                        bidsmap['Options']['bidscoin']['bidsignore'].split(';')
+                        bidsmap.bidsignore
                         ]
-    LOGGER.info("Writing {} entries to {}.bidsignore"
-                .format(bidsignore_items, bidsfolder))
-    with open(os.path.join(bidsfolder,'.bidsignore'), 'w') as bidsignore:
-        for item in bidsignore_items:
-            bidsignore.write(item + '\n')
+    if len(bidsignore_items) > 0:
+        logger.info("Writing {} entries to {}.bidsignore"
+                    .format(bidsignore_items, bidsfolder))
+        with open(os.path.join(bidsfolder,'.bidsignore'), 'w') as bidsignore:
+            for item in bidsignore_items:
+                bidsignore.write(item + '\n')
 
     # Get the list of subjects
     if not subjects:
-        subjects = bids.lsdirs(rawfolder, subprefix + '*')
-        if not subjects:
-            LOGGER.warning('No subjects found in: {}*'
-                           .format(os.path.join(rawfolder, subprefix)))
-    else:
-        # Make sure there is a "sub-" prefix
-        subjects = [subprefix + re.sub(f'^{subprefix}', '', subject) 
-                    for subject in subjects]
-        subjects = [os.path.join(rawfolder,subject) 
-                    for subject in subjects 
-                    if os.path.isdir(os.path.join(rawfolder,subject))]
+        subjects = tools.lsdirs(rawfolder)
+    if not subjects:
+        logger.warning('No subjects found in: {}*'
+                       .format(os.path.join(rawfolder)))
+        return
 
     # Loop over all subjects and sessions
     # and convert them using the bidsmap entries
     for n, subject in enumerate(subjects, 1):
 
-        LOGGER.info('-------------------------------------')
-        LOGGER.info(f'Coining subject ({n}/{len(subjects)}): {subject}')
+        logger.info('-------------------------------------')
+        logger.info('Coining subject ({}/{}): {}'
+                    .format(n, len(subjects), subject))
 
         personals = dict()
-        sessions = bids.lsdirs(subject, sesprefix + '*')
+        sessions = tools.lsdirs(subject)
         if not sessions:
-            sessions = [subject]
+            logger.warning("No session to process")
+            continue
         for session in sessions:
             # Update / append the dicom mapping
-            coin(session, bidsmap, bidsfolder, personals,
-                 subprefix, sesprefix)
+            coin(session, bidsmap, bidsfolder, personals)
 
     # Synchronizing subject list
     new_sub_file = os.path.join(tmpDir, "participants.tsv")
@@ -327,7 +297,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
         new_sub = new_sub.groupby("participant_id").ffill().drop_duplicates()
         duplicates = new_sub.index.duplicated(keep=False)
         if duplicates.any():
-            LOGGER.error("One or several subjects have conflicting values."
+            logger.error("One or several subjects have conflicting values."
                          "See {} for details"
                          .format(new_sub_file))
             raise ValueError("Conflicting values in subject descriptions")
@@ -336,7 +306,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                                   index_col="participant_id",
                                   na_values="n/a")
             if new_sub.columns != old_sub.columns:
-                LOGGER.error("Subject table header mismach, "
+                logger.error("Subject table header mismach, "
                              "see {} and {} for details."
                              .format(new_sub_file, old_sub_file))
                 raise ValueError("Mismaching header in subject descriptions")
@@ -344,7 +314,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
             new_sub.groupby("participant_id").ffill().drop_duplicates()
             duplicates = new_sub.duplicated("participant_id", keep=False)
             if duplicates.any():
-                LOGGER.error("One or several subjects have conflicting values."
+                logger.error("One or several subjects have conflicting values."
                              "See {} and {} for details"
                              .format(new_sub_file, old_sub_file))
                 raise ValueError("Conflicting values in subject descriptions")
@@ -357,10 +327,10 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
 
         shutil.rmtree(tmpDir)
 
-    LOGGER.info('-------------- FINISHED! ------------')
-    LOGGER.info('')
+    logger.info('-------------- FINISHED! ------------')
+    logger.info('')
 
-    bids.reporterrors()
+    info.reporterrors(logger)
 
 
 # Shell usage
@@ -408,19 +378,11 @@ if __name__ == "__main__":
                         'be located in bidsfolder/code/bidscoin. '
                         'Default: bidsmap.yaml',
                         default='bidsmap.yaml')
-    parser.add_argument('-n','--subprefix',
-                        help="The prefix common for all the source "
-                        "subject-folders. Default: 'sub-'", 
-                        default='sub-')
-    parser.add_argument('-m','--sesprefix',
-                        help='The prefix common for all the source '
-                        'session-folders. Default: "ses-"',
-                        default='ses-')
     parser.add_argument('-v','--version',
                         help='Show the BIDS and BIDScoin version', 
                         action='version', 
-                        version=f'BIDS-version:\t\t{bids.bidsversion()}'
-                        '\nBIDScoin-version:\t{bids.version()}')
+                        version=f'BIDS-version:\t\t{info.bidsversion()}'
+                        '\nBIDScoin-version:\t{info.version()}')
 
     options = []
     params = sys.argv[1:]
@@ -431,12 +393,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args(params)
 
+    if os.path.dirname(args.bidsmap) == "":
+        args.bidsmap = os.path.join(args.bidsfolder, 
+                                    "code/bidscoin",
+                                    args.bidsmap)
+
     bidscoiner(rawfolder=args.sourcefolder,
                bidsfolder=args.bidsfolder,
                subjects=args.participant_label,
                force=args.force,
                participants=args.skip_participants,
                bidsmapfile=args.bidsmap,
-               subprefix=args.subprefix,
-               sesprefix=args.sesprefix,
                options=options)

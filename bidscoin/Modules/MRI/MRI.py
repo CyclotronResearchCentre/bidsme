@@ -351,31 +351,6 @@ class MRI(object):
         elif run.modality == self.ignoremodality:
                 self.modality = run.modality
 
-    def update_labels(self, run):
-        if self.modality in (self.ignoremodality, self.unknownmodality):
-            return
-
-        run = run["bids"]
-        suffix = run["suffix"]
-        if suffix != self.suffix:
-            raise ValueError("Can't change suffix within same acquisition")
-
-        tags = self.bidsmodalities[self.modality]
-        for index, key in enumerate(tags):
-                    if key in run and run[key]:
-                        val = self.get_dynamic_field(run[key])
-                        if isinstance(val, str):
-                            if val.lower().endswith(self.suffix.lower()):
-                                val = val[:-len(self.suffix)]
-                        if val != self.labels[index]:
-                            logger.info("{}: Updated tag {} from {} to {}"
-                                        .format(self.files[self.index],
-                                                tags[index],
-                                                self.labels[index],
-                                                val))
-                        self.labels[index] = val
-
-
     def match_attribute(self, attribute, pattern) -> bool:
         if not pattern:
             return True
@@ -426,7 +401,11 @@ class MRI(object):
                 raise ValueError("Illegal field value: {}".format(self.Session))
         else:
             subid = self.get_dynamic_field(self.Session)
-        return 'ses-' + tools.cleanup_value(re.sub('^ses-', '', subid))
+        ses = tools.cleanup_value(re.sub('^ses-', '', subid))
+        if ses == "":
+            return ses
+        else:
+            return 'ses-' + ses
 
     def get_bidsname(self):
         tags_list = list()
