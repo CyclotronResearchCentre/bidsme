@@ -2,6 +2,7 @@ import os
 import logging
 import re
 from datetime import datetime
+from collections import OrderedDict
 
 from tools import tools
 from bidsMeta import MetaField
@@ -121,7 +122,7 @@ class MRI(object):
         self.rec_path = ""
         self.index = -1
         self.attributes = dict()
-        self.labels = list()
+        self.labels = OrderedDict()
         self.suffix = ""
         self.modality = self.unknownmodality
         self.Subject = "<<SourceFilePath>>"
@@ -334,22 +335,28 @@ class MRI(object):
     def set_labels(self, run=None):
         self.suffix = ""
         self.modality = self.unknownmodality
-        self.labels = list()
+        self.labels = OrderedDict()
         if not run:
             return
     
         if run.modality in self.bidsmodalities:
             self.modality = run.modality
-            tags = self.bidsmodalities[run.modality]
-            self.labels = [""] * len(tags)
+            tags = set(self.bidsmodalities[run.modality]) \
+                    - set(run.entity) 
+            if tags:
+                logger.warning("Naming scheema do not follow BIDS standard")
+                self.labels = OrderedDict.fromkeys(run.entity)
+            else:
+                self.labels = OrderedDict.fromkeys(self.bidsmodalities[run.modality])
             self.suffix = run.suffix
-
-            for index, key in enumerate(tags):
-                if key in run.entity and run.entity[key]:
+            for key in run.entity:
                     val = self.get_dynamic_field(run.entity[key])
-                    self.labels[index] = val
+                    self.labels[key] = val
         elif run.modality == self.ignoremodality:
                 self.modality = run.modality
+        else:
+            logger.error("{}/{}: Unregistered modality {}"
+                         .format(self.get_rec_id(), self.index))
 
     def match_attribute(self, attribute, pattern) -> bool:
         if not pattern:
@@ -415,7 +422,7 @@ class MRI(object):
         sesid = self.getSesId()
         if sesid:
             tags_list.append(sesid)
-        for key, val in zip(self.bidsmodalities[self.modality], self.labels):
+        for key,val in self.labels.items():
             if val:
                 tags_list.append(key + "-" 
                                  + tools.cleanup_value(val))
@@ -484,9 +491,8 @@ class MRI(object):
             if field and field.name:
                 field.value = self.get_field(field.name)
         if "task" in self.bidsmodalities[self.modality]:
-            idx = self.bidsmodalities[self.modality].index("task")
-            if self.labels[idx]:
-                self.metaFields["task"] = MetaField("", "", self.labels[idx])
+            if self.labels["task"]:
+                self.metaFields["task"] = MetaField("", "", self.labels["task"])
 
     def exportMeta(self):
         return {key: field.value for key,field in self.metaFields.items()

@@ -248,7 +248,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
         plugins.ImportPlugins(bidsmap.plugin_file)
         bidsmap.plugin_options["rawfolder"] = rawfolder
         bidsmap.plugin_options["bidsfolder"] = bidsfolder
-        plugins.InitPlugin(bidsmap.plugin_opt)
+        plugins.InitPlugin(bidsmap.plugin_options)
 
     # Save options to the .bidsignore file
     bidsignore_items = [item.strip() 
@@ -305,14 +305,15 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
             old_sub = pd.read_csv(old_sub_file, sep="\t", header=0,
                                   index_col="participant_id",
                                   na_values="n/a")
-            if new_sub.columns != old_sub.columns:
+            if set(new_sub.columns) != set(old_sub.columns):
                 logger.error("Subject table header mismach, "
                              "see {} and {} for details."
                              .format(new_sub_file, old_sub_file))
                 raise ValueError("Mismaching header in subject descriptions")
-            new_sub.append(old_sub)
-            new_sub.groupby("participant_id").ffill().drop_duplicates()
-            duplicates = new_sub.duplicated("participant_id", keep=False)
+            new_sub = new_sub.append(old_sub)
+            new_sub = new_sub.groupby("participant_id")\
+                    .ffill().drop_duplicates()
+            duplicates = new_sub.index.duplicated()
             if duplicates.any():
                 logger.error("One or several subjects have conflicting values."
                              "See {} and {} for details"
