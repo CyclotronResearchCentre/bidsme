@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed
+-- `get_dynamic_field` is rewritten to accept bids values (`<<bids:>>`), 
+attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv 
+(`<<rec_tsv:>>`)
+
+
 ## [dev2.0.0] - 2019-12-23
 
 ### Changed

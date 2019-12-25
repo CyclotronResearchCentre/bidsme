@@ -191,22 +191,49 @@ class MRI(object):
                 self.attributes[attribute] = res
             return res
 
-    def get_dynamic_field(self, field: str):
-        val = field
+    def get_dynamic_field(self, field: str, cleanup=True):
         if not field or not isinstance(field, str):
             return field
-        if field.startswith("<<"):
-            if field == "<<1>>":  # run
-                return self.index + 1
-            else: 
-                return field
-        if field.startswith('<') and field.endswith('>'):
-            val = self.get_attribute(field[1:-1])
-            if not val:
-                return field
-            else:
-                val = tools.cleanup_value(val)
-        return val
+        res = ""
+        start = 0
+        while start < len(field):
+            pos = field.find('<', start)
+            if pos < 0:
+                res += field[start:]
+                break
+            res += field[start:pos]
+
+            try:
+                if field[pos + 1] == "<":
+                    pos += 2
+                    seek = ">>"
+                else:
+                    pos += 1
+                    seek = ">"
+                pos2 = field.find(seek, pos)
+                if pos2 < 0:
+                    raise IndexError("closing {} from {} not found in {}"
+                                     .format(seek, pos, field))
+                query = field[pos:pos2]
+                if seek == '>':
+                    result = self.get_attribute(query)
+                else:
+                    if query.startswith("bids:"):
+                        result = self.labels[len("bids:"):]
+                    elif query.startswith("sub_tsv:"):
+                        result = self.sub_BIDSvalues[len("sub_tsv:"):]
+                    elif query.startswith("rec_tsv:"):
+                        result = self.sub_BIDSvalues[len("rec_tsv:"):]
+                    else:
+                        result = self._getCharacteristic(query)
+               if result is None:
+                   raise KeyError("Cant interpret {} at {} from {}"
+                                  .format(query, pos, field))
+                res += str(result)
+                start = pos2 + len(seek)
+        if cleanup:
+            res = tools.cleanup_value(res)
+        return res
 
     def get_rec_no(self):
         return self.get_field("SeriesNumber")
@@ -499,4 +526,24 @@ class MRI(object):
                 if field is not None
                 and field.value is not None}
 
-        
+    def _getCharacteristic(self, field):
+        if field == "subject":
+            return self.getSubId()
+        if field == "session":
+            return self.getSesId()
+        if field == "serieNumber":
+            return self.get_rec_no()
+        if field == "serie":
+            returnself.get_rec_id()
+        if field == "count":
+            return self.index + 1
+        if field == "nfiles":
+            return len(self.files)
+        if field == "filename":
+            return self.currentFile(False)
+        if field == "suffix":
+            return self.suffix
+        if field == "modality":
+            return self.modality
+        if field = "module":
+            return self.Module
