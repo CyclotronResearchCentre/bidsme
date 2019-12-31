@@ -17,12 +17,12 @@ mri_meta_required = [
         "IntendedFor"
         ]
 
-mri_meta_recommended = [ 
+mri_meta_recommended = [
         # Scanner hardware
         "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
         "StationName", "SoftwareVersions",
-        "MagneticFieldStrength", "ReceiveCoilName", 
-        "ReceiveCoilActiveElements", 
+        "MagneticFieldStrength", "ReceiveCoilName",
+        "ReceiveCoilActiveElements",
         "GradientSetType", "MRTransmitCoilSequence",
         "MatrixCoilMode", "CoilCombinationMethod",
         # Sequence Specifics
@@ -30,19 +30,19 @@ mri_meta_recommended = [
         "ScanOptions", "SequenceName", "PulseSequenceDetails",
         "NonlinearGradientCorrection",
         # In-Plane Spatial Encoding
-        "NumberShots", "ParallelReductionFactorInPlane", 
+        "NumberShots", "ParallelReductionFactorInPlane",
         "ParallelAcquisitionTechnique", "PartialFourier",
         "PartialFourierDirection", "PhaseEncodingDirection",
-        "EffectiveEchoSpacing", "TotalReadoutTime"
+        "EffectiveEchoSpacing", "TotalReadoutTime",
         # Timing Parameters
-        "EchoTime", "InversionTime", "SliceTiming", 
+        "EchoTime", "InversionTime", "SliceTiming",
         "SliceEncodingDirection", "DwellTime",
         # RF & Contrast
         "FlipAngle", "MultibandAccelerationFactor",
         # Slice Acceleration
-        "MultibandAccelerationFactor", 
+        "MultibandAccelerationFactor",
         # Anatomical landmarks
-        "AnatomicalLandmarkCoordinates", 
+        "AnatomicalLandmarkCoordinates",
         # Institution information
         "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
         # funct specific
@@ -64,7 +64,7 @@ class MRI(object):
     __slots__ = [
                  "modality",
                  "Subject", "Session",
-                 "attributes", "labels", "suffix", 
+                 "attributes", "labels", "suffix",
                  "main_attributes",
                  "index", "files", "rec_path",
                  "type", "converter",
@@ -75,11 +75,11 @@ class MRI(object):
     Module = "MRI"
 
     bidsmodalities = {
-            "anat" : ("acq", "ce", "rec", "mod", "run"),
-            "func" : ("task", "acq", "ce", "dir", "rec", "run", "echo"),
-            "dwi"  : ("acq", "dir", "run"),
-            "fmap" : ("acq", "ce", "dir", "run"),
-            "beh"  : ("task")
+            "anat": ("acq", "ce", "rec", "mod", "run"),
+            "func": ("task", "acq", "ce", "dir", "rec", "run", "echo"),
+            "dwi": ("acq", "dir", "run"),
+            "fmap": ("acq", "ce", "dir", "run"),
+            "beh": ("task")
             }
 
     ignoremodality = '__ignore__'
@@ -111,10 +111,10 @@ class MRI(object):
         longName="Sex",
         description="Sex of a subject",
         levels={
-            "F"   : "Female",
-            "M"   : "Male"}
+            "F": "Female",
+            "M": "Male"}
             )
-    
+
     def __init__(self, rec_path=""):
         self.type = "None"
         self.converter = None
@@ -129,9 +129,9 @@ class MRI(object):
         self.Session = "<<SourceFilePath>>"
         self.main_attributes = set()
 
-        self.metaFields = {key:None for key in 
+        self.metaFields = {key: None for key in
                            mri_meta_required
-                           + mri_meta_recommended 
+                           + mri_meta_recommended
                            + mri_meta_optional}
         self.rec_BIDSvalues = dict()
         self.sub_BIDSvalues = dict()
@@ -139,13 +139,13 @@ class MRI(object):
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
         for file in os.listdir(rec_path):
-            if cls.isValidFile(os.path.join(rec_path,file)):
+            if cls.isValidFile(os.path.join(rec_path, file)):
                 return True
         return False
 
     @classmethod
-    def isValidModality(cls, modality: str, 
-                        include_unknown: bool=True) -> bool:
+    def isValidModality(cls, modality: str,
+                        include_unknown: bool = True) -> bool:
         passed = False
         if include_unknown and modality == cls.ignoremodality:
             passed = True
@@ -226,13 +226,18 @@ class MRI(object):
                         result = self.sub_BIDSvalues[len("rec_tsv:"):]
                     else:
                         result = self._getCharacteristic(query)
-               if result is None:
-                   raise KeyError("Cant interpret {} at {} from {}"
-                                  .format(query, pos, field))
+                if result is None:
+                    raise KeyError("Cant interpret {} at {} from {}"
+                                   .format(query, pos, field))
                 res += str(result)
                 start = pos2 + len(seek)
+            except Exception as e:
+                logger.error("Malformed field '{}': {}".format(field, str(e)))
+                raise
+
         if cleanup:
             res = tools.cleanup_value(res)
+
         return res
 
     def get_rec_no(self):
@@ -243,8 +248,8 @@ class MRI(object):
         if not seriesdescr:
             seriesdescr = self.get_field("ProtocolName")
         if not seriesdescr:
-            Logger.warn("Unable to get recording Id for file {}"
-                        .format(self.currentFile()))
+            logger.warning("Unable to get recording Id for file {}"
+                           .format(self.currentFile()))
             seriesdescr = "unknown"
         return seriesdescr
 
@@ -271,13 +276,13 @@ class MRI(object):
                 continue
             full_path = os.path.join(folder, file)
             if self.isValidFile(full_path):
-                    count += 1
+                count += 1
         return count
 
-    def get_file(self, folder: str, index: int=0) -> str:
+    def get_file(self, folder: str, index: int = 0) -> str:
         """
         Return the valid file of index from folder without loading
-        correwsponding folder. If you wnat to load folder, use 
+        correwsponding folder. If you wnat to load folder, use
         set_rec_path instead
 
         :param folder:  The full pathname of the folder
@@ -304,10 +309,10 @@ class MRI(object):
             if base:
                 return self.files[self.index]
             else:
-                return os.path.join(self.rec_path,self.files[self.index])
+                return os.path.join(self.rec_path, self.files[self.index])
         return None
 
-    def set_rec_path(self, rec_path:str) -> int:
+    def set_rec_path(self, rec_path: str) -> int:
         """
         Set given folder as folder containing all files fron given recording.
         Returns number of valid files in folder.
@@ -329,7 +334,7 @@ class MRI(object):
                 continue
             full_path = os.path.join(self.rec_path, file)
             if self.isValidFile(full_path):
-                    self.files.append(file)
+                self.files.append(file)
         if len(self.files) == 0:
             logger.warning("No valid {} files found in {}"
                            .format(self.type, self.rec_path))
@@ -352,8 +357,8 @@ class MRI(object):
 
     def set_main_attributes(self, run):
         if run:
-            self.main_attributes = [attkey 
-                                    for attkey, attval 
+            self.main_attributes = [attkey
+                                    for attkey, attval
                                     in run.attribute.items()
                                     if attval]
         else:
@@ -365,22 +370,23 @@ class MRI(object):
         self.labels = OrderedDict()
         if not run:
             return
-    
+
         if run.modality in self.bidsmodalities:
             self.modality = run.modality
             tags = set(self.bidsmodalities[run.modality]) \
-                    - set(run.entity) 
+                - set(run.entity)
             if tags:
                 logger.warning("Naming scheema do not follow BIDS standard")
                 self.labels = OrderedDict.fromkeys(run.entity)
             else:
-                self.labels = OrderedDict.fromkeys(self.bidsmodalities[run.modality])
+                self.labels = OrderedDict.fromkeys(
+                        self.bidsmodalities[run.modality])
             self.suffix = run.suffix
             for key in run.entity:
-                    val = self.get_dynamic_field(run.entity[key])
-                    self.labels[key] = val
+                val = self.get_dynamic_field(run.entity[key])
+                self.labels[key] = val
         elif run.modality == self.ignoremodality:
-                self.modality = run.modality
+            self.modality = run.modality
         else:
             logger.error("{}/{}: Unregistered modality {}"
                          .format(self.get_rec_id(), self.index))
@@ -420,7 +426,8 @@ class MRI(object):
             if self.Subject == '<<SourceFilePath>>':
                 subid = self.get_id_folder("sub-")
             else:
-                raise ValueError("Illegal field value: {}".format(self.Subject))
+                raise ValueError("Illegal field value: {}"
+                                 .format(self.Subject))
         else:
             subid = self.get_dynamic_field(self.Subject)
         return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
@@ -432,7 +439,8 @@ class MRI(object):
             if self.Session == '<<SourceFilePath>>':
                 subid = self.get_id_folder("ses-")
             else:
-                raise ValueError("Illegal field value: {}".format(self.Session))
+                raise ValueError("Illegal field value: {}"
+                                 .format(self.Session))
         else:
             subid = self.get_dynamic_field(self.Session)
         ses = tools.cleanup_value(re.sub('^ses-', '', subid))
@@ -449,9 +457,9 @@ class MRI(object):
         sesid = self.getSesId()
         if sesid:
             tags_list.append(sesid)
-        for key,val in self.labels.items():
+        for key, val in self.labels.items():
             if val:
-                tags_list.append(key + "-" 
+                tags_list.append(key + "-"
                                  + tools.cleanup_value(val))
 
         if self.suffix:
@@ -463,7 +471,7 @@ class MRI(object):
             logger.error("Recording path not defined")
             return
 
-        # recording path means to be organized as 
+        # recording path means to be organized as
         # ..../sub-xxx/[ses-yyy]/sequence/files
         try:
             subid = self.rec_path.rsplit("/" + prefix, 1)[1]\
@@ -474,17 +482,17 @@ class MRI(object):
         return subid
 
     def set_subid_sesid(self, subid: str, sesid: str,
-                        subprefix: str="sub-",
-                        sesprefix: str="ses-"):
+                        subprefix: str = "sub-",
+                        sesprefix: str = "ses-"):
         """
-        Extract the cleaned-up subid and sesid from the pathname 
+        Extract the cleaned-up subid and sesid from the pathname
         or from the dicom file if subid/sesid == '<<SourceFilePath>>'
 
-        :param subid:       The subject identifier, 
-                            i.e. name of the subject folder 
+        :param subid:       The subject identifier,
+                            i.e. name of the subject folder
                             (e.g. 'sub-001' or just '001'). Can be left empty
-        :param sesid:       The optional session identifier, 
-                            i.e. name of the session folder 
+        :param sesid:       The optional session identifier,
+                            i.e. name of the session folder
                             (e.g. 'ses-01' or just '01')
         :return:            Updated (subid, sesid) tuple,
                             including the sub/sesprefix
@@ -496,7 +504,7 @@ class MRI(object):
             subid = self.get_id_folder("sub-")
         else:
             subid = self.get_dynamic_field(subid)
-        if sesid: 
+        if sesid:
             if sesid == '<<SourceFilePath>>':
                 sesid = self.get_id_folder("ses-")
             else:
@@ -519,10 +527,11 @@ class MRI(object):
                 field.value = self.get_field(field.name)
         if "task" in self.bidsmodalities[self.modality]:
             if self.labels["task"]:
-                self.metaFields["task"] = MetaField("", "", self.labels["task"])
+                self.metaFields["task"] = MetaField("", "",
+                                                    self.labels["task"])
 
     def exportMeta(self):
-        return {key: field.value for key,field in self.metaFields.items()
+        return {key: field.value for key, field in self.metaFields.items()
                 if field is not None
                 and field.value is not None}
 
@@ -534,7 +543,7 @@ class MRI(object):
         if field == "serieNumber":
             return self.get_rec_no()
         if field == "serie":
-            returnself.get_rec_id()
+            return self.get_rec_id()
         if field == "count":
             return self.index + 1
         if field == "nfiles":
@@ -545,5 +554,5 @@ class MRI(object):
             return self.suffix
         if field == "modality":
             return self.modality
-        if field = "module":
+        if field == "module":
             return self.Module

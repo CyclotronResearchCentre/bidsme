@@ -2,10 +2,8 @@ import os
 import logging
 from copy import deepcopy as copy
 from tools.yaml import yaml
-import ruamel.yaml
 from collections import OrderedDict
 
-import bids
 from tools import info
 from Modules.MRI import selector
 
@@ -25,27 +23,32 @@ class Run(object):
             "_modality",     # modality associeted with this run
             "attribute",     # dictionary of attr:regexp
             "entity",        # dictionary for run entities
+            "json",          # dictionary for json fields
             "_suffix",       # suffix associated with run
             "_bk_modality",  # copy of self old values
-            "_bk_attribute", 
+            "_bk_attribute",
             "_bk_entity",
             "_bk_suffix",
+            "_bk_json",
             "provenance",
             "writable",
             "template"
-            ] 
+            ]
 
-    def __init__(self, *, 
-                 modality: str="", 
-                 attribute: OrderedDict={},
-                 entity: dict={},
-                 suffix: str="",
-                 provenance: str=None
+    def __init__(self, *,
+                 modality: str = "",
+                 attribute: OrderedDict = {},
+                 entity: dict = {},
+                 json:  OrderedDict = {},
+                 suffix: str = "",
+                 provenance: str = None
                  ):
-        self._bk_modality = None
-        self._bk_attribute = dict()
-        self._bk_entity = dict()
-        self._bk_suffix = None
+        self.save()
+        # self._bk_modality = None
+        # self._bk_attribute = dict()
+        # self._bk_entity = dict()
+        # self._bk_suffix = None
+        # self._bk_json = dicy()
         self.writable = True
         self.template = False
 
@@ -54,6 +57,7 @@ class Run(object):
         self._suffix = check_type("suffix", str, suffix)
         self.attribute = dict(check_type("attribute", dict, attribute))
         self.entity = OrderedDict(check_type("entity", OrderedDict, entity))
+        self.json = OrderedDict(check_type("json", OrderedDict, json))
 
     @property
     def modality(self):
@@ -135,8 +139,32 @@ class Run(object):
             if attr not in self._bk_entity:
                 self._bk_entity[attr] = None
 
+    def set_json_field(self, field, val):
+        if isinstance(val, str):
+            val = val.encode('unicode_escape').decode()
+        attr = check_type("field", str, field)
+
+        if attr in self.json:
+            if self.json[attr] == val:
+                return
+
+            if attr not in self._bk_json:
+                self._bk_json[attr] = self.json[attr]
+
+            if val:
+                self.json[attr] = val
+            else:
+                self.json.remove(attr)
+            return
+
+        else:
+            if val == "":
+                return
+            self.json[attr] = val
+            if attr not in self._bk_json:
+                self._bk_json[attr] = None
+
     def restore_attribute(self, attr):
-        attr = check_type("attr", str, attr)
         self.__restore_val(attr,
                            self.attribute,
                            self._bk_attribute)
@@ -148,8 +176,7 @@ class Run(object):
                                self._bk_attribute)
 
     def restore_entity(self, attr):
-        attr = check_type("attr", str, attr)
-        self.__restore_val(attr, 
+        self.__restore_val(attr,
                            self.entity,
                            self._bk_entity)
 
@@ -159,16 +186,29 @@ class Run(object):
                                self.entity,
                                self._bk_entity)
 
+    def restore_json_field(self, attr):
+        self.__restore_val(attr,
+                           self.json,
+                           self._bk_json)
+
+    def restore_json(self):
+        for attr in self.json:
+            self.__restore_val(attr,
+                               self.json,
+                               self._bk_json)
+
     def restore(self):
         self.restore_modality()
         self.restore_suffix()
         self.restore_attributes()
         self.restore_entities()
-        
+        self.restore_json()
+
     def save(self):
         self._bk_modality = None
         self._bk_attribute = dict()
         self._bk_entity = dict()
+        self._bk_jason = dict()
         self._bk_suffix = None
 
     def __restore_val(self, attr, dest, source):
@@ -185,7 +225,7 @@ class Run(object):
         d["provenance"] = self.provenance
         d["suffix"] = self.suffix
         d["template"] = self.template
-        d["attributes"] = {k:v for k,v in self.attribute.items()
+        d["attributes"] = {k: v for k, v in self.attribute.items()
                            if empty_attributes or v
                            }
         d["bids"] = self.entity
@@ -194,8 +234,8 @@ class Run(object):
 
 
 class bidsmap(object):
-    __slots__ = ["Modules", 
-                 "filename", 
+    __slots__ = ["Modules",
+                 "filename",
                  "version", "bidsignore",
                  "plugin_file", "plugin_options"]
 
@@ -205,7 +245,7 @@ class bidsmap(object):
         self.plugin_file = ""
         self.plugin_options = dict()
 
-        self.Modules = {mod:{t.__name__:dict() for t in types} 
+        self.Modules = {mod: {t.__name__: dict() for t in types}
                         for mod, types in selector.types_list.items()
                         }
 
@@ -248,7 +288,7 @@ class bidsmap(object):
         for module in self.Modules:
             if module not in yaml_map or not yaml_map[module]:
                 continue
-            
+
             # Over Data formats (Nifty, Dicom etc...)
             for f_name, form in yaml_map[module].items():
                 if not form:
@@ -256,20 +296,23 @@ class bidsmap(object):
                 if f_name not in self.Modules[module]:
                     logger.warning("Failed to find type {}/{} "
                                    "readed from {}"
-                                   .format(module,f_name, yamlfile))
+                                   .format(module, f_name, yamlfile))
                     continue
                 # Over Modalities
                 for m_name, modality in form.items():
                     if not selector.select_by_name(f_name, module)\
                             .isValidModality(m_name):
                         logger.warning("Modality {} not defined for {}/{}"
-                                       .format(m_name,module,f_name))
+                                       .format(m_name, module, f_name))
                         continue
                     self.Modules[module][f_name][m_name] =\
-                            [None] * len(modality)
+                        [None] * len(modality)
                     for ind, run in enumerate(modality):
                         if not run:
                             continue
+                        json = OrderedDict()
+                        if "json" in run:
+                            json = run["json"]
                         try:
                             if m_name == selector.ignoremodality:
                                 r = Run(modality=m_name,
@@ -282,7 +325,8 @@ class bidsmap(object):
                                         attribute=run["attributes"],
                                         entity=run["bids"],
                                         suffix=run["suffix"],
-                                        provenance=run["provenance"]
+                                        provenance=run["provenance"],
+                                        json=json
                                         )
                             if "template" in run:
                                 r.template = run["template"]
@@ -290,7 +334,8 @@ class bidsmap(object):
                             logger.error("Malformed run in {}/{}/{}:{}"
                                          .format(module, f_name, m_name, ind)
                                          )
-                            logger.error("{}:{}".format(type(e).__name__, e.args))
+                            logger.error("{}:{}"
+                                         .format(type(e).__name__, e.args))
                             continue
                         self.Modules[module][f_name][m_name][ind] = r
 
@@ -312,10 +357,10 @@ class bidsmap(object):
                             if not run.provenance:
                                 run.provenance = recording.currentFile()
                             logger.debug("Checked run: {}/{}"
-                                         .format(res_mod,res_index))
+                                         .format(res_mod, res_index))
                         else:
                             logger.warning("{}/{}: also checks run: {}/{}"
-                                           .format(res_mod,res_index,
+                                           .format(res_mod, res_index,
                                                    modality, idx))
                     else:
                         break
@@ -341,8 +386,8 @@ class bidsmap(object):
             self.Modules[module][form][run.modality].append(run)
         else:
             self.Modules[module][form][run.modality] = [run]
-        return (run.modality, 
-                len(self.Modules[module][form][run.modality]) - 1, 
+        return (run.modality,
+                len(self.Modules[module][form][run.modality]) - 1,
                 run)
 
     def save(self, filename, empty_modules=False, empty_attributes=True):
@@ -368,7 +413,7 @@ class bidsmap(object):
                 for mod_name, modality in form.items():
                     if not modality:
                         continue
-                    d[m_name][f_name][mod_name] = [run.dump(empty_attributes) 
+                    d[m_name][f_name][mod_name] = [run.dump(empty_attributes)
                                                    for run in modality]
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)

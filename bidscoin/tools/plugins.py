@@ -115,12 +115,9 @@ def InitPlugin(cfi_params):
     cfi_params: dict
         dictionary of parameters from configuration file passed to plugin
     """
-    if cfi_params:
-        if "InitEP" not in active_plugins:
-            raise tools.exception.PluginModuleNotFound(
-                    "Passed parameters but plugin "
-                    "but plugin don't have initializer")
-        RunPlugin("InitEP", **cfi_params)
+    if "InitEP" not in active_plugins:
+        return
+    RunPlugin("InitEP", **cfi_params)
 
 
 def RunPlugin(entry, *args, **kwargs):

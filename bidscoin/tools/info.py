@@ -58,8 +58,8 @@ def version() -> str:
 
 
 def setup_logging(logger: logging.Logger, 
-                  log_dir: str, 
-                  level: str='INFO') -> None:
+                  log_dir: str = "",  
+                  level: str = 'INFO') -> None:
     """
     Setup the logging
 

@@ -13,6 +13,7 @@ import logging
 
 import bids
 
+from tools import info
 import tools.tools as tools
 import tools.plugins as plugins
 import tools.exceptions as exceptions
@@ -20,8 +21,10 @@ import tools.exceptions as exceptions
 from Modules.MRI.selector import select as MRI_select
 
 
-logger = logging.getLogger("bidssort")
-bids.setup_logging("")
+logger = logging.getLogger()
+logger.name = os.path.splitext(os.path.basename(__file__))[0]
+info.setup_logging(logger, "", 'INFO')
+
 
 class SubjectEPerror(exceptions.PluginError):
     """

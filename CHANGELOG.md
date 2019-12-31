@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv 
 (`<<rec_tsv:>>`)
 
+### Added
+-- json section to run
+
 
 ## [dev2.0.0] - 2019-12-23
 

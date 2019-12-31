@@ -4,8 +4,7 @@ Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin
 that maps the information from all raw source data to the BIDS labels.
 You can check and edit the bidsmap file with the bidseditor 
 (but also with any text-editor) before passing it to the bidscoiner.
-See the bidseditor help for more information and useful tips for running 
-the bidsmapper in interactive mode (which is the default).
+See the bidseditor help for more information.
 
 N.B.: Institute users may want to use a site-customized template bidsmap
 (see the --template option). The bidsmap_dccn template from 
@@ -37,10 +36,9 @@ logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
 
 
-
 def bidsmapper(rawfolder: str, bidsfolder: str,
                bidsmapfile: str, templatefile: str, 
-               interactive: bool=False) -> None:
+               ) -> None:
     """
     Main function that processes all the subjects and session 
     in the sourcefolder and that generates a maximally filled-in 
@@ -52,7 +50,6 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     :param bidsfolder:      The name of the BIDS root folder
     :param bidsmapfile:     The name of the bidsmap YAML-file
     :param templatefile:    The name of the bidsmap template YAML-file
-    :param interactive:     If True, the user will be asked for help 
     if an unknown run is encountered
     :return:bidsmapfile:    The name of the mapped bidsmap YAML-file
     """
@@ -198,19 +195,6 @@ if __name__ == "__main__":
                         'bidscoin/heuristics/. '
                         'Default: bidsmap_template.yaml',
                         default='bidsmap_template.yaml')
-    parser.add_argument('-i','--interactive',
-                        help='{0}: The sourcefolder is scanned for different '
-                        'kinds of scans without any user interaction. '
-                        '{1}: The sourcefolder is scanned for different kinds '
-                        'of scans and, when finished, the resulting bidsmap is '
-                        'opened using the bidseditor. '
-                        '{2}: As {1}, except that already during scanning '
-                        'the user is asked for help if a new and unknown '
-                        'run is encountered. This option is most useful when '
-                        're-running the bidsmapper (e.g. when the scan '
-                        'protocol was changed since last running the bidsmapper). '
-                        'Default: 1',
-                        type=int, choices=[0,1,2], default=1)
     parser.add_argument('-v','--version',
                         help='Show the BIDS and BIDScoin version',
                         action='version', 
@@ -229,5 +213,4 @@ if __name__ == "__main__":
     bidsmapper(rawfolder=args.sourcefolder,
                bidsfolder=args.bidsfolder,
                bidsmapfile=args.bidsmap,
-               templatefile=args.template,
-               interactive=args.interactive)
+               templatefile=args.template)
