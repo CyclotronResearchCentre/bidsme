@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Converts ("coins") datasets in the sourcefolder to nifti/json/tsv datasets 
-in the bidsfolder according to the BIDS standard. Check and edit 
-the bidsmap.yaml file to your needs using the bidseditor.py tool 
-before running this function. You can run bidscoiner.py after all data 
-is collected, or run / re-run it whenever new data has been added 
-to the source folder (presuming the scan protocol hasn't changed). 
-If you delete a (subject/) session folder from the bidsfolder, 
-it will be re-created from the sourcefolder the next time you run 
+Converts ("coins") datasets in the sourcefolder to nifti/json/tsv datasets
+in the bidsfolder according to the BIDS standard. Check and edit
+the bidsmap.yaml file to your needs using the bidseditor.py tool
+before running this function. You can run bidscoiner.py after all data
+is collected, or run / re-run it whenever new data has been added
+to the source folder (presuming the scan protocol hasn't changed).
+If you delete a (subject/) session folder from the bidsfolder,
+it will be re-created from the sourcefolder the next time you run
 the bidscoiner.
 
 Provenance information, warnings and error messages are stored in the
@@ -22,26 +22,22 @@ import json
 import logging
 import tempfile
 
-try:
-    from bidscoin import bids
-except ImportError:
-    import bids         # This should work if bidscoin was not pip-installed
-    from tools import tools
-    from tools import plugins
-    from tools import info
-    import bidsmap as Bidsmap
-    from Modules.MRI import selector
+from tools import tools
+from tools import plugins
+from tools import info
+import bidsmap as Bidsmap
+from Modules.MRI import selector
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
 tmpDir = None
 
 
-def coin(session: str, bidsmap: dict, 
+def coin(session: str, bidsmap: dict,
          bidsfolder: str, personals: dict) -> None:
     """
-    Converts the session dicom-files into BIDS-valid nifti-files 
-    in the corresponding bidsfolder and extracts personals 
+    Converts the session dicom-files into BIDS-valid nifti-files
+    in the corresponding bidsfolder and extracts personals
     (e.g. Age, Sex) from the dicom header
 
     :param session:     The full-path name of the subject/session source folder
@@ -63,7 +59,7 @@ def coin(session: str, bidsmap: dict,
         if module not in selector.types_list:
             continue
 
-        for runfolder in tools.lsdirs(session,module + "/*"):
+        for runfolder in tools.lsdirs(session, module + "/*"):
             logger.info('Processing: {}'.format(runfolder))
             cls = selector.select(runfolder, module)
             if cls is None:
@@ -97,14 +93,14 @@ def coin(session: str, bidsmap: dict,
                             recording.sub_BIDSvalues))
                     f.write('\n')
                 recording.sub_BIDSfields.DumpDefinitions(
-                        tools.change_ext(sub_tsv,"json"))
+                        tools.change_ext(sub_tsv, "json"))
 
             recording.index = -1
             while recording.loadNextFile():
                 modality, r_index, r_obj = bidsmap.match_run(recording)
                 if not modality:
                     e = "{}/{}: No compatible run found"\
-                        .format(os.path.basename(seq, recording.index))
+                        .format(os.path.basename(seq), recording.index)
                     logger.error(e)
                     raise ValueError(e)
                 if modality == recording.ignoremodality:
@@ -115,7 +111,7 @@ def coin(session: str, bidsmap: dict,
                 bidsname = recording.get_bidsname()
                 recording.generateMeta()
 
-                # Check if file already exists 
+                # Check if file already exists
                 bidsmodality = os.path.join(bidsses, recording.modality)
                 os.makedirs(bidsmodality, exist_ok=True)
                 if os.path.isfile(os.path.join(bidsmodality,
@@ -157,37 +153,37 @@ def coin(session: str, bidsmap: dict,
                             recording.rec_BIDSvalues))
                         f.write('\n')
                     recording.rec_BIDSfields.DumpDefinitions(
-                            tools.change_ext(scans_tsv,"json"))
+                            tools.change_ext(scans_tsv, "json"))
 
 
-def bidscoiner(rawfolder: str, bidsfolder: str, 
-               subjects: tuple=(), force: bool=False, 
-               participants: bool=False, 
-               bidsmapfile: str='bidsmap.yaml', 
-               options: list=[]) -> None:
+def bidscoiner(rawfolder: str, bidsfolder: str,
+               subjects: tuple = (), force: bool = False,
+               participants: bool = False,
+               bidsmapfile: str = 'bidsmap.yaml',
+               options: list = []) -> None:
     """
-    Main function that processes all the subjects and session 
-    in the sourcefolder and uses the bidsmap.yaml file in 
+    Main function that processes all the subjects and session
+    in the sourcefolder and uses the bidsmap.yaml file in
     bidsfolder/code/bidscoin to cast the data into the BIDS folder.
 
-    :param rawfolder:       The root folder-name of the sub/ses/data/file 
+    :param rawfolder:       The root folder-name of the sub/ses/data/file
                             tree containing the source data files
     :param bidsfolder:      The name of the BIDS root folder
-    :param subjects:        List of selected subjects / participants 
-                            (i.e. sub-# names / folders) to be processed 
-                            (the sub- prefix can be removed). 
-                            Otherwise all subjects in the sourcefolder 
+    :param subjects:        List of selected subjects / participants
+                            (i.e. sub-# names / folders) to be processed
+                            (the sub- prefix can be removed).
+                            Otherwise all subjects in the sourcefolder
                             will be selected
-    :param force:           If True, subjects will be processed, regardless 
-                            of existing folders in the bidsfolder. 
+    :param force:           If True, subjects will be processed, regardless
+                            of existing folders in the bidsfolder.
                             Otherwise existing folders will be skipped
-    :param participants:    If True, subjects in particpants.tsv will 
-                            not be processed (this could be used e.g. 
+    :param participants:    If True, subjects in particpants.tsv will
+                            not be processed (this could be used e.g.
                             to protect these subjects from being reprocessed),
                             also when force=True
-    :param bidsmapfile:     The name of the bidsmap YAML-file. If the bidsmap 
-                            pathname is relative (i.e. no "/" in the name) 
-                            then it is assumed to be located 
+    :param bidsmapfile:     The name of the bidsmap YAML-file. If the bidsmap
+                            pathname is relative (i.e. no "/" in the name)
+                            then it is assumed to be located
                             in bidsfolder/code/bidscoin
     :param options:         A list of parameters passed to plugin
     :return:                Nothing
@@ -196,7 +192,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
     # Input checking & defaults
     rawfolder = os.path.abspath(rawfolder)
     bidsfolder = os.path.abspath(bidsfolder)
-    bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
+    bidscodefolder = os.path.join(bidsfolder, 'code', 'bidscoin')
 
     # Start logging
     info.setup_logging(logger, bidscodefolder, 'INFO')
@@ -215,12 +211,12 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
         logger.warning("TMPDIR: Failed to create temporary directory."
                        "Will try current directory")
         tmpDir = tempfile.mkdtemp(
-            prefix=os.path.basename(sys.argv[0]) + "_",dir="."
+            prefix=os.path.basename(sys.argv[0]) + "_", dir="."
             ) + "/"
     logger.debug("Temporary directory: {}".format(tmpDir))
 
     # Create a code/bidscoin subfolder
-    os.makedirs(os.path.join(bidsfolder,'code','bidscoin'), exist_ok=True)
+    os.makedirs(os.path.join(bidsfolder, 'code', 'bidscoin'), exist_ok=True)
 
     # Create a dataset description file if it does not exist
     dataset_file = os.path.join(bidsfolder, 'dataset_description.json')
@@ -251,14 +247,14 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
         plugins.InitPlugin(bidsmap.plugin_options)
 
     # Save options to the .bidsignore file
-    bidsignore_items = [item.strip() 
-                        for item in 
+    bidsignore_items = [item.strip()
+                        for item in
                         bidsmap.bidsignore
                         ]
     if len(bidsignore_items) > 0:
         logger.info("Writing {} entries to {}.bidsignore"
                     .format(bidsignore_items, bidsfolder))
-        with open(os.path.join(bidsfolder,'.bidsignore'), 'w') as bidsignore:
+        with open(os.path.join(bidsfolder, '.bidsignore'), 'w') as bidsignore:
             for item in bidsignore_items:
                 bidsignore.write(item + '\n')
 
@@ -312,7 +308,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                 raise ValueError("Mismaching header in subject descriptions")
             new_sub = new_sub.append(old_sub)
             new_sub = new_sub.groupby("participant_id")\
-                    .ffill().drop_duplicates()
+                .ffill().drop_duplicates()
             duplicates = new_sub.index.duplicated()
             if duplicates.any():
                 logger.error("One or several subjects have conflicting values."
@@ -320,11 +316,11 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                              .format(new_sub_file, old_sub_file))
                 raise ValueError("Conflicting values in subject descriptions")
         new_sub.to_csv(old_sub_file,
-                       sep='\t',na_rep="n/a",
-                       index=True, header=True) 
+                       sep='\t', na_rep="n/a",
+                       index=True, header=True)
         json_file = tools.change_ext(old_sub_file, "json")
         if not os.path.isfile(json_file):
-            shutil.copyfile(tools.change_ext(new_sub_file, "json"),json_file)
+            shutil.copyfile(tools.change_ext(new_sub_file, "json"), json_file)
 
         shutil.rmtree(tmpDir)
 
@@ -355,33 +351,33 @@ if __name__ == "__main__":
     parser.add_argument('bidsfolder',
                         help='The destination / output folder with '
                         'the bids data')
-    parser.add_argument('-p','--participant_label',
+    parser.add_argument('-p', '--participant_label',
                         help='Space seperated list of selected sub-# '
                         'names / folders to be processed (the sub- '
                         'prefix can be removed). Otherwise all subjects '
-                        'in the sourcefolder will be selected', 
+                        'in the sourcefolder will be selected',
                         nargs='+')
-    parser.add_argument('-f','--force',help='If this flag is given '
+    parser.add_argument('-f', '--force', help='If this flag is given '
                         'subjects will be processed, regardless of '
                         'existing folders in the bidsfolder. '
-                        'Otherwise existing folders will be skipped', 
+                        'Otherwise existing folders will be skipped',
                         action='store_true')
-    parser.add_argument('-s','--skip_participants',
+    parser.add_argument('-s', '--skip_participants',
                         help='If this flag is given those subjects '
                         'that are in particpants.tsv will not be '
                         'processed (also when the --force flag is given). '
                         'Otherwise the participants.tsv table is ignored',
                         action='store_true')
-    parser.add_argument('-b','--bidsmap',
+    parser.add_argument('-b', '--bidsmap',
                         help='The bidsmap YAML-file with the study '
                         'heuristics. If the bidsmap filename is relative '
                         '(i.e. no "/" in the name) then it is assumed to '
                         'be located in bidsfolder/code/bidscoin. '
                         'Default: bidsmap.yaml',
                         default='bidsmap.yaml')
-    parser.add_argument('-v','--version',
-                        help='Show the BIDS and BIDScoin version', 
-                        action='version', 
+    parser.add_argument('-v', '--version',
+                        help='Show the BIDS and BIDScoin version',
+                        action='version',
                         version=f'BIDS-version:\t\t{info.bidsversion()}'
                         '\nBIDScoin-version:\t{info.version()}')
 
@@ -395,7 +391,7 @@ if __name__ == "__main__":
     args = parser.parse_args(params)
 
     if os.path.dirname(args.bidsmap) == "":
-        args.bidsmap = os.path.join(args.bidsfolder, 
+        args.bidsmap = os.path.join(args.bidsfolder,
                                     "code/bidscoin",
                                     args.bidsmap)
 

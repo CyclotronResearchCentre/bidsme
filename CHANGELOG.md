@@ -9,7 +9,8 @@ attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv
 (`<<rec_tsv:>>`)
 
 ### Added
--- json section to run
+-- json section to run, the value added to recording json file
+-- json section supports lists
 
 
 ## [dev2.0.0] - 2019-12-23

@@ -68,6 +68,7 @@ class MRI(object):
                  "main_attributes",
                  "index", "files", "rec_path",
                  "type", "converter",
+                 "metaAuxiliary",
                  "metaFields",
                  "rec_BIDSvalues",
                  "sub_BIDSvalues"
@@ -133,6 +134,7 @@ class MRI(object):
                            mri_meta_required
                            + mri_meta_recommended
                            + mri_meta_optional}
+        self.metaAuxiliary = dict()
         self.rec_BIDSvalues = dict()
         self.sub_BIDSvalues = dict()
 
@@ -381,7 +383,7 @@ class MRI(object):
             else:
                 self.labels = OrderedDict.fromkeys(
                         self.bidsmodalities[run.modality])
-            self.suffix = run.suffix
+            self.suffix = self.get_dynamic_field(run.suffix)
             for key in run.entity:
                 val = self.get_dynamic_field(run.entity[key])
                 self.labels[key] = val
@@ -390,6 +392,19 @@ class MRI(object):
         else:
             logger.error("{}/{}: Unregistered modality {}"
                          .format(self.get_rec_id(), self.index))
+
+        self.metaAuxiliary = dict()
+        for key, val in run.json.items():
+            if key and run.json[key]:
+                if isinstance(val, list):
+                    self.metaAuxiliary[key] = [
+                            MetaField(key, "",
+                                      self.get_dynamic_field(v, False))
+                            for v in val]
+                else:
+                    self.metaAuxiliary[key] = MetaField(
+                            key, "",
+                            self.get_dynamic_field(val, False))
 
     def match_attribute(self, attribute, pattern) -> bool:
         if not pattern:
@@ -525,15 +540,22 @@ class MRI(object):
         for key, field in self.metaFields.items():
             if field and field.name:
                 field.value = self.get_field(field.name)
-        if "task" in self.bidsmodalities[self.modality]:
-            if self.labels["task"]:
-                self.metaFields["task"] = MetaField("", "",
-                                                    self.labels["task"])
 
     def exportMeta(self):
-        return {key: field.value for key, field in self.metaFields.items()
-                if field is not None
-                and field.value is not None}
+        exp = dict()
+        for key, field in self.metaAuxiliary.items():
+            if field:
+                if isinstance(field, list):
+                    exp[key] = [f.value for f in field]
+                else:
+                    exp[key] = field.value
+        for key, field in self.metaFields.items():
+            if field and key not in self.metaAuxiliary:
+                if isinstance(field, list):
+                    exp[key] = [f.value for f in field]
+                else:
+                    exp[key] = field.value
+        return exp
 
     def _getCharacteristic(self, field):
         if field == "subject":

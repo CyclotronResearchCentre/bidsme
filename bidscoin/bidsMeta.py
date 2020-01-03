@@ -44,6 +44,12 @@ class MetaField(object):
                 raise ValueError("Can't determine type of field from '{}'"
                                  .format(scaling))
 
+    def __bool__(self):
+        if self.value:
+            return True
+        else:
+            return False
+
     def __get_raw(self, value):
         self.__value = value
 

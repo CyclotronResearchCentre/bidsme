@@ -43,12 +43,11 @@ class Run(object):
                  suffix: str = "",
                  provenance: str = None
                  ):
-        self.save()
-        # self._bk_modality = None
-        # self._bk_attribute = dict()
-        # self._bk_entity = dict()
-        # self._bk_suffix = None
-        # self._bk_json = dicy()
+        self._bk_modality = None
+        self._bk_attribute = dict()
+        self._bk_entity = dict()
+        self._bk_suffix = None
+        self._bk_json = dict()
         self.writable = True
         self.template = False
 
@@ -56,8 +55,8 @@ class Run(object):
         self._modality = check_type("modality", str, modality)
         self._suffix = check_type("suffix", str, suffix)
         self.attribute = dict(check_type("attribute", dict, attribute))
-        self.entity = OrderedDict(check_type("entity", OrderedDict, entity))
-        self.json = OrderedDict(check_type("json", OrderedDict, json))
+        self.entity = OrderedDict(check_type("entity", dict, entity))
+        self.json = OrderedDict(check_type("json", dict, json))
 
     @property
     def modality(self):
@@ -208,7 +207,7 @@ class Run(object):
         self._bk_modality = None
         self._bk_attribute = dict()
         self._bk_entity = dict()
-        self._bk_jason = dict()
+        self._bk_json = dict()
         self._bk_suffix = None
 
     def __restore_val(self, attr, dest, source):

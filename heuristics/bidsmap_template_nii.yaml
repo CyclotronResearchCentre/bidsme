@@ -46,7 +46,7 @@ MRI:
         acq: ~
         ce: ~
         rec: ~
-        run: <<1>>
+        run: <<count>>
         mod: ~
       suffix: T1w
     - provenance: ~
@@ -79,7 +79,7 @@ MRI:
         ce: ~
         dir: PE
         rec: ~
-        run: <<1>>
+        run: <<count>>
         echo: <EchoNumbers>
       suffix: BOLD
 
@@ -104,7 +104,7 @@ MRI:
         ce: ~
         dir: EP
         rec: ~
-        run: <<1>>
+        run: <<count>>
         echo: <EchoNumbers>
       suffix: BOLD
     dwi:
@@ -126,7 +126,7 @@ MRI:
       bids: 
         acq: ~
         dir: EP
-        run: <<1>>
+        run: <<count>>
       suffix: dwi
     - provenance: ~
       attributes: 
@@ -146,7 +146,7 @@ MRI:
       bids: 
         acq: ~
         dir: PE
-        run: <<1>>
+        run: <<count>>
       suffix: dwi
     fmap:
     - provenance: ~
@@ -168,7 +168,7 @@ MRI:
         acq: <SeriesDescription>
         ce: ~
         dir: ~
-        run: <<1>>
+        run: <<count>>
       suffix: magnitude1
     - provenance: ~
       attributes: 
