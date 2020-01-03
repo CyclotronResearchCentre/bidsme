@@ -228,6 +228,7 @@ class Run(object):
                            if empty_attributes or v
                            }
         d["bids"] = self.entity
+        d["json"] = self.json
 
         return d
 

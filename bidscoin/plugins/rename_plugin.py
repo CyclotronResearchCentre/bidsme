@@ -12,6 +12,10 @@ source = None
 destination = None
 df_subjects = None
 
+# scale to convert ms in log-files to seconds
+time_scale = 1e-3
+
+
 excel_col_list = {'Patient' : 'pat',
                   'S_A_E' : "pat_sae",
                   1: "pat_1", 2: "pat_2", 3: "pat_3",
@@ -39,14 +43,18 @@ sub_columns.AddField(
         "M"   : "Male"}
         )
 sub_columns.AddField(
-        name="score",
-        longName="Mental score",
-        description="Mental score of subject")
+        name="education",
+        longName="Education level",
+        description="Education level")
 sub_columns.AddField(
         name="group",
         longName="group",
         description="Group subject belongs",
         levels={"patient": "patient", "control": "control"})
+sub_columns.AddField(
+        name="handiness",
+        longName="Handiness of subject",
+        levels={"r": "right-handed", "l": "left-handed"})
 sub_columns.AddField(
         name="paired",
         longName="Paired Id",
@@ -89,11 +97,8 @@ kss_columns.AddField("trial_type", "Asked question",
                       }
                      )
 kss_columns.AddField("stim_file", "Image presented during question")
-kss_columns.AddField("value", "Recieved estimation value")
-kss_columns.AddField("value_percent", "Recieved estimation value "
-                     "(as percentage)")
-kss_columns.AddField("value_steps", "Recieved estimation value "
-                     "(as number of steps)")
+kss_columns.AddField("value", "Recieved estimation value",
+                     "Recieved estimation value in scale from 0 to 100")
 
 kss_questions = {"1": "Motivation",
                  "2": "Happiness",
@@ -185,7 +190,7 @@ def SubjectEP(session):
     values["participant_id"] = "sub-" + session["subject"]
     values["sex"] = sex
     values["age"] = age
-    values["score"] = E
+    values["education"] = E
 
     if status == 0:
         values["group"] = "patient"
@@ -334,7 +339,7 @@ def RecordingEP(session, recording):
                     values["onset"] -= t_offset
                     for field in ("onset", "duration", "response_time"):
                         if values[field]:
-                            values[field] = round(values[field] * 10e-6, 7)
+                            values[field] = round(values[field] * time_scale, 7)
                     ofile.write(FCsepNBack_columns.GetLine(values))
                     ofile.write('\n')
 
@@ -346,14 +351,14 @@ def RecordingEP(session, recording):
         FCsepNBack_columns.DumpDefinitions(tools.change_ext(ofile.name,
                                                             "json"))
 
-    # KSS log file
+    # KSS_Vas log file
     # KSS_Vas_003_2.log
     kss_fl = glob.glob(logs + "/KSS_Vas*.log")
     if len(kss_fl) != 1:
         logger.error("Found {} KSS_Vas log files")
         raise ValueError
     with open(kss_fl[0], 'r', encoding="cp1252") as ifile,\
-            open(aux_d + "/KSS.tsv", 'w') as ofile:
+            open(aux_d + "/Vas.tsv", 'w') as ofile:
         ofile.write(kss_columns.GetHeader())
         ofile.write('\n')
         for line in ifile:
@@ -365,11 +370,9 @@ def RecordingEP(session, recording):
             if t and evt[0] == "question":
                 values = kss_columns.GetTemplate()
                 values["trial_type"] = kss_questions[evt[1]]
-                values["stim_file"] = "KSS/images/" + evt[3]
+                values["stim_file"] = "Vas/images/" + evt[3]
                 v = float(evt[6])
-                values["value"] = v
-                values["value_percent"] = round(100 * (v / kss_max),2)
-                values["value_steps"] = int(v // kss_step)
+                values["value"] = round(50 * (v + kss_max) / kss_max, 2)
                 ofile.write(kss_columns.GetLine(values))
                 ofile.write('\n')
         kss_columns.DumpDefinitions(tools.change_ext(ofile.name, "json"))
@@ -386,8 +389,8 @@ def parce_logline(line, split=None):
     if len(li) < 3 or li[2] != ":":
         return None, None, [line.strip()]
 
-    t = float(li[0]) * 1e-6
-    dt = float(li[1][1:-1]) * 1e-6
+    t = float(li[0]) * time_scale
+    dt = float(li[1][1:-1]) * time_scale
     txt = li[3:]
     txt = [evt.strip() for evt in txt]
     return t, dt, txt

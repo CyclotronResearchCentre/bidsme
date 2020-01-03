@@ -24,209 +24,178 @@ PlugIns:
   path: ~
   options: ~
 
+Templates:
+  - &mri_bids_anat !!omap
+    # [_ce-<label>][_rec-<label>][_run-<index>]_<modality_label>.nii[.gz]
+    # [_ce-<label>][_rec-<label>][_run-<index>][_mod-<label>]_defacemask.nii[.gz]
+    - acq: ~
+    - ce: ~
+    - rec: ~
+    - run: <<count>>
+    - mod: ~
+  - &mri_anat
+    provenance: ~
+    suffix: ~
+    attributes: {}
+    bids:
+      <<: *mri_bids_anat
+    json:
+      ContrastBolusIngredient: <ContrastBolusIngredient>
+
+  - &mri_bids_func !!omap
+    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
+    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_sbref.nii[.gz]
+    - task: <SeriesDescription>
+    - acq: ~
+    - ce: ~
+    - dir: ~
+    - rec: ~
+    - run: <<count>>
+    - echo: <EchoNumbers>
+  - &mri_func
+    provenance: ~
+    suffix: BOLD
+    attributes: {}
+    bids: 
+      <<: *mri_bids_func
+    json:
+      TaskName: <<bids:task>>
+      Instructions: ""
+      TaskDescription: ""
+      CogAtlasID: ""
+      CogPOID: ""
+      RepetitionTime: <RepetitionTime>
+      NumberOfVolumesDiscardedByScanner: ""
+      NumberOfVolumesDiscardedByUser: ""
+      DelayTime: ""
+      DelayAfterTrigger: ""
+
+  - &mri_bids_dwi !!omap
+    # [_acq-<label>][_dir-<label>][_run-<index>]_dwi.nii[.gz]
+    - acq: ~
+    - dir: ~
+    - run: <<count>>
+  - &mri_dwi
+    provenance: ~
+    suffix: dwi
+    attributes: {}
+    bids: 
+      <<: *mri_bids_dwi
+
+  - &mri_bids_fmap !!omap
+    # Phase difference image and at least one magnitude image
+    # [_acq-<label>][_run-<index>]_phasediff.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+    # Two phase images and two magnitude images
+    # [_acq-<label>][_run-<index>]_phase1.nii[.gz]
+    # [_acq-<label>][_run-<index>]_phase2.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
+    - acq: <SeriesDescription>
+    - run: <<count>>
+  - &mri_fmap_diff
+    provenance: ~
+    suffix: phasediff
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime1: ""
+      EchoTime2: ""
+  - &mri_fmap_phase
+    provenance: ~
+    suffix: phase<EchoNumbers>
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime: <EchoTime>
+  - &mri_fmap_magnitude
+    provenance: ~
+    suffix: magnitude<EchoNumbers>
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime: <EchoTime>
+  - &mri_bids_fmap_pepolar !!omap
+    # Multiple phase encoded directions ("pepolar")
+    # [_acq-<label>][_ce-<label>]_dir-<label>[_run-<index>]_epi.nii[.gz]
+    - acq: <SeriesDescription>
+    - ce: ~
+    - dir: ~
+    - run: <<count>>
+  - &mri_fmap_pepolar
+    provenance: ~
+    suffix: epi
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap_pepolar
+    json:
+      IntendedFor:
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      PhaseEncodingDirection: ""
+      EchoTime: <EchoTime>
+
+
 MRI:
   Nifti_dump:
     anat:
-    - provenance: ~
-      attributes: &anatattributes
-        Modality: ~
-        ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
-      bids: &anatbids
-        acq: ~
-        ce: ~
-        rec: ~
-        run: <<count>>
-        mod: ~
+    - <<: *mri_anat
       suffix: T1w
-    - provenance: ~
-      attributes: 
-        <<: *anatattributes
-        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
-      bids:
-        <<: *anatbids
+      attributes:
+        ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
+    - <<: *mri_anat
       suffix: FLAIR
-
+      attributes: 
+        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
     func:
-    - provenance: ~
+    - <<: *mri_func
       attributes: 
-        Modality: ~
         ProtocolName: '.*_bold_.*_invertpe'
-        SeriesDescription: ~
         ImageType: '.*MOSAIC'
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
-      bids: &funcbids
-        task: <SeriesDescription>
-        acq: ~
-        ce: ~
-        dir: PE
-        rec: ~
-        run: <<count>>
-        echo: <EchoNumbers>
-      suffix: BOLD
-
-    - provenance: ~
+      bids: 
+        <<: *mri_bids_func
+        dir: PA
+    - <<: *mri_func
       attributes: 
-        Modality: ~
         ProtocolName: '.*_bold_.*'
-        SeriesDescription: ~
         ImageType: '.*MOSAIC'
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
       bids: 
-        task: <SeriesDescription>
-        acq: ~
-        ce: ~
-        dir: EP
-        rec: ~
-        run: <<count>>
-        echo: <EchoNumbers>
-      suffix: BOLD
+        <<: *mri_bids_func
+        dir: AP
     dwi:
-    - provenance: ~
+    - <<: *mri_dwi
       attributes: 
-        Modality: ~
         ProtocolName: '.*_diff_.*_invertpe'
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
       bids: 
-        acq: ~
-        dir: EP
-        run: <<count>>
-      suffix: dwi
-    - provenance: ~
+        <<: *mri_bids_dwi
+        dir: PA
+    - <<: *mri_dwi
       attributes: 
-        Modality: ~
         ProtocolName: '.*_diff_.*'
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
       bids: 
-        acq: ~
-        dir: PE
-        run: <<count>>
-      suffix: dwi
+        <<: *mri_bids_dwi
+        dir: AP
     fmap:
-    - provenance: ~
-      attributes: &fmapattributes
-        Modality: ~
+    - <<: *mri_fmap_phase
+      attributes:
         ProtocolName: 'gre_field_mapping'
-        SeriesDescription: ~
+        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND'
+    - <<: *mri_fmap_magnitude
+      attributes:
+        ProtocolName: 'gre_field_mapping'
         ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: 1
-        EchoTime: ~
-        RepetitionTime: ~
-      bids: &fmapbids
-        acq: <SeriesDescription>
-        ce: ~
-        dir: ~
-        run: <<count>>
-      suffix: magnitude1
-    - provenance: ~
-      attributes: 
-        <<: *fmapattributes
-        EchoNumbers: 2
-      bids:
-        <<: *fmapbids
-      suffix: magnitude2
-    - provenance: ~
-      attributes: 
-        <<: *fmapattributes
-        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
-        EchoNumbers: 1
-      bids:
-        <<: *fmapbids
-      suffix: phase1
-    - provenance: ~
-      attributes: 
-        <<: *fmapattributes
-        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND '
-        EchoNumbers: 2
-      bids:
-        <<: *fmapbids
-      suffix: phase2
-    beh:
-    - provenance: ~
-      attributes: &behattributes
-        Modality: ~
-        ProtocolName: ~
-        SeriesDescription: ~
-        ImageType: ~
-        SequenceName: ~
-        SequenceVariant: ~
-        ScanningSequence: ~
-        MRAcquisitionType: ~
-        SliceThickness: ~
-        FlipAngle: ~
-        EchoNumbers: ~
-        EchoTime: ~
-        RepetitionTime: ~
-      bids: &behbids
-        task: <SeriesDescription>
-      suffix: events
-    - provenance: ~
-      attributes: *behattributes
-      bids:
-        <<: *behbids
-      suffix: beh
-    - provenance: ~
-      attributes: *behattributes
-      bids:
-        <<: *behbids
-      suffix: physio
-    - provenance: ~
-      attributes: *behattributes
-      bids:
-        <<: *behbids
-      suffix: stim
 
     __ignore__:
     - provenance: ~

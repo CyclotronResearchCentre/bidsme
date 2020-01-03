@@ -11,8 +11,6 @@ from bidsMeta import BIDSfieldLibrary
 logger = logging.getLogger(__name__)
 
 mri_meta_required = [
-        # funct specific
-        "RepetitionTime", "VolumeTiming", "TaskName",
         # fmap specific
         "IntendedFor"
         ]
@@ -45,18 +43,6 @@ mri_meta_recommended = [
         "AnatomicalLandmarkCoordinates",
         # Institution information
         "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
-        # funct specific
-        "NumberOfVolumesDiscardedByScanner", "NumberOfVolumesDiscardedByUser",
-        "DelayTime", "AcquisitionDuration", "DelayAfterTrigger",
-        "Instructions", "TaskDescription", "CogAtlasID", "CogPOID"
-        ]
-
-mri_meta_optional = [
-        # RF & Contrast
-        "NegativeContrast",
-        # anat specific
-        "ContrastBolusIngredient",
-
         ]
 
 
@@ -133,7 +119,7 @@ class MRI(object):
         self.metaFields = {key: None for key in
                            mri_meta_required
                            + mri_meta_recommended
-                           + mri_meta_optional}
+                           }
         self.metaAuxiliary = dict()
         self.rec_BIDSvalues = dict()
         self.sub_BIDSvalues = dict()
@@ -220,14 +206,19 @@ class MRI(object):
                 if seek == '>':
                     result = self.get_attribute(query)
                 else:
-                    if query.startswith("bids:"):
-                        result = self.labels[len("bids:"):]
-                    elif query.startswith("sub_tsv:"):
-                        result = self.sub_BIDSvalues[len("sub_tsv:"):]
-                    elif query.startswith("rec_tsv:"):
-                        result = self.sub_BIDSvalues[len("rec_tsv:"):]
-                    else:
+                    prefix = ""
+                    if ":" in query:
+                        prefix, query = query.split(":",1)
+                    if prefix == "":
                         result = self._getCharacteristic(query)
+                    elif prefix == "bids":
+                        result = self.labels[query]
+                    elif prefix == "sub_tsv":
+                        result = self.sub_BIDSvalues[query]
+                    elif prefix == "rec_tsv":
+                        result = self.sub_BIDSvalues[query]
+                    else:
+                        raise KeyError("Unknown prefix {}".format(prefix))
                 if result is None:
                     raise KeyError("Cant interpret {} at {} from {}"
                                    .format(query, pos, field))
