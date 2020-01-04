@@ -175,17 +175,17 @@ class Nifti_dump(MRI):
         try:
             if '/' in field:
                 fields = field.split('/')
-                value = self._DICOMDICT_CACHE.get(fields[0])
+                value = self._DICOMDICT_CACHE.get(fields[0], {})
                 for f in fields[1:]:
                     value = value[f]
             else:
-                value = self._DICOMDICT_CACHE.get(field)
-                if not value:
+                value = self._DICOMDICT_CACHE.get(field, None)
+                if value is None:
                     for elem in self._DICOMDICT_CACHE.iterall():
                         if elem.name == field:
                             value = elem.value
                             continue
-        except Exception: 
+        except Exception as e: 
             logger.warning("Could not parse '{}' from {}"
                            .format(field, self._DICOMFILE_CACHE))
             value = None

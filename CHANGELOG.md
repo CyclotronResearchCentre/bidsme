@@ -17,6 +17,7 @@ attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv
 
 ### Fixed
 - dynamic value prefix
+- dynamic value ignored if it is zero or empty string
 
 ## [dev2.0.0] - 2019-12-23
 

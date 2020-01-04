@@ -31,7 +31,7 @@ Templates:
     - acq: ~
     - ce: ~
     - rec: ~
-    - run: <<count>>
+    - run: <AcquisitionNumber>
     - mod: ~
   - &mri_anat
     provenance: ~
@@ -41,6 +41,25 @@ Templates:
       <<: *mri_bids_anat
     json:
       ContrastBolusIngredient: <ContrastBolusIngredient>
+  - &mri_bids_anat_mpm !!omap
+    - acq: ~
+    - ce: ~
+    - rec: ~
+    - run: ~
+    - echo: <EchoNumbers>
+    - mod: ~
+  - &mri_anat_mpm
+    provenance: ~
+    suffix: MPM
+    attributes: {}
+    bids: 
+      <<: *mri_bids_anat_mpm
+    json:
+      ContrastBolusIngredient: <ContrastBolusIngredient>
+      EchoTime: <EchoTime>
+      RepetitionTime: <RepetitionTime>
+      MTState: <MT>
+      FlipAngle: <FlipAngle>
 
   - &mri_bids_func !!omap
     # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
@@ -50,7 +69,7 @@ Templates:
     - ce: ~
     - dir: ~
     - rec: ~
-    - run: <<count>>
+    - run: <AcquisitionNumber>
     - echo: <EchoNumbers>
   - &mri_func
     provenance: ~
@@ -74,7 +93,7 @@ Templates:
     # [_acq-<label>][_dir-<label>][_run-<index>]_dwi.nii[.gz]
     - acq: ~
     - dir: ~
-    - run: <<count>>
+    - run: <AcquisitionNumber>
   - &mri_dwi
     provenance: ~
     suffix: dwi
@@ -92,7 +111,7 @@ Templates:
     # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
     # [_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
     - acq: <SeriesDescription>
-    - run: <<count>>
+    - run: <AcquisitionNumber>
   - &mri_fmap_diff
     provenance: ~
     suffix: phasediff
@@ -133,7 +152,7 @@ Templates:
     - acq: <SeriesDescription>
     - ce: ~
     - dir: ~
-    - run: <<count>>
+    - run: <AcquisitionNumber>
   - &mri_fmap_pepolar
     provenance: ~
     suffix: epi
@@ -146,7 +165,34 @@ Templates:
         - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
       PhaseEncodingDirection: ""
       EchoTime: <EchoTime>
-
+  - &mri_bids_fmap_mpm_minus
+    - acq: ~
+    - mod: ~
+  - &mri_fmap_mpm_minus
+    provenance: ~
+    suffix: B1minus
+    attributes:
+    bids:
+      <<: *mri_bids_fmap_mpm_minus
+    json:
+      IntendedFor:
+        - "anat/<<subject>>_<<session>>_acq-<<bids:mod>>_echo-*_MPM.nii"
+      EchoTime: <EchoTime>
+  - &mri_bids_fmap_mpm_plus
+    - echo: ~
+    - fa: ~
+  - &mri_fmap_mpm_plus
+    provenance: ~
+    suffix: B1plus
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap_mpm_plus
+    json: !!omap
+      - IntendedFor:
+          - "anat/<<subject>>_<<session>>_acq-MTw_echo-*_MPM.nii"
+          - "anat/<<subject>>_<<session>>_acq-PDw_echo-*_MPM.nii"
+          - "anat/<<subject>>_<<session>>_acq-T1w_echo-*_MPM.nii"
+      - EchoTime: <EchoTime>
 
 MRI:
   Nifti_dump:
@@ -159,6 +205,24 @@ MRI:
       suffix: FLAIR
       attributes: 
         ProtocolName: 't2_spc_da-fl_sag_p2_iso'
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_T1w'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: T1w
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_MTw'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: MTw
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_PDw'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: PDw
     func:
     - <<: *mri_func
       attributes: 
@@ -196,6 +260,27 @@ MRI:
       attributes:
         ProtocolName: 'gre_field_mapping'
         ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
+    - <<: *mri_fmap_mpm_plus
+      attributes:
+        ProtocolName: 'al_B1mapping'
+      bids:
+        <<: *mri_bids_fmap_mpm_plus
+        echo: <EchoNumbers>
+        fa: <FlipAngle>
+    - <<: *mri_fmap_mpm_minus
+      attributes:
+        ProtocolName: 'al_mtflash3d_sensBody'
+      bids:
+        <<: *mri_bids_fmap_mpm_minus
+        acq: Body
+        mod: TOPRECISE
+    - <<: *mri_fmap_mpm_minus
+      attributes:
+        ProtocolName: 'al_mtflash3d_sensArray'
+      bids:
+        <<: *mri_bids_fmap_mpm_minus
+        acq: Head
+        mod: TOPRECISE
 
     __ignore__:
     - provenance: ~
