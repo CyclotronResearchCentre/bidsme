@@ -30,18 +30,21 @@ class Run(object):
             "_bk_entity",
             "_bk_suffix",
             "_bk_json",
-            "provenance",
+            "provenance",    # file from which run is modelled
+            "example",       # bids name from provenance file
             "writable",
-            "template"
+            "checked",       # switch if run was confirmed by user
+            "template"       # switch if run was extracted from template
             ]
 
     def __init__(self, *,
                  modality: str = "",
                  attribute: OrderedDict = {},
                  entity: dict = {},
-                 json:  OrderedDict = {},
+                 json: OrderedDict = {},
                  suffix: str = "",
-                 provenance: str = None
+                 provenance: str = None,
+                 example: str = None
                  ):
         self._bk_modality = None
         self._bk_attribute = dict()
@@ -50,6 +53,8 @@ class Run(object):
         self._bk_json = dict()
         self.writable = True
         self.template = False
+        self.checked = False
+        self.example = example
 
         self.provenance = provenance
         self._modality = check_type("modality", str, modality)
@@ -222,8 +227,12 @@ class Run(object):
     def dump(self, empty_attributes=True):
         d = dict()
         d["provenance"] = self.provenance
+        if self.example:
+            d["example"] = self.example
+        if self.template:
+            d["template"] = self.template
+        d["checked"] = self.checked
         d["suffix"] = self.suffix
-        d["template"] = self.template
         d["attributes"] = {k: v for k, v in self.attribute.items()
                            if empty_attributes or v
                            }
@@ -310,9 +319,6 @@ class bidsmap(object):
                     for ind, run in enumerate(modality):
                         if not run:
                             continue
-                        json = OrderedDict()
-                        if "json" in run:
-                            json = run["json"]
                         try:
                             if m_name == selector.ignoremodality:
                                 r = Run(modality=m_name,
@@ -326,10 +332,13 @@ class bidsmap(object):
                                         entity=run["bids"],
                                         suffix=run["suffix"],
                                         provenance=run["provenance"],
-                                        json=json
+                                        example=run.get("example"),
+                                        json=run.get("json", OrderedDict())
                                         )
                             if "template" in run:
                                 r.template = run["template"]
+                            if "checked" in run:
+                                r.checked = run["checked"]
                         except Exception as e:
                             logger.error("Malformed run in {}/{}/{}:{}"
                                          .format(module, f_name, m_name, ind)
@@ -356,6 +365,12 @@ class bidsmap(object):
                             res_run = run
                             if not run.provenance:
                                 run.provenance = recording.currentFile()
+                                run.example = None
+                            if not run.example:
+                                run.checked = False
+                                run.example = "{}/{}".format(
+                                        modality,
+                                        recording.get_bidsname())
                             logger.debug("Checked run: {}/{}"
                                          .format(res_mod, res_index))
                         else:

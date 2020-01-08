@@ -16,614 +16,277 @@
 
 
 Options:
-# --------------------------------------------------------------------------------
-# General options
-# --------------------------------------------------------------------------------
-  bidscoin:
-    version: '2.3.1'              # BIDScoin version (should correspond with the version in ../bidscoin/version.txt)
-    bidsignore: extra_data/       # Semicolon-separated list of entries that are added to the .bidsignore file (for more info, see BIDS specifications), e.g. extra_data/;pet/;myfile.txt;yourfile.csv
-  dcm2niix:                       # See dcm2niix -h and https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage#General_Usage for more info
-    path: module add dcm2niix;    # Command to set the path to dcm2niix (note the semi-colon), e.g. module add dcm2niix/1.0.20180622; or PATH=/opt/dcm2niix/bin:$PATH; or /opt/dcm2niix/bin/ or '"C:\Program Files\dcm2niix\"' (note the quotes to deal with the whitespace)
-    args: -b y -z y -i n          # Argument string that is passed to dcm2niix. Tip: SPM users may want to use '-z n' (which produces unzipped nifti's, see dcm2niix -h for more information)
+  version: '2.3.1'
+  bidsignore: extra_data/ 
 
 
 PlugIns:
-# --------------------------------------------------------------------------------
-# List of plugins to edit the key-value heuristics / perform additional operations
-# --------------------------------------------------------------------------------
-- ~                               # Either a fullpath name of the plugin or just the basename when it is in the default bidscoin/plugins folder
+  path: ~
+  options: ~
 
+Templates:
+  # sMRI
+  - &mri_bids_anat !!omap
+    # [_ce-<label>][_rec-<label>][_run-<index>]_<modality_label>.nii[.gz]
+    # [_ce-<label>][_rec-<label>][_run-<index>][_mod-<label>]_defacemask.nii[.gz]
+    - acq: ~
+    - ce: ~
+    - rec: ~
+    - run: <AcquisitionNumber>
+    - mod: ~
+  - &mri_anat
+    provenance: ~
+    suffix: ~
+    attributes: {}
+    bids:
+      <<: *mri_bids_anat
+    json:
+      ContrastBolusIngredient: <ContrastBolusIngredient>
+  # sMRI for MPM
+  - &mri_bids_anat_mpm !!omap
+    - acq: ~
+    - ce: ~
+    - rec: ~
+    - run: ~
+    - echo: <EchoNumbers>
+    - mod: ~
+  - &mri_anat_mpm
+    provenance: ~
+    suffix: MPM
+    attributes: {}
+    bids: 
+      <<: *mri_bids_anat_mpm
+    json:
+      ContrastBolusIngredient: <ContrastBolusIngredient>
+      EchoTime: <EchoTime>
+      RepetitionTime: <RepetitionTime>
+      MTState: <MT>
+      FlipAngle: <FlipAngle>
 
-DICOM:
-# --------------------------------------------------------------------------------
-# DICOM key-value heuristics (DICOM fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-  subject: <<SourceFilePath>>     # <<SourceFilePath>> extracts the subject label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as subject-label instead, e.g. <PatientID>
-  session: <<SourceFilePath>>     # <<SourceFilePath>> extracts the session label from the source directory during bidscoiner runtime. A DICOM attribute can also be used as session-label instead, e.g. <StudyID>
-  anat:       # ----------------------- All anatomical series --------------------
-  - provenance: ~                 # The fullpath name of the DICOM file from which the attributes are read. Serves also as a look-up key to find a run in the bidsmap
-    attributes: &anatattributes
-      Modality: ~
-      ProtocolName: "*mtflash3d*"
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids: &anatbids
-      acq: <SeriesDescription>
-      ce: ~
-      rec: ~
-      run: <<1>>
-      mod: ~
-      suffix: T1w
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: T2w
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: T1rho
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: T1map
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: T2map
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: T2star
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: FLAIR
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: FLASH
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: PD
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: PDmap
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: PDT2
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: inplaneT1
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: inplaneT2
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: angio
-  - provenance: ~
-    attributes: *anatattributes
-    bids:
-      <<: *anatbids
-      suffix: defacemask
+  # fMRI
+  - &mri_bids_func !!omap
+    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
+    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_sbref.nii[.gz]
+    - task: <SeriesDescription>
+    - acq: ~
+    - ce: ~
+    - dir: ~
+    - rec: ~
+    - run: <AcquisitionNumber>
+    - echo: <EchoNumbers>
+  - &mri_func
+    provenance: ~
+    suffix: bold
+    attributes: {}
+    bids: 
+      <<: *mri_bids_func
+    json:
+      TaskName: <<bids:task>>
+      Instructions: ""
+      TaskDescription: ""
+      CogAtlasID: ""
+      CogPOID: ""
+      RepetitionTime: <RepetitionTime>
+      NumberOfVolumesDiscardedByScanner: ""
+      NumberOfVolumesDiscardedByUser: ""
+      DelayTime: ""
+      DelayAfterTrigger: ""
 
-  func:       # ----------------------- All functional series --------------------
-  - provenance: ~
-    attributes: &funcattributes
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids: &funcbids
-      task: <SeriesDescription>
-      acq: <SequenceName>
-      ce: ~
-      dir: <InPlanePhaseEncodingDirection>
-      rec: ~
-      run: <<1>>
-      echo: <EchoNumbers>
-      suffix: bold
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: cbv
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: phase
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: events
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: physio
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: stim
-  - provenance: ~
-    attributes: *funcattributes
-    bids:
-      <<: *funcbids
-      suffix: sbref
+  # diffusion MRI
+  - &mri_bids_dwi !!omap
+    # [_acq-<label>][_dir-<label>][_run-<index>]_dwi.nii[.gz]
+    - acq: ~
+    - dir: ~
+    - run: <AcquisitionNumber>
+  - &mri_dwi
+    provenance: ~
+    suffix: dwi
+    attributes: {}
+    bids: 
+      <<: *mri_bids_dwi
 
-  dwi:        # ----------------------- All diffusion series ---------------------
-  - provenance: ~
-    attributes: &dwiattributes
-      Modality: ~
-      ProtocolName: "*_diff_*"
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids: &dwibids
-      acq: <SeriesDescription>
-      dir: <InPlanePhaseEncodingDirection>
-      run: <<1>>
-      suffix: dwi
-  - provenance: ~
-    attributes: *dwiattributes
-    bids:
-      <<: *dwibids
-      suffix: sbref
-
-  fmap:       # ----------------------- All fieldmap series ----------------------
-  - provenance: ~
-    attributes: &fmapattributes
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids: &fmapbids
-      acq: <SeriesDescription>
-      ce: ~
-      dir: ~
-      run: <<1>>
-      suffix: magnitude
-      IntendedFor: ~
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: magnitude1
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: magnitude2
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: phasediff
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: phase1
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: phase2
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      suffix: fieldmap
-  - provenance: ~
-    attributes: *fmapattributes
-    bids:
-      <<: *fmapbids
-      dir: <InPlanePhaseEncodingDirection>
-      suffix: epi
-
-  beh:        # ----------------------- All behavioural data ---------------------
-  - provenance: ~
-    attributes: &behattributes
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids: &behbids
-      task: <SeriesDescription>
-      suffix: events
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
-      suffix: beh
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
-      suffix: physio
-  - provenance: ~
-    attributes: *behattributes
-    bids:
-      <<: *behbids
-      suffix: stim
-
-  pet:        # ----------------------- All PET series ---------------------------
-  - provenance: ~
-    attributes: &petattributes
-      Modality: PT
-      SeriesDescription: ~
-      Radiopharmaceutical: ~
-      ImageType: ~
-      SliceThickness: ~
-      PixelSpacing: ~
-      Rows: ~
-      Columns: ~
-    bids: &petbids
-      task: <SeriesDescription>
-      acq: <Radiopharmaceutical>
-      rec: ~
-      run: <<1>>
-      suffix: pet
-
-  extra_data: # ----------------------- All extra data ---------------------------
-  - provenance: ~
+  # MRI fieldmaps
+  - &mri_bids_fmap !!omap
+    # Phase difference image and at least one magnitude image
+    # [_acq-<label>][_run-<index>]_phasediff.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+    # Two phase images and two magnitude images
+    # [_acq-<label>][_run-<index>]_phase1.nii[.gz]
+    # [_acq-<label>][_run-<index>]_phase2.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
+    # [_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
+    # Multiple phase encoded directions ("pepolar")
+    # [_acq-<label>][_ce-<label>]_dir-<label>[_run-<index>]_epi.nii[.gz]
+    - acq: <SeriesDescription>
+    - ce: ~
+    - dir: ~
+    - run: <AcquisitionNumber>
+  - &mri_fmap_diff
+    provenance: ~
+    suffix: phasediff
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime1: ""
+      EchoTime2: ""
+  - &mri_fmap_phase
+    provenance: ~
+    suffix: phase<EchoNumbers>
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime: <EchoTime>
+  - &mri_fmap_magnitude
+    provenance: ~
+    suffix: magnitude<EchoNumbers>
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor: 
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      EchoTime: <EchoTime>
+  - &mri_fmap_pepolar
+    provenance: ~
+    suffix: epi
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap
+    json:
+      IntendedFor:
+        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
+        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      PhaseEncodingDirection: ""
+      EchoTime: <EchoTime>
+  - &mri_bids_fmap_mpm_minus
+    - acq: ~
+    - mod: ~
+  - &mri_fmap_mpm_minus
+    provenance: ~
+    suffix: B1minus
     attributes:
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
     bids:
-      acq: <SeriesDescription>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: <EchoNumbers>
-      dir: <InPlanePhaseEncodingDirection>
-      run: <<1>>
-      mod: ~
-      suffix: ~
+      <<: *mri_bids_fmap_mpm_minus
+    json:
+      IntendedFor:
+        - "anat/<<subject>>_<<session>>_acq-<<bids:mod>>_echo-*_MPM.nii"
+      EchoTime: <EchoTime>
+  - &mri_bids_fmap_mpm_plus
+    - echo: ~
+    - fa: ~
+  - &mri_fmap_mpm_plus
+    provenance: ~
+    suffix: B1plus
+    attributes: {}
+    bids: 
+      <<: *mri_bids_fmap_mpm_plus
+    json: !!omap
+      - IntendedFor:
+          - "anat/<<subject>>_<<session>>_acq-MTw_echo-*_MPM.nii"
+          - "anat/<<subject>>_<<session>>_acq-PDw_echo-*_MPM.nii"
+          - "anat/<<subject>>_<<session>>_acq-T1w_echo-*_MPM.nii"
+      - EchoTime: <EchoTime>
 
-  leave_out:  # ----------------------- Data that will be left out ---------------
-  - provenance: ~
-    attributes:
-      Modality: ~
-      ProtocolName: ~
-      SeriesDescription: ~
-      ImageType: ~
-      SequenceName: ~
-      SequenceVariant: ~
-      ScanningSequence: ~
-      MRAcquisitionType: ~
-      SliceThickness: ~
-      FlipAngle: ~
-      EchoNumbers: ~
-      EchoTime: ~
-      RepetitionTime: ~
-      PhaseEncodingDirection: ~
-    bids:
-      acq: <SeriesDescription>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: <EchoNumbers>
-      dir: <InPlanePhaseEncodingDirection>
-      run: <<1>>
-      mod: ~
-      suffix: ~
-
-
-PAR: ~
-# --------------------------------------------------------------------------------
-# PAR key-value heuristics (Philips PAR fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
-P7: ~
-# --------------------------------------------------------------------------------
-# P*.7 key-value heuristics (GE fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
-Nifti: ~
-# --------------------------------------------------------------------------------
-# Nifti key-value heuristics (Nifti fields that are mapped to the BIDS labels)
-# --------------------------------------------------------------------------------
-
-
-FileSystem:
-# --------------------------------------------------------------------------------
-# File system key-value heuristics (these file- and foldernames will be mapped
-# to the BIDS labels; Special substitutions can be performed using python's
-# Format Specification Mini-Language)
-# --------------------------------------------------------------------------------
-  subject: <<SourceFilePath>>       # <<SourceFilePath>> extracts the subject label from the source directory during bidscoiner runtime
-  session: <<SourceFilePath>>       # <<SourceFilePath>> extracts the session label from the source directory during bidscoiner runtime
-  anat:       # ----------------------- All anatomical series --------------------
-  - attributes: &anatattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &anatbids_file
-      acq: <FileName>
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      mod: ~
+MRI:
+  Nifti_dump:
+    anat:
+    - <<: *mri_anat
       suffix: T1w
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2w
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T1rho
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T1map
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2map
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: T2star
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
+      attributes:
+        ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
+    - <<: *mri_anat
       suffix: FLAIR
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: FLASH
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PD
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PDmap
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: PDT2
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: inplaneT1
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: inplaneT2
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: angio
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: defacemask
-  - attributes: *anatattributes_file
-    bids:
-      <<: *anatbids_file
-      suffix: SWImagandphase
+      attributes: 
+        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_T1w'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: T1w
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_MTw'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: MTw
+    - <<: *mri_anat_mpm
+      attributes:
+        ProtocolName: 'al_mtflash3d_PDw'
+      bids:
+        <<: *mri_bids_anat_mpm
+        acq: PDw
+    func:
+    - <<: *mri_func
+      attributes: 
+        ProtocolName: '.*_bold_.*_invertpe'
+        ImageType: '.*MOSAIC'
+      bids: 
+        <<: *mri_bids_func
+        dir: PA
+    - <<: *mri_func
+      attributes: 
+        ProtocolName: '.*_bold_.*'
+        ImageType: '.*MOSAIC'
+      bids: 
+        <<: *mri_bids_func
+        dir: AP
+    dwi:
+    - <<: *mri_dwi
+      attributes: 
+        ProtocolName: '.*_diff_.*_invertpe'
+      bids: 
+        <<: *mri_bids_dwi
+        dir: PA
+    - <<: *mri_dwi
+      attributes: 
+        ProtocolName: '.*_diff_.*'
+      bids: 
+        <<: *mri_bids_dwi
+        dir: AP
+    fmap:
+    - <<: *mri_fmap_phase
+      attributes:
+        ProtocolName: 'gre_field_mapping'
+        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND'
+    - <<: *mri_fmap_magnitude
+      attributes:
+        ProtocolName: 'gre_field_mapping'
+        ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
+    - <<: *mri_fmap_mpm_plus
+      attributes:
+        ProtocolName: 'al_B1mapping'
+      bids:
+        <<: *mri_bids_fmap_mpm_plus
+        echo: <EchoNumbers>
+        fa: <FlipAngle>
+    - <<: *mri_fmap_mpm_minus
+      attributes:
+        ProtocolName: 'al_mtflash3d_sensBody'
+      bids:
+        <<: *mri_bids_fmap_mpm_minus
+        acq: Body
+        mod: TOPRECISE
+    - <<: *mri_fmap_mpm_minus
+      attributes:
+        ProtocolName: 'al_mtflash3d_sensArray'
+      bids:
+        <<: *mri_bids_fmap_mpm_minus
+        acq: Head
+        mod: TOPRECISE
 
-  func:       # ----------------------- All functional series --------------------
-  - attributes: &funcattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &funcbids_file
-      task: <FileName>
-      acq: ~
-      rec: ~
-      run: <<1>>
-      echo: ~
-      suffix: bold
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      suffix: sbref
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      suffix: events
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      recording: <FileName>
-      suffix: physio
-  - attributes: *funcattributes_file
-    bids:
-      <<: *funcbids_file
-      recording: <FileName>
-      suffix: stim
-
-  dwi:        # ----------------------- All diffusion series ---------------------
-  - attributes: &dwiattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &dwibids_file
-      acq: <FileName>
-      run: <<1>>
-      suffix: dwi
-
-  fmap:       # ----------------------- All fieldmap series ----------------------
-  - attributes: &fmapattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &fmapbids_file
-      acq: <FileName>
-      run: <<1>>
-      dir: ~
-      suffix: magnitude1
-      IntendedFor: ~
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: magnitude2
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phasediff
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phase1
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: phase2
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: magnitude
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: fieldmap
-  - attributes: *fmapattributes_file
-    bids:
-      <<: *fmapbids_file
-      suffix: epi
-
-  beh:        # ----------------------- All behavioural data ---------------------
-  - attributes: &behattributes_file
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids: &behbids_file
-      task: <FileName>
-      suffix: events
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: beh
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: physio
-  - attributes: *behattributes_file
-    bids:
-      <<: *behbids_file
-      suffix: stim
-
-  extra_data: # ----------------------- All extra data ---------------------------
-  - attributes:
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids:
-      acq: ~
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      suffix: ~
-      mod: ~
-
-  leave_out:  # ----------------------- Data that will be left out ---------------
-  - attributes:
-      FolderName: ~
-      FileName: ~
-      FileExt: ~
-    bids:
-      acq: ~
-      rec: ~
-      ce: ~
-      task: ~
-      echo: ~
-      dir: ~
-      run: <<1>>
-      suffix: ~
-      mod: ~
+    __ignore__:
+    - provenance: ~
+      suffix: ""
+      attributes:
+        ProtocolName: 'localizer'
+      bids: {}

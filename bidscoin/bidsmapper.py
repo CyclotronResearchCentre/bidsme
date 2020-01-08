@@ -19,17 +19,13 @@ import copy
 import logging
 import sys
 from PyQt5.QtWidgets import QApplication, QMessageBox
-try:
-    from bidscoin import bids
-    from bidscoin import bidseditor
-except ImportError:
-    import bids         # This should work if bidscoin was not pip-installed
-    # import bidseditor
-    from Modules.MRI import selector
-    import bidsmap
-    from tools import info
-    from tools import tools
-    from tools.yaml import yaml
+
+import bids
+from Modules.MRI import selector
+import bidsmap
+from tools import info
+from tools import tools
+from tools.yaml import yaml
 
 
 logger = logging.getLogger()

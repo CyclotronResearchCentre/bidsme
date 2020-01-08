@@ -128,6 +128,10 @@ def sortsessions(source: str, destination:str,
             else:
                 scan["session"] = ''
             plugins.RunPlugin("SessionEP", scan)
+            logger.info("Scanning subject {}/{} in {}"
+                        .format(scan["subject"],
+                                scan["session"], 
+                                s))
 
             scan["path"] = os.path.join(destination, 
                                         bids.add_prefix("sub-",

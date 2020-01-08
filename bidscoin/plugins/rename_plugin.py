@@ -179,9 +179,10 @@ def SubjectEP(session):
         if len(index) == 0:
             raise Exception("Subject {} not found in table"
                             .format(sub_id))
-            status = 1
-            prefix = "cnt"
+        status = 1
+        prefix = "cnt"
     index = index[0]
+
     line = df_subjects.loc[index, prefix + "_sae"].split("_")
     sex = line[0]
     age = int(line[1])
@@ -243,9 +244,11 @@ def RecordingEP(session, recording):
 
     # Task log file
     # FCsepNBack_003_1.log
-    task_fl = glob.glob(logs + "/FCsepNBack*.log")
+    task_fl = glob.glob("{}/FCsepNBack_{}_*.log"
+                        .format(logs, session["subject"]))
     if len(task_fl) != 1:
-        logger.error("Found {}  FCsepNBack log files")
+        logger.error("Found {}  FCsepNBack log files"
+                     .format(len(task_fl)))
         raise ValueError
     with open(task_fl[0], 'r', encoding="cp1252") as ifile,\
             open(aux_d + "/FCsepNBack.tsv", 'w') as ofile:

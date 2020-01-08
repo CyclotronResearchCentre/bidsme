@@ -369,7 +369,11 @@ class MRI(object):
             tags = set(self.bidsmodalities[run.modality]) \
                 - set(run.entity)
             if tags:
-                logger.warning("Naming scheema do not follow BIDS standard")
+                if not run.checked:
+                    logger.warning("{}/{}: Naming scheema do not "
+                                   "follow BIDS standard"
+                                   .format(self.get_rec_id(),
+                                           self.index))
                 self.labels = OrderedDict.fromkeys(run.entity)
             else:
                 self.labels = OrderedDict.fromkeys(
@@ -382,7 +386,9 @@ class MRI(object):
             self.modality = run.modality
         else:
             logger.error("{}/{}: Unregistered modality {}"
-                         .format(self.get_rec_id(), self.index))
+                         .format(self.get_rec_id(),
+                                 self.index,
+                                 run.modality))
 
         self.metaAuxiliary = dict()
         for key, val in run.json.items():
