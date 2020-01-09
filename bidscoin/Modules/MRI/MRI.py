@@ -1,6 +1,8 @@
 import os
+import shutil
 import logging
 import re
+import json
 from datetime import datetime
 from collections import OrderedDict
 
@@ -12,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 mri_meta_required = [
         # fmap specific
-        "IntendedFor"
         ]
 
 mri_meta_recommended = [
@@ -53,7 +54,7 @@ class MRI(object):
                  "attributes", "labels", "suffix",
                  "main_attributes",
                  "index", "files", "rec_path",
-                 "type", "converter",
+                 "type", 
                  "metaAuxiliary",
                  "metaFields",
                  "rec_BIDSvalues",
@@ -104,7 +105,6 @@ class MRI(object):
 
     def __init__(self, rec_path=""):
         self.type = "None"
-        self.converter = None
         self.files = list()
         self.rec_path = ""
         self.index = -1
@@ -161,11 +161,25 @@ class MRI(object):
     def dump(self):
         return NotImplementedError
 
-    def get_field(self, field: str):
+    def get_field(self, field: str, default=None, separator='/'):
         raise NotImplementedError
 
-    def convert(self, destination, config: dict) -> bool:
-        raise NotImplementedError
+    def cp(self, destination, remove=False) -> bool:
+        tmp, ext = os.path.splitext(self.currentFile(False))
+        basename = "{}/{}".format(destination,self.get_bidsname())
+        shutil.copy2(self.currentFile(),
+                     basename + ext)
+        with open(basename + ".json", "w") as f:
+            js_dict = self.exportMeta()
+            json.dump(js_dict, f, indent=2)
+
+        self._post_copy(basename, ext)
+        if remove:
+            os.remove(self.currentFile())
+            os.remove(tools.change_ext(self.currentFile(),"json"))
+
+    def _post_copy(self, basename, ext):
+        pass
 
     def copy_file(self, destination) -> None:
         raise NotImplementedError
@@ -175,8 +189,7 @@ class MRI(object):
             return self.attributes[attribute]
         else:
             res = self.get_field(attribute)
-            if res:
-                self.attributes[attribute] = res
+            self.attributes[attribute] = res
             return res
 
     def get_dynamic_field(self, field: str, cleanup=True):
@@ -370,9 +383,9 @@ class MRI(object):
                 - set(run.entity)
             if tags:
                 if not run.checked:
-                    logger.warning("{}/{}: Naming scheema do not "
-                                   "follow BIDS standard"
-                                   .format(self.get_rec_id(),
+                    logger.warning("{}-{}/{}: Naming schema not BIDS"
+                                   .format(self.get_rec_no(),
+                                           self.get_rec_id(),
                                            self.index))
                 self.labels = OrderedDict.fromkeys(run.entity)
             else:
@@ -395,12 +408,12 @@ class MRI(object):
             if key and run.json[key]:
                 if isinstance(val, list):
                     self.metaAuxiliary[key] = [
-                            MetaField(key, "",
+                            MetaField(key, None,
                                       self.get_dynamic_field(v, False))
                             for v in val]
                 else:
                     self.metaAuxiliary[key] = MetaField(
-                            key, "",
+                            key, None,
                             self.get_dynamic_field(val, False))
 
     def match_attribute(self, attribute, pattern) -> bool:
@@ -535,8 +548,8 @@ class MRI(object):
             raise ValueError("Modality wasn't defined")
 
         for key, field in self.metaFields.items():
-            if field and field.name:
-                field.value = self.get_field(field.name)
+            if field is not None:
+                field.value = self.get_field(field.name, field.default)
 
     def exportMeta(self):
         exp = dict()
@@ -547,11 +560,12 @@ class MRI(object):
                 else:
                     exp[key] = field.value
         for key, field in self.metaFields.items():
-            if field and key not in self.metaAuxiliary:
-                if isinstance(field, list):
-                    exp[key] = [f.value for f in field]
-                else:
-                    exp[key] = field.value
+            if field:
+                if key not in self.metaAuxiliary:
+                    if isinstance(field, list):
+                        exp[key] = [f.value for f in field]
+                    else:
+                        exp[key] = field.value
         return exp
 
     def _getCharacteristic(self, field):
@@ -575,3 +589,11 @@ class MRI(object):
             return self.modality
         if field == "module":
             return self.Module
+        if field == "placeholder":
+            logger.warning("{}-{}: Placehoder found"
+                           .format(self.get_rec_no(),
+                                   self.get_rec_id())
+                           )
+            return "<<placeholder>>"
+        if field == "None":
+            return None

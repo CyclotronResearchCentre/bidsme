@@ -339,6 +339,9 @@ class bidsmap(object):
                                 r.template = run["template"]
                             if "checked" in run:
                                 r.checked = run["checked"]
+                            if not r.checked:
+                                r.provenance = None
+                                r.example = None
                         except Exception as e:
                             logger.error("Malformed run in {}/{}/{}:{}"
                                          .format(module, f_name, m_name, ind)

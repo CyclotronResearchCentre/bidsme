@@ -112,30 +112,25 @@ def coin(session: str, bidsmap: dict,
                 recording.generateMeta()
 
                 # Check if file already exists
+
+                # plugin entry point
+                plugins.RunPlugin("RecordingEP", recording)
+
                 bidsmodality = os.path.join(bidsses, recording.modality)
                 os.makedirs(bidsmodality, exist_ok=True)
                 if os.path.isfile(os.path.join(bidsmodality,
                                                bidsname + '.json')):
-                    logger.warning(os.path.join(bidsmodality, bidsname)
-                                   + '.* already exists -- check your '
-                                   'results carefully!')
-                if not recording.convert(bidsmodality):
-                    logger.error("Failed to convert {} using {}"
-                                 .format(recording.currentFile(),
-                                         recording.converter))
-                    raise ValueError("Convertion error")
-                with open(os.path.join(bidsmodality, bidsname + '.json'), 'w')\
-                        as f:
-                    js_dict = recording.exportMeta()
-                    json.dump(js_dict, f, indent=2)
+                    e = "{}/{}.json exists at destination"\
+                        .format(bidsmodality, bidsname)
+                    logger.error(e)
+                    raise FileExistsError(e)
+                recording.cp(bidsmodality)
 
                 recording.rec_BIDSvalues["filename"]\
                     = os.path.join(recording.modality, bidsname) + ".nii"
                 recording.rec_BIDSvalues["acq_time"]\
                     = recording.acq_time().replace(microsecond=0)
 
-                # plugin entry point
-                plugins.RunPlugin("RecordingEP", recording)
 
                 scans_tsv = os.path.join(bidsses,
                                          '{}_{}_scans.tsv'

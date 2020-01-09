@@ -45,7 +45,7 @@ class MetaField(object):
                                  .format(scaling))
 
     def __bool__(self):
-        if self.value:
+        if self.value is not None:
             return True
         else:
             return False

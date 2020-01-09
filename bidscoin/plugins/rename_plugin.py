@@ -201,9 +201,12 @@ def SubjectEP(session):
         values["group"] = "control"
         values["paired"] = "sub-{:03}".format(int(df_subjects
                                                   .loc[index, "pat"]))
-    values["ses_1"] = "ses-{}".format(df_subjects.loc[index, prefix + "_1"])
-    values["ses_2"] = "ses-{}".format(df_subjects.loc[index, prefix + "_2"])
-    values["ses_3"] = "ses-{}".format(df_subjects.loc[index, prefix + "_3"])
+    values["ses_1"] = "ses-{}".format(df_subjects.loc[index, prefix + "_1"])\
+            .strip()
+    values["ses_2"] = "ses-{}".format(df_subjects.loc[index, prefix + "_2"])\
+            .strip()
+    values["ses_3"] = "ses-{}".format(df_subjects.loc[index, prefix + "_3"])\
+            .strip()
 
     ses = sorted([os.path.basename(s) for s in 
                   tools.lsdirs(os.path.join(source, session["subject"]))

@@ -79,13 +79,13 @@ def sortsession(destination: str,
     recording.index = -1
     while recording.loadNextFile():
         seriesnr = recording.get_rec_no()
-        if seriesnr:
-            seriesnr = str(seriesnr) + "-"
+        if seriesnr is None:
+            seriesnr = 0
         seriesdescr = recording.get_rec_id()
 
         serie = os.path.join(outfolder, 
-                             "{}/{}{}".format(recording.Module,
-                                              seriesnr, seriesdescr))
+                "{}/{:03}-{}".format(recording.Module,
+                                     seriesnr, seriesdescr))
         plugins.RunPlugin("FileEP", scan, serie, recording)
         if not os.path.isdir(serie):
             os.makedirs(serie)

@@ -152,6 +152,24 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
             yaml.dump(d, stream)
 
     logger.info('-------------- FINISHED! -------------------')
+    for mod in bidsmap_new.Modules:
+        if not bidsmap_new.Modules[mod]:
+            continue
+        unchecked = 0
+        template = 0
+        total = 0
+
+        for f_name, form in bidsmap_new.Modules[mod].items():
+            for modality in form:
+                for r in form[modality]:
+                    total += 1
+                    if not r.checked:
+                        unchecked += 1
+                    if r.template:
+                        template += 1
+        logger.info("{}: {} runs from template, {} runs unchecked out of {}"
+                    .format(mod, template, unchecked, total))
+
     logger.info('')
 
     info.reporterrors(logger)

@@ -47,9 +47,15 @@ Templates:
     - acq: ~
     - ce: ~
     - rec: ~
+    - part: ~
     - run: ~
     - echo: <EchoNumbers>
     - mod: ~
+  - &mri_json_anat_mpm !!omap
+    - ContrastBolusIngredient: <ContrastBolusIngredient>
+    - EchoTime: <EchoTime>
+    - RepetitionTime: <RepetitionTime>
+    - FlipAngle: <FlipAngle>
   - &mri_anat_mpm
     provenance: ~
     suffix: MPM
@@ -57,17 +63,13 @@ Templates:
     bids: 
       <<: *mri_bids_anat_mpm
     json:
-      ContrastBolusIngredient: <ContrastBolusIngredient>
-      EchoTime: <EchoTime>
-      RepetitionTime: <RepetitionTime>
-      MTState: <MT>
-      FlipAngle: <FlipAngle>
+      <<: *mri_json_anat_mpm
 
   # fMRI
   - &mri_bids_func !!omap
     # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
     # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_sbref.nii[.gz]
-    - task: <SeriesDescription>
+    - task: <<placeholder>>
     - acq: ~
     - ce: ~
     - dir: ~
@@ -121,6 +123,9 @@ Templates:
     - ce: ~
     - dir: ~
     - run: <AcquisitionNumber>
+  - &mri_json_fmap !!omap
+    - IntendedFor: 
+      - "func/<<subject>>_<<session>>_task-<<placeholder>>_bold.nii"
   - &mri_fmap_diff
     provenance: ~
     suffix: phasediff
@@ -128,11 +133,9 @@ Templates:
     bids: 
       <<: *mri_bids_fmap
     json:
-      IntendedFor: 
-        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
-        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
-      EchoTime1: ""
-      EchoTime2: ""
+      <<: *mri_json_fmap
+      EchoTime1: <<placeholder>>
+      EchoTime2: <<placeholder>>
   - &mri_fmap_phase
     provenance: ~
     suffix: phase<EchoNumbers>
@@ -140,9 +143,7 @@ Templates:
     bids: 
       <<: *mri_bids_fmap
     json:
-      IntendedFor: 
-        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
-        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      <<: *mri_json_fmap
       EchoTime: <EchoTime>
   - &mri_fmap_magnitude
     provenance: ~
@@ -151,9 +152,7 @@ Templates:
     bids: 
       <<: *mri_bids_fmap
     json:
-      IntendedFor: 
-        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
-        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
+      <<: *mri_json_fmap
       EchoTime: <EchoTime>
   - &mri_fmap_pepolar
     provenance: ~
@@ -162,10 +161,8 @@ Templates:
     bids: 
       <<: *mri_bids_fmap
     json:
-      IntendedFor:
-        - "func/<<subject>>_<<session>>_task-TASK1_bold.nii"
-        - "func/<<subject>>_<<session>>_task-TASK2_bold.nii"
-      PhaseEncodingDirection: ""
+      <<: *mri_json_fmap
+      PhaseEncodingDirection: <<placeholder>>
       EchoTime: <EchoTime>
   - &mri_bids_fmap_mpm_minus
     - acq: ~
@@ -189,12 +186,10 @@ Templates:
     attributes: {}
     bids: 
       <<: *mri_bids_fmap_mpm_plus
-    json: !!omap
-      - IntendedFor:
-          - "anat/<<subject>>_<<session>>_acq-MTw_echo-*_MPM.nii"
-          - "anat/<<subject>>_<<session>>_acq-PDw_echo-*_MPM.nii"
-          - "anat/<<subject>>_<<session>>_acq-T1w_echo-*_MPM.nii"
-      - EchoTime: <EchoTime>
+    json:
+      <<: *mri_json_fmap
+      EchoTime: <EchoTime>
+      B1mapNominalFAValues: <B1mapNominalFAValues>
 
 MRI:
   Nifti_dump:
@@ -213,18 +208,27 @@ MRI:
       bids:
         <<: *mri_bids_anat_mpm
         acq: T1w
+      json:
+        <<: *mri_json_anat_mpm
+        MTState: "Off"
     - <<: *mri_anat_mpm
       attributes:
         ProtocolName: 'al_mtflash3d_MTw'
       bids:
         <<: *mri_bids_anat_mpm
         acq: MTw
+      json:
+        <<: *mri_json_anat_mpm
+        MTState: "On"
     - <<: *mri_anat_mpm
       attributes:
         ProtocolName: 'al_mtflash3d_PDw'
       bids:
         <<: *mri_bids_anat_mpm
         acq: PDw
+      json:
+        <<: *mri_json_anat_mpm
+        MTState: "Off"
     func:
     - <<: *mri_func
       attributes: 
@@ -268,21 +272,21 @@ MRI:
       bids:
         <<: *mri_bids_fmap_mpm_plus
         echo: <EchoNumbers>
-        fa: <FlipAngle>
+        fa: <AcquisitionNumber>
     - <<: *mri_fmap_mpm_minus
       attributes:
         ProtocolName: 'al_mtflash3d_sensBody'
       bids:
         <<: *mri_bids_fmap_mpm_minus
         acq: Body
-        mod: TOPRECISE
+        mod: <<placeholder>>
     - <<: *mri_fmap_mpm_minus
       attributes:
         ProtocolName: 'al_mtflash3d_sensArray'
       bids:
         <<: *mri_bids_fmap_mpm_minus
         acq: Head
-        mod: TOPRECISE
+        mod: <<placeholder>>
 
     __ignore__:
     - provenance: ~
