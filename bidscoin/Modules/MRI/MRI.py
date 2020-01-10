@@ -192,7 +192,7 @@ class MRI(object):
             self.attributes[attribute] = res
             return res
 
-    def get_dynamic_field(self, field: str, cleanup=True):
+    def get_dynamic_field(self, field: str, cleanup=True, raw=False):
         if not field or not isinstance(field, str):
             return field
         res = ""
@@ -235,12 +235,15 @@ class MRI(object):
                 if result is None:
                     raise KeyError("Cant interpret {} at {} from {}"
                                    .format(query, pos, field))
+                # if field is composed only of one entry
+                if raw and pos2 - pos + 2 * len(seek) == len(field):
+                    return result
+
                 res += str(result)
                 start = pos2 + len(seek)
             except Exception as e:
                 logger.error("Malformed field '{}': {}".format(field, str(e)))
                 raise
-
         if cleanup:
             res = tools.cleanup_value(res)
 
@@ -409,12 +412,16 @@ class MRI(object):
                 if isinstance(val, list):
                     self.metaAuxiliary[key] = [
                             MetaField(key, None,
-                                      self.get_dynamic_field(v, False))
+                                      self.get_dynamic_field(v,
+                                                             cleanup=False,
+                                                             raw=True))
                             for v in val]
                 else:
                     self.metaAuxiliary[key] = MetaField(
                             key, None,
-                            self.get_dynamic_field(val, False))
+                            self.get_dynamic_field(val,
+                                                   cleanup=False,
+                                                   raw=True))
 
     def match_attribute(self, attribute, pattern) -> bool:
         if not pattern:

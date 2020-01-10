@@ -20,12 +20,15 @@ attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv
 - added placeholder field that produces warning at mapper
 - special fields with a separate treatement for Nifty\_dump
 - added checked field for bidsmap
+- BIDSfieldLibrary can load fields from json file directly
 
 ### Fixed
 - dynamic value prefix
 - dynamic value ignored if it is zero or empty string
 - bug in paired subject in plugin
 - fixed the bool function for bidsMeta
+- dynamic values conservent their type
+- `get_field` values conservent their type
 
 ## [dev2.0.0] - 2019-12-23
 

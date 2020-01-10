@@ -3,6 +3,7 @@ import json
 import logging
 import re
 import datetime
+from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +166,9 @@ class fieldEntry(object):
         """
         return self.__activated
 
+    def Activate(self, status=True):
+        self.__activated = status
+
     def GetName(self):
         return self.__name
 
@@ -207,16 +211,18 @@ en/latest/02-common-principles.html
     The header line is created by static method BIDSgetHeader()
     Data line for each instance is created by BIDSgetLine()
     """
-    __slots__ = ["__library"]
+    __slots__ = ["__library", "__indexes"]
 
     def __init__(self):
         """
         creator
         """
         self.__library = list()
+        self.__indexes = dict()
 
     def AddField(self, name, longName="", description="", 
-                 levels={}, units="", url="", activated=True):
+                 levels={}, units="", url="", activated=True,
+                 override=False):
         """
         append new field to library. The field name must be unique
 
@@ -253,10 +259,15 @@ en/latest/02-common-principles.html
         """
         fe = fieldEntry(name, longName, description, 
                         levels, units, url, activated)
-        if fe not in self.__library:
+        index = self.__indexes.get(name, None)
+        if index is None:
             self.__library.append(fe)
+            self.__indexes[name] = len(self.__library) - 1
+        elif override:
+            self.__library[index] = fe
         else:
-            raise IndexError("Field in library already contains " + name)
+            logger.warning("field {} already exists in library"
+                           .format(name))
 
     def Activate(self, name, act=True):
         """
@@ -280,7 +291,11 @@ en/latest/02-common-principles.html
             raise TypeError("name must be a string")
         if not isinstance(act, bool):
             raise TypeError("act must be bool")
-        self.__library[name].__activated = act
+        index = self.__indexes.get(name, None)
+        if index is not None:
+            self.__library[index].Activate(act)
+        else:
+            raise KeyError("Name {} not defined in library")
 
     def GetNActive(self):
         """
@@ -381,6 +396,38 @@ latest/02-common-principles.html
         for f in self.__library:
             res[f.GetName()] = None
         return res
+
+    def LoadDefinitions(self, filename, overide=True):
+        """
+        loads definitions from a standard sidecar json file
+        """
+
+        if not isinstance(filename, str):
+            raise TypeError("filename must be a string")
+
+        with open(filename, "r") as f:
+            struct = json.load(f)
+
+        for name, lib in struct.items():
+            longName = lib.get("LongName", "")
+            descr = lib.get("Description", "")
+            levels = lib.get("Levels", {})
+            units = lib.get("Units", "")
+            url = lib.get("TermURL", "")
+            self.AddField(name,
+                          longName,
+                          descr,
+                          levels,
+                          units,
+                          url,
+                          True,
+                          overide)
+        for fe in self.__library:
+            if fe.GetName() in struct:
+                fe.Activate(True)
+            else:
+                fe.Activate(False)
+
 
     def DumpDefinitions(self, filename):
         """

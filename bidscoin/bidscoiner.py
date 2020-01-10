@@ -108,16 +108,16 @@ def coin(session: str, bidsmap: dict,
                                 .format(seq, recording.index))
                     continue
                 recording.set_labels(r_obj)
-                bidsname = recording.get_bidsname()
                 recording.generateMeta()
-
-                # Check if file already exists
 
                 # plugin entry point
                 plugins.RunPlugin("RecordingEP", recording)
+                bidsname = recording.get_bidsname()
 
                 bidsmodality = os.path.join(bidsses, recording.modality)
                 os.makedirs(bidsmodality, exist_ok=True)
+
+                # Check if file already exists
                 if os.path.isfile(os.path.join(bidsmodality,
                                                bidsname + '.json')):
                     e = "{}/{}.json exists at destination"\

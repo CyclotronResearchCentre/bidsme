@@ -263,11 +263,8 @@ class Nifti_dump(MRI):
             value = None
 
         if value is None:
-            return ""
-        elif isinstance(value, int):
-            return int(value)
-        else:
-            return str(value).strip()
+            value = ""
+        return value
 
     def clearCache(self) -> None:
         self._DICOMDICT_CACHE = None

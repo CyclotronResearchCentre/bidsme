@@ -24,81 +24,89 @@ excel_col_list = {'Patient' : 'pat',
                   '1.1': "cnt_1", '2.1': "cnt_2", '3.1': "cnt_3",
                   }
 
+
 sub_columns = BIDSfieldLibrary()
-sub_columns.AddField(
-        name="participant_id",
-        longName="Participant Id",
-        description="label identifying a particular subject")
-sub_columns.AddField(
-    name="age",
-    longName="Age",
-    description="Age of a subject",
-    units="year")
-sub_columns.AddField(
-    name="sex",
-    longName="Sex",
-    description="Sex of a subject",
-    levels={
-        "F"   : "Female",
-        "M"   : "Male"}
-        )
-sub_columns.AddField(
-        name="education",
-        longName="Education level",
-        description="Education level")
-sub_columns.AddField(
-        name="group",
-        longName="group",
-        description="Group subject belongs",
-        levels={"patient": "patient", "control": "control"})
-sub_columns.AddField(
-        name="handiness",
-        longName="Handiness of subject",
-        levels={"r": "right-handed", "l": "left-handed"})
-sub_columns.AddField(
-        name="paired",
-        longName="Paired Id",
-        description="Subject Id paired with this subject")
-sub_columns.AddField(
-        name="ses_1",
-        longName="First session",
-        description="Id of the first session taken by subject",
-        levels={"ses-LCL": "Low charge level",
-                "ses-HCL": "High charge level",
-                "ses-STROOP": "Multiparametric scan"},
-        )
-sub_columns.AddField(
-        name="ses_2",
-        longName="Second session",
-        description="Id of the second session taken by subject",
-        levels={"ses-LCL": "Low charge level",
-                "ses-HCL": "High charge level",
-                "ses-STROOP": "Multiparametric scan"},
-        )
-sub_columns.AddField(
-        name="ses_3",
-        longName="Third session",
-        description="Id of the second session taken by subject",
-        levels={"ses-LCL": "Low charge level",
-                "ses-HCL": "High charge level",
-                "ses-STROOP": "Multiparametric scan"},
-        )
+
+
+def init_participants():
+    sub_columns.AddField(
+            name="participant_id",
+            longName="Participant Id",
+            description="label identifying a particular subject")
+    sub_columns.AddField(
+        name="age",
+        longName="Age",
+        description="Age of a subject",
+        units="year")
+    sub_columns.AddField(
+        name="sex",
+        longName="Sex",
+        description="Sex of a subject",
+        levels={
+            "F"   : "Female",
+            "M"   : "Male"}
+            )
+    sub_columns.AddField(
+            name="education",
+            longName="Education level",
+            description="Education level")
+    sub_columns.AddField(
+            name="group",
+            longName="group",
+            description="Group subject belongs",
+            levels={"patient": "patient", "control": "control"})
+    sub_columns.AddField(
+            name="handiness",
+            longName="Handiness of subject",
+            levels={"r": "right-handed", "l": "left-handed"})
+    sub_columns.AddField(
+            name="paired",
+            longName="Paired Id",
+            description="Subject Id paired with this subject")
+    sub_columns.AddField(
+            name="ses_1",
+            longName="First session",
+            description="Id of the first session taken by subject",
+            levels={"ses-LCL": "Low charge level",
+                    "ses-HCL": "High charge level",
+                    "ses-STROOP": "Multiparametric scan"},
+            )
+    sub_columns.AddField(
+            name="ses_2",
+            longName="Second session",
+            description="Id of the second session taken by subject",
+            levels={"ses-LCL": "Low charge level",
+                    "ses-HCL": "High charge level",
+                    "ses-STROOP": "Multiparametric scan"},
+            )
+    sub_columns.AddField(
+            name="ses_3",
+            longName="Third session",
+            description="Id of the second session taken by subject",
+            levels={"ses-LCL": "Low charge level",
+                    "ses-HCL": "High charge level",
+                    "ses-STROOP": "Multiparametric scan"},
+            )
+
 
 kss_columns = BIDSfieldLibrary()
-kss_columns.AddField("trial_type", "Asked question", 
-                     "State evaluation question",
-                     {"Motivation": "Estimation of motivation",
-                      "Happiness": "Estimation of happiness",
-                      "Fatigue": "Estimation of fatigue",
-                      "Openness": "Estimation of openness",
-                      "Stress": "Estimation of stress",
-                      "Anxiety": "Estimation of anxiety",
-                      "Effort": "Estimation of effort",
-                      }
-                     )
-kss_columns.AddField("stim_file", "Image presented during question")
-kss_columns.AddField("value", "Recieved estimation value",
-                     "Recieved estimation value in scale from 0 to 100")
+
+
+def init_kss():
+    kss_columns.AddField("trial_type", "Asked question", 
+                         "State evaluation question",
+                         {"Motivation": "Estimation of motivation",
+                          "Happiness": "Estimation of happiness",
+                          "Fatigue": "Estimation of fatigue",
+                          "Openness": "Estimation of openness",
+                          "Stress": "Estimation of stress",
+                          "Anxiety": "Estimation of anxiety",
+                          "Effort": "Estimation of effort",
+                          }
+                         )
+    kss_columns.AddField("stim_file", "Image presented during question")
+    kss_columns.AddField("value", "Recieved estimation value",
+                         "Recieved estimation value in scale from 0 to 100")
 
 kss_questions = {"1": "Motivation",
                  "2": "Happiness",
@@ -111,35 +119,39 @@ kss_questions = {"1": "Motivation",
 kss_step = 0.15
 kss_max = 4.95
 
+
 FCsepNBack_columns = BIDSfieldLibrary()
-FCsepNBack_columns.AddField("onset", "Onset (in seconds) of the event",
-                            "Onset (in seconds) of the event measured "
-                            "from the beginning of the acquisition of "
-                            "the first volume in the corresponding task "
-                            "imaging data file.",
-                            units="s")
-FCsepNBack_columns.AddField("duration", "Time that stimulus was presented",
-                            units="s")
-# FCsepNBack_columns.AddField("cond_duration", "Time that the condition was "
-#                             "presented",
-#                              units="s")
-# FCsepNBack_columns.AddField("isi_duration", "Time that cross was presented",
-#                             units="s")
-FCsepNBack_columns.AddField("response_time", "Time taked to respond to "
-                            "stimulus",
-                            units="s")
-FCsepNBack_columns.AddField("trial_type", "Condition presented to subject",
-                            levels={"Test_1Back": "",
-                                    "Test_2Back": "",
-                                    "Test_3Back": ""}
-                            )
-FCsepNBack_columns.AddField("block", "Id of block for trial")
-FCsepNBack_columns.AddField("value", "Recieved responce",
-                            levels={"c":"correct",
-                                    "n":"non correct"})
-FCsepNBack_columns.AddField("exp_value", "Expected responce",
-                            levels={"c":"correct",
-                                    "n":"non correct"})
+
+
+def init_FCsepNBack():
+    FCsepNBack_columns.AddField("onset", "Onset (in seconds) of the event",
+                                "Onset (in seconds) of the event measured "
+                                "from the beginning of the acquisition of "
+                                "the first volume in the corresponding task "
+                                "imaging data file.",
+                                units="s")
+    FCsepNBack_columns.AddField("duration", "Time that stimulus was presented",
+                                units="s")
+    # FCsepNBack_columns.AddField("cond_duration", "Time that the condition was "
+    #                             "presented",
+    #                              units="s")
+    # FCsepNBack_columns.AddField("isi_duration", "Time that cross was presented",
+    #                             units="s")
+    FCsepNBack_columns.AddField("response_time", "Time taked to respond to "
+                                "stimulus",
+                                units="s")
+    FCsepNBack_columns.AddField("trial_type", "Condition presented to subject",
+                                levels={"Test_1Back": "",
+                                        "Test_2Back": "",
+                                        "Test_3Back": ""}
+                                )
+    FCsepNBack_columns.AddField("block", "Id of block for trial")
+    FCsepNBack_columns.AddField("value", "Recieved responce",
+                                levels={"c":"correct",
+                                        "n":"non correct"})
+    FCsepNBack_columns.AddField("exp_value", "Expected responce",
+                                levels={"c":"correct",
+                                        "n":"non correct"})
 
 
 def InitEP(**kwargs):
@@ -156,6 +168,24 @@ def InitEP(**kwargs):
         subject_file = os.path.join(source, "Appariement.xlsx")
     if not os.path.isfile(subject_file):
         raise FileNotFoundError(str(subject_file))
+    model_participants = os.path.join(source, "participants.json")
+    if os.path.isfile(model_participants):
+        sub_columns.LoadDefinitions(model_participants)
+    else:
+        init_participants()
+        sub_columns.DumpDefinitions(model_participants)
+    model_kss = os.path.join(source, "kss.json")
+    if os.path.isfile(model_kss):
+        kss_columns.LoadDefinitions(model_kss)
+    else:
+        init_kss()
+        kss_columns.DumpDefinitions(model_kss)
+    model_FCsepNBack = os.path.join(source, "FCsepNBack.json")
+    if os.path.isfile(model_FCsepNBack):
+        FCsepNBack_columns.LoadDefinitions(model_FCsepNBack)
+    else:
+        init_FCsepNBack()
+        FCsepNBack_columns.DumpDefinitions(model_FCsepNBack)
 
 
 def SubjectEP(session):
@@ -225,7 +255,9 @@ def SubjectEP(session):
     with open(os.path.join(destination, "participants.tsv"), "a") as f:
         f.write(sub_columns.GetLine(values))
         f.write("\n")
-
+    model_participants = os.path.join(destination, "participants.json")
+    if not os.path.isfile(model_participants):
+        sub_columns.DumpDefinitions(model_participants)
     return 0
 
 
