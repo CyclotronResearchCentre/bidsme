@@ -368,8 +368,6 @@ class bidsmap(object):
                             res_run = run
                             if not run.provenance:
                                 run.provenance = recording.currentFile()
-                                run.example = None
-                            if not run.example:
                                 run.checked = False
                                 run.example = "{}/{}".format(
                                         modality,
@@ -415,8 +413,8 @@ class bidsmap(object):
         d = dict()
         d['Options'] = {"version": self.version,
                         "bidsignore": self.bidsignore}
-        d['PlugIns'] = {"path": None,
-                        "options": None}
+        d['PlugIns'] = {"path": self.plugin_file,
+                        "options": self.plugin_options}
         # Modules
         for m_name, module in self.Modules.items():
             if not module and not empty_modules:

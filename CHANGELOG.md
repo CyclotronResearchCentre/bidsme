@@ -29,6 +29,9 @@ attributes (`<>`), values from subjects.tsv (`<<sub_tsv:>>`) and recordings.tsv
 - fixed the bool function for bidsMeta
 - dynamic values conservent their type
 - `get_field` values conservent their type
+- in `rename_plugin.py` fixed spaces in session names
+- fixed disapearance of plugin in map file
+- fixet checked status reset in ignore modalities in map
 
 ## [dev2.0.0] - 2019-12-23
 

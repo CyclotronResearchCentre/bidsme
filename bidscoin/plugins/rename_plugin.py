@@ -244,7 +244,7 @@ def SubjectEP(session):
     scans = df_subjects.loc[index, prefix + "_1":prefix + "_3"].to_list()
     session["scans"] = dict()
     for name, scan in zip(scans, ses):
-        session["scans"][scan] = name
+        session["scans"][scan] = name.strip()
 
     # creating tsv file
     tsv_file = os.path.join(destination, "participants.tsv")

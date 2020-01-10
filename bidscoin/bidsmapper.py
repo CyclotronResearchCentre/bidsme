@@ -12,7 +12,6 @@ the Donders Institute can serve as an example (or may even mostly work
 for other institutes out of the box).
 """
 
-# Global imports (plugin modules may be imported when needed)
 import os.path
 import textwrap
 import copy

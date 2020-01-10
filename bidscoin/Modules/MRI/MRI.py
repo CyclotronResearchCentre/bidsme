@@ -400,6 +400,7 @@ class MRI(object):
                 self.labels[key] = val
         elif run.modality == self.ignoremodality:
             self.modality = run.modality
+            return
         else:
             logger.error("{}/{}: Unregistered modality {}"
                          .format(self.get_rec_id(),
