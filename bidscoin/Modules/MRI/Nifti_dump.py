@@ -241,6 +241,14 @@ class Nifti_dump(MRI):
         if field in self.__spetialFields:
             return self._adaptMetaField(field)
 
+        field = field.split(':', 1)
+        if len(field) == 2:
+            prefix = field[0]
+            field = field[1]
+        else:
+            prefix = ""
+            field = field[0]
+
         value = self._DICOMDICT_CACHE
         try:
             field = field.split(separator)
@@ -264,6 +272,12 @@ class Nifti_dump(MRI):
 
         if value is None:
             value = ""
+        else:
+            if prefix == "time":
+                if isinstance(value, list):
+                    value = [1e-6 * v for v in value]
+                else:
+                    value *= 1e-6
         return value
 
     def clearCache(self) -> None:

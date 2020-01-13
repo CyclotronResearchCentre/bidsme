@@ -63,6 +63,11 @@ class Run(object):
         self.entity = OrderedDict(check_type("entity", dict, entity))
         self.json = OrderedDict(check_type("json", dict, json))
 
+    def __bool__(self):
+        if self._suffix = "":
+            return False
+        return True
+
     @property
     def modality(self):
         return self._modality

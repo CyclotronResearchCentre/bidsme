@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+- `time` tag for json fields that converts ms to seconds
+
 ## [dev2.0.1] - 2019-12-23
 
 ### Changed
