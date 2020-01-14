@@ -78,7 +78,11 @@ class baseModule(object):
             "M": "Male"}
             )
 
-    def __init__(self, rec_path=""):
+    def __init__(self):
+        """
+        Basic class for module. Isn't intended to be 
+        initiated directly.
+        """
         self.files = list()
         self._recPath = ""
         self.index = -1
@@ -95,60 +99,15 @@ class baseModule(object):
         self.rec_BIDSvalues = dict()
         self.sub_BIDSvalues = dict()
 
-    @classmethod
-    def isValidFile(cls, file: str) -> bool:
-        """
-        Checks if given file is valid
-
-        Parameters
-        ----------
-        file: str
-            path to file
-
-        Returns
-        -------
-        bool:
-            True if file is valid
-
-        Raises
-        ------
-        FileNotFoundError
-            If path is not a file
-        """
-        if not os.path.isfile(file):
-            raise FileNotFoundError("File {} not found or not a file"
-                                    .format(file))
-        if not os.access(file, os.R_OK):
-            raise PermissionError("File {} not readable"
-                                  .format(file))
-        return cls._isValidFile(file)
-
+    #########################
+    # Pure virtual methodes #
+    #########################
     @classmethod
     def _isValidFile(cls, file:str) -> bool:
         """
         Virtual function that checks if file is valid one
         """
         raise NotImplementedError
-
-    @classmethod
-    def getModule(cls):
-        """
-        returns Module name of current class
-        """
-        return cls._Module
-
-    @classmethod
-    def getType(cls):
-        """
-        returns file type of current class
-        """
-        return cls._Type
-
-    def clearCache(self) -> None:
-        """
-        Virtual function that clears cache of current file
-        """
-        pass
 
     def loadFile(self, index: int) -> None:
         """
@@ -169,42 +128,6 @@ class baseModule(object):
         associated with current file
         """
         return NotImplementedError
-
-    def getField(self, field: str, default=None, prefix=':',separator='/'):
-
-        """
-        Returns meta value corresponding to a given field.
-        A prefix can be used to call a specific transformation
-        within a subclass
-
-        Parameters
-        ----------
-        field: str
-            name of the field to retrieve
-        default:
-            returned value if field not found
-        prefix: str
-            separater used to identify prefix
-        separator: str
-            character used to separate levels in case 
-            of nested fields
-
-        Returns
-        -------
-        retrieved value or default
-        """
-
-        field = field.split(prefix, 1)
-        if len(field) == 2:
-            prefix, field = field
-        else:
-            prefix = ""
-            field = field[0]
-        result = self._getField(field.split(separator), prefix)
-
-        if result is None:
-            return default
-        return result
 
     def _getField(self, field: list, prefix: str=""):
         """
@@ -234,41 +157,40 @@ class baseModule(object):
         """
         raise NotImplementedError
 
-    def bidsify(self, bidsfolder: str) -> None:
+    def getRecNo(self):
         """
-        Copy current file to the destination, change the name
-        to the bidsified one, and export metadata to json
-
-        Non-existing folders will be created
-
-        Parameters
-        ----------
-        bidsfolder: str
-            path to root of output bids folder
+        Virtual function returning current serie number 
+        (i.e. numero of scan in session).
+        getRecNo together with getRecId must uniquely 
+        identify serie within session
         """
-        if self.Subject is None\
-                or self.Session is None\
-                or self.Modality is None:
-            raise ValueError("Recording missing defined subject, "
-                             "session and/or modality")
-        outdir = os.path.join(bidsfolder, 
-                              self.Subject,
-                              self.Session,
-                              self.Modality)
-        ext = os.path.splitext(self.currentFile(False))[1]
-        basename = "{}/{}".format(bidsfolder,self.get_bidsname())
+        raise NotImplementedError
 
-        logger.debug("Creating folder {}".format(outdir))
-        os.makedirs(outdir, exist_ok=True)
-        logger.debug("Copying {} to {}".fomat(self.currentFile(),
-                                              basename + ext))
-        shutil.copy2(self.currentFile(),
-                     basename + ext)
-        with open(basename + ".json", "w") as f:
-            js_dict = self.exportMeta()
-            json.dump(js_dict, f, indent=2)
+    def getRecId(self):
+        """
+        Virtual function returning current serie id
+        (i.e. name of scan in session).
+        getRecNo together with getRecId must uniquely 
+        identify serie within session
+        """
+        raise NotImplementedError
 
-        self._post_copy(basename, ext)
+    def isCompleteRecording(self) -> bool:
+        """
+        Virtual function.
+        Returns True if current recording is complete,
+        False overwise.
+        """
+        raise NotImplementedError
+
+    #############################
+    # Optional virtual methodes #
+    #############################
+    def clearCache(self) -> None:
+        """
+        Virtual function that clears cache of current file
+        """
+        pass
 
     def _post_copy(self, basename: str, ext: str) -> None:
         """
@@ -300,6 +222,181 @@ class baseModule(object):
         """
         os.makedirs(destination, exist_ok=True)
         shutil.copy2(self.currentFile(), destination)
+
+    ##################
+    # Class methodes #
+    ##################
+    @classmethod
+    def isValidFile(cls, file: str) -> bool:
+        """
+        Checks if given file is valid
+
+        Parameters
+        ----------
+        file: str
+            path to file
+
+        Returns
+        -------
+        bool:
+            True if file is valid
+
+        Raises
+        ------
+        FileNotFoundError
+            If path is not a file
+        """
+        if not os.path.isfile(file):
+            raise FileNotFoundError("File {} not found or not a file"
+                                    .format(file))
+        if not os.access(file, os.R_OK):
+            raise PermissionError("File {} not readable"
+                                  .format(file))
+        return cls._isValidFile(file)
+
+    @classmethod
+    def getModule(cls):
+        """
+        returns Module name of current class
+        """
+        return cls._Module
+
+    @classmethod
+    def getType(cls):
+        """
+        returns file type of current class
+        """
+        return cls._Type
+
+    @classmethod
+    def isValidRecording(cls, rec_path: str) -> bool:
+        """
+        Checks for all files in given directory and returns true if 
+        found at list one valid file
+
+        Parameters
+        ----------
+        rec_path: str
+            path to directory to check
+        Returns
+        -------
+        bool:
+            True if at least one valid file found
+        """
+        for file in os.listdir(rec_path):
+            if cls.isValidFile(os.path.join(rec_path, file)):
+                return True
+        return False
+
+    @classmethod
+    def getNumFiles(cls, folder: str) -> int:
+        """
+        Returns number of valid files in given folder.
+        Files are not loaded
+
+        Parameters
+        ----------
+        folder: str
+            path to folder to scan, must exists
+
+        Returns
+        -------
+        int:
+            number of valid recordings
+        """
+        count = 0
+        for file in os.listdir(folder):
+            if os.path.basename(file).startswith('.'):
+                logger.warning(f'Ignoring hidden file: {file}')
+                continue
+            full_path = os.path.join(folder, file)
+            if cls.isValidFile(full_path):
+                count += 1
+        return count
+
+    @classmethod
+    def getValidFile(self, folder: str, index: int=0) -> int:
+        """
+        Return valid file name of index from given folder without 
+        loading it. 
+        Use setRecPath if you want to load valid files.
+
+        Parameters
+        ----------
+        folder: str
+            path to folder to scan, must exists
+        index: int
+            Index of file to retrieve
+
+        Returns
+        -------
+        str:
+            path to file
+        """
+        idx = 0
+        for file in sorted(os.listdir(folder)):
+            if os.path.basename(file).startswith('.'):
+                logger.warning(f'Ignoring hidden file: {file}')
+                continue
+
+            full_path = os.path.join(folder, file)
+            if self.isValidFile(full_path):
+                if idx == index:
+                    return full_path
+                else:
+                    idx += 1
+        logger.warning("{}/{}: Cant find a valid file at index {} in {}"
+                       .format(self.getModule(), self.getType(), 
+                               index, folder))
+        return None
+
+    @classmethod
+    def isValidModality(cls, modality: str,
+                        include_unknown: bool = True) -> bool:
+        passed = False
+        if include_unknown and modality == cls.ignoremodality:
+            passed = True
+        if modality in cls.bidsmodalities:
+            passed = True
+        return passed
+
+    ##################
+    # Acess methodes #
+    ##################
+
+    def getField(self, field: str, default=None, prefix=':',separator='/'):
+        """
+        Returns meta value corresponding to a given field.
+        A prefix can be used to call a specific transformation
+        within a subclass
+
+        Parameters
+        ----------
+        field: str
+            name of the field to retrieve
+        default:
+            returned value if field not found
+        prefix: str
+            separater used to identify prefix
+        separator: str
+            character used to separate levels in case 
+            of nested fields
+
+        Returns
+        -------
+        retrieved value or default
+        """
+        field = field.split(prefix, 1)
+        if len(field) == 2:
+            prefix, field = field
+        else:
+            prefix = ""
+            field = field[0]
+        result = self._getField(field.split(separator), prefix)
+
+        if result is None:
+            return default
+        return result
 
     def getAttribute(self, attribute: str,
                      default: None):
@@ -392,146 +489,97 @@ class baseModule(object):
             res = tools.cleanup_value(res)
         return res
 
-    def getRecNo(self):
+    def getSubId(self):
         """
-        Virtual function returning current serie number 
-        (i.e. numero of scan in session).
-        getRecNo together with getRecId must uniquely 
-        identify serie within session
-        """
-        raise NotImplementedError
-
-    def getRecId(self):
-        """
-        Virtual function returning current serie id
-        (i.e. name of scan in session).
-        getRecNo together with getRecId must uniquely 
-        identify serie within session
-        """
-        raise NotImplementedError
-
-    def loadNextFile(self) -> bool:
-        """
-        Loads next file in serie. 
-        Returns True in sucess, False othrwise
-        """
-        if self._index + 1 >= len(self.files):
-            return False
-        self.loadFile(self._index + 1)
-        return True
-
-    @classmethod
-    def isValidRecording(cls, rec_path: str) -> bool:
-        """
-        Checks for all files in given directory and returns true if 
-        found at list one valid file
-
-        Parameters
-        ----------
-        rec_path: str
-            path to directory to check
-        Returns
-        -------
-        bool:
-            True if at least one valid file found
-        """
-        for file in os.listdir(rec_path):
-            if cls.isValidFile(os.path.join(rec_path, file)):
-                return True
-        return False
-
-    def isCompleteRecording(self) -> bool:
-        """
-        Virtual function.
-        Returns True if current recording is complete,
-        False overwise.
-        """
-        raise NotImplementedError
-
-    @classmethod
-    def getNumFiles(cls, folder: str) -> int:
-        """
-        Returns number of valid files in given folder.
-        Files are not loaded
-
-        Parameters
-        ----------
-        folder: str
-            path to folder to scan, must exists
-
-        Returns
-        -------
-        int:
-            number of valid recordings
-        """
-        count = 0
-        for file in os.listdir(folder):
-            if os.path.basename(file).startswith('.'):
-                logger.warning(f'Ignoring hidden file: {file}')
-                continue
-            full_path = os.path.join(folder, file)
-            if cls.isValidFile(full_path):
-                count += 1
-        return count
-
-    @classmethod
-    def getValidFile(self, folder: str, index: int=0) -> int:
-        """
-        Return valid file name of index from given folder without 
-        loading it. 
-        Use setRecPath if you want to load valid files.
-
-        Parameters
-        ----------
-        folder: str
-            path to folder to scan, must exists
-        index: int
-            Index of file to retrieve
+        Returns the current recording subject Id. First it tries 
+        to get it from saved value, if none, get from current 
+        file path
 
         Returns
         -------
         str:
-            path to file
+            sub-<Id>
         """
-        idx = 0
-        for file in sorted(os.listdir(folder)):
-            if os.path.basename(file).startswith('.'):
-                logger.warning(f'Ignoring hidden file: {file}')
-                continue
+        if not self.Subject:
+            subid = self.getIdFolder("sub-")
+        else: 
+            subid = self.getDynamicField(self.Subject,
+                                         cleanup=False,
+                                         default="")
+        if subid == "":
+            return subid
+        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
 
-            full_path = os.path.join(folder, file)
-            if self.isValidFile(full_path):
-                if idx == index:
-                    return full_path
-                else:
-                    idx += 1
-        logger.warning("{}/{}: Cant find a valid file at index {} in {}"
-                       .format(self.getModule(), self.getType(), 
-                               index, folder))
-        return None
-
-    def getCurrentFile(self, base: bool=False) -> str:
+    def getSesId(self):
         """
-        Returns the path to currently loaded file
-
-        Parameters
-        ----------
-        base: bool
-            if True, only basename is retrieved, and 
-            fullpath overwise
+        Returns the current recording session Id. First it tries 
+        to get it from saved value, if none, get from current 
+        file path
 
         Returns
         -------
         str:
-            currently loaded filename
+            ses-<Id>
         """
-        if self._index >= 0 and self._index < len(self.files):
-            if base:
-                return self.files[self._index]
-            else:
-                return os.path.join(self._recPath, self.files[self._index])
-        return None
+        if not self.Session:
+            subid = self.getIdFolder("ses-")
+        else: 
+            subid = self.getDynamicField(self.Session,
+                                         cleanup=False, 
+                                         default="")
+        if subid == "":
+            return subid
+        return 'ses-' + tools.cleanup_value(re.sub('^ses-', '', subid))
 
+    def _getCharacteristic(self, field):
+        """
+        Retrieves given cheracteristic value
+        Allowed characteristics:
+            - subject: subject Id
+            - session: session Id
+            - serieNumber: serie Id 
+            - serie: serie name
+            - index: index of current file in serie
+            - nfiles: total number of files in serie
+            - filename: name of current file
+            - suffix: bids suffix  of current file
+            - modality: modality of current file
+            - module: name of module
+            - placeholder: name to fill manually
+            - None: void value
+        """
+        if field == "subject":
+            return self.getSubId()
+        if field == "session":
+            return self.getSesId()
+        if field == "serieNumber":
+            return self.get_rec_no()
+        if field == "serie":
+            return self.get_rec_id()
+        if field == "index":
+            return self.index + 1
+        if field == "nfiles":
+            return len(self.files)
+        if field == "filename":
+            return self.currentFile(False)
+        if field == "suffix":
+            return self.suffix
+        if field == "modality":
+            return self.modality
+        if field == "module":
+            return self.Module
+        if field == "placeholder":
+            logger.warning("{}-{}: Placehoder found"
+                           .format(self.get_rec_no(),
+                                   self.get_rec_id())
+                           )
+            return "<<placeholder>>"
+        if field == "None":
+            return None
+
+    ##############################
+    # File manipulation methodes #
+    ##############################
     def setRecPath(self, folder: str) -> int:
         """
         Set given folder as folder containing all files for serie.
@@ -586,6 +634,77 @@ class baseModule(object):
                                  self._recPath
                                  ))
         return len(self._files)
+
+    def loadNextFile(self) -> bool:
+        """
+        Loads next file in serie. 
+        Returns True in sucess, False othrwise
+        """
+        if self._index + 1 >= len(self.files):
+            return False
+        self.loadFile(self._index + 1)
+        return True
+
+    def getCurrentFile(self, base: bool=False) -> str:
+        """
+        Returns the path to currently loaded file
+
+        Parameters
+        ----------
+        base: bool
+            if True, only basename is retrieved, and 
+            fullpath overwise
+
+        Returns
+        -------
+        str:
+            currently loaded filename
+        """
+        if self._index >= 0 and self._index < len(self.files):
+            if base:
+                return self.files[self._index]
+            else:
+                return os.path.join(self._recPath, self.files[self._index])
+        return None
+
+    #########################
+    # Bids-related methodes #
+    #########################
+    def bidsify(self, bidsfolder: str) -> None:
+        """
+        Copy current file to the destination, change the name
+        to the bidsified one, and export metadata to json
+
+        Non-existing folders will be created
+
+        Parameters
+        ----------
+        bidsfolder: str
+            path to root of output bids folder
+        """
+        if self.Subject is None\
+                or self.Session is None\
+                or self.Modality is None:
+            raise ValueError("Recording missing defined subject, "
+                             "session and/or modality")
+        outdir = os.path.join(bidsfolder, 
+                              self.Subject,
+                              self.Session,
+                              self.Modality)
+        ext = os.path.splitext(self.currentFile(False))[1]
+        basename = "{}/{}".format(bidsfolder,self.get_bidsname())
+
+        logger.debug("Creating folder {}".format(outdir))
+        os.makedirs(outdir, exist_ok=True)
+        logger.debug("Copying {} to {}".fomat(self.currentFile(),
+                                              basename + ext))
+        shutil.copy2(self.currentFile(),
+                     basename + ext)
+        with open(basename + ".json", "w") as f:
+            js_dict = self.exportMeta()
+            json.dump(js_dict, f, indent=2)
+
+        self._post_copy(basename, ext)
 
     def setLabels(self, run: Run=None):
         """
@@ -647,6 +766,66 @@ class baseModule(object):
                                                  cleanup=False,
                                                  raw=True))
 
+    def getBidsname(self):
+        """
+        Generates bidsified name based on saved tags and suffixes
+
+        Returns
+        -------
+        str:
+            bidsified name
+        """
+        tags_list = list()
+        subid = self.getSubId()
+        if subid:
+            tags_list.append(subid)
+        sesid = self.getSesId()
+        if sesid:
+            tags_list.append(sesid)
+        for key, val in self._labels.items():
+            if val:
+                tags_list.append(key + "-"
+                                 + tools.cleanup_value(val))
+
+        if self.suffix:
+            tags_list.append(tools.cleanup_value(self.suffix))
+        return "_".join(tags_list)
+
+    def generateMeta(self):
+        """
+        Fills standard meta values. Must be called before exporting
+        these meta-data into json
+        """
+        if not self.modality:
+            raise ValueError("Modality wasn't defined")
+
+        for key, field in self.metaFields.items():
+            if field is not None:
+                field.value = self.get_field(field.name, field.default)
+
+    def exportMeta(self):
+        """
+        Exports recording metadata into dictionary structure
+        """
+        exp = dict()
+        for key, field in self.metaAuxiliary.items():
+            if field:
+                if isinstance(field, list):
+                    exp[key] = [f.value for f in field]
+                else:
+                    exp[key] = field.value
+        for key, field in self.metaFields.items():
+            if field:
+                if key not in self.metaAuxiliary:
+                    if isinstance(field, list):
+                        exp[key] = [f.value for f in field]
+                    else:
+                        exp[key] = field.value
+        return exp
+
+    #####################################
+    # Recording identification methodes #
+    #####################################
     def match_attribute(self, attribute: str, pattern:str) -> bool:
         """
         Return True if given attribute value matches pattern,
@@ -702,96 +881,3 @@ class baseModule(object):
             if not match_all:
                 break
         return match_one and match_all
-
-    def getSubId(self):
-        """
-        Returns the current recording subject Id. First it tries 
-        to get it from saved value, if none, get from current 
-        file path
-
-        Returns
-        -------
-        str:
-            sub-<Id>
-        """
-        if not self.Subject:
-            subid = self.getIdFolder("sub-")
-        else: 
-            subid = self.getDynamicField(self.Subject,
-                                         cleanup=False,
-                                         default="")
-        if subid == "":
-            return subid
-        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
-
-    def getSesId(self):
-        """
-        Returns the current recording session Id. First it tries 
-        to get it from saved value, if none, get from current 
-        file path
-
-        Returns
-        -------
-        str:
-            ses-<Id>
-        """
-        if not self.Session:
-            subid = self.getIdFolder("ses-")
-        else: 
-            subid = self.getDynamicField(self.Session,
-                                         cleanup=False, 
-                                         default="")
-        if subid == "":
-            return subid
-        return 'ses-' + tools.cleanup_value(re.sub('^ses-', '', subid))
-
-    def get_bidsname(self):
-        """
-        Generates bidsified name based on saved tags and suffixes
-
-        Returns
-        -------
-        str:
-            bidsified name
-        """
-        tags_list = list()
-        subid = self.getSubId()
-        if subid:
-            tags_list.append(subid)
-        sesid = self.getSesId()
-        if sesid:
-            tags_list.append(sesid)
-        for key, val in self._labels.items():
-            if val:
-                tags_list.append(key + "-"
-                                 + tools.cleanup_value(val))
-
-        if self.suffix:
-            tags_list.append(tools.cleanup_value(self.suffix))
-        return "_".join(tags_list)
-
-    def getIdFolder(self, prefix: str):
-        if self._recPath == "":
-            logger.error("Recording path not defined")
-            return
-
-        # recording path means to be organized as
-        # ..../sub-xxx/[ses-yyy]/sequence/files
-        try:
-            subid = self._recPath.rsplit("/" + prefix, 1)[1]\
-                    .split(os.sep)[0]
-        except Exception:
-            raise ValueError("Failed to extract '{}' form {}"
-                             .format(prefix, self._recPath))
-        return subid
-
-
-    @classmethod
-    def isValidModality(cls, modality: str,
-                        include_unknown: bool = True) -> bool:
-        passed = False
-        if include_unknown and modality == cls.ignoremodality:
-            passed = True
-        if modality in cls.bidsmodalities:
-            passed = True
-        return passed
