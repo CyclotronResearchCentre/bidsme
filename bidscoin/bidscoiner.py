@@ -18,7 +18,6 @@ import os
 import sys
 import shutil
 import pandas as pd
-import json
 import logging
 import tempfile
 
@@ -68,7 +67,6 @@ def coin(session: str, bidsmap: dict,
                 continue
             # Get a recording
             recording = cls(rec_path=runfolder)
-            seq = os.path.basename(runfolder)
             recording.setSubId()
             recording.setSesId()
             sub = recording.subId()
@@ -127,29 +125,6 @@ def coin(session: str, bidsmap: dict,
                     logger.error(e)
                     raise FileExistsError(e)
                 recording.bidsify(bidsfolder)
-
-                recording.rec_BIDSvalues["filename"]\
-                    = os.path.join(recording.Modality(), bidsname) + ".nii"
-                recording.rec_BIDSvalues["acq_time"]\
-                    = recording.acqTime().replace(microsecond=0)
-
-                scans_tsv = os.path.join(bidsses,
-                                         '{}_{}_scans.tsv'
-                                         .format(sub, ses))
-                if os.path.isfile(scans_tsv):
-                    with open(scans_tsv, "a") as f:
-                        f.write(recording.rec_BIDSfields.GetLine(
-                            recording.rec_BIDSvalues))
-                        f.write('\n')
-                else:
-                    with open(scans_tsv, "w") as f:
-                        f.write(recording.rec_BIDSfields.GetHeader())
-                        f.write('\n')
-                        f.write(recording.rec_BIDSfields.GetLine(
-                            recording.rec_BIDSvalues))
-                        f.write('\n')
-                    recording.rec_BIDSfields.DumpDefinitions(
-                            tools.change_ext(scans_tsv, "json"))
 
 
 def bidscoiner(rawfolder: str, bidsfolder: str,
@@ -241,7 +216,7 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
                        .format(ntemplate))
     if nunchecked != 0:
         logger.error("Map contains {} unchecked runs"
-                       .format(nunchecked))
+                     .format(nunchecked))
         return
 
     # Load and initialize plugin

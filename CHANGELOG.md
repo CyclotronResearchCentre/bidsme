@@ -5,11 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - `time` tag for json fields that converts ms to seconds
+- `getBidsPrefix` which generates `sub-..._ses-...` part of name
+- Check for unchecked runs in map file
 
 ### Changed
 - `Nifti_dump` becomes `Nifti_SPM12`
 - Most of module functions moved to `Module/base.py` and becomes a package
 - `ignoremodality` and `unknownmodality` are `Modules` global constants
+- Set variable time scaling in `time` prefix for `Nifti_SPM12` 
+- Moved tsv and json creation to `bidsify` function
+
+
 
 
 ## [dev2.0.1] - 2019-12-23

@@ -820,24 +820,57 @@ class baseModule(object):
                 or self._modality is None:
             raise ValueError("Recording missing defined subject, "
                              "session and/or modality")
+        if not self.isValidModality(self._modality, False):
+            logger.error("{}: Invalid modality {}"
+                         .format(self.recIdentity(),
+                                 self._modality))
+            raise ValueError("Invalid modality")
+
         outdir = os.path.join(bidsfolder, 
-                              self._subject,
-                              self._session,
+                              self.getBidsPrefix('/'),
                               self._modality)
-        ext = os.path.splitext(self.currentFile(False))[1]
-        basename = "{}/{}".format(bidsfolder,self.getBidsname())
 
         logger.debug("Creating folder {}".format(outdir))
         os.makedirs(outdir, exist_ok=True)
+
+        ext = os.path.splitext(self.currentFile(False))[1]
+        bidsname = os.path.join(outdir, self.getBidsname())
+
         logger.debug("Copying {} to {}".format(self.currentFile(),
-                                              basename + ext))
+                                               bidsname + ext))
         shutil.copy2(self.currentFile(),
-                     basename + ext)
-        with open(basename + ".json", "w") as f:
+                     bidsname + ext)
+        with open(bidsname + ".json", "w") as f:
             js_dict = self.exportMeta()
             json.dump(js_dict, f, indent=2)
 
-        self._post_copy(basename, ext)
+        self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
+                                                       self.getBidsname()
+                                                       + ext)
+        self.rec_BIDSvalues["acq_time"] = self.acqTime()\
+            .replace(microsecond=0)
+
+        scans = os.path.join(bidsfolder,
+                             self.getBidsPrefix('/'),
+                             '{}_scans'.format(self.getBidsPrefix()))
+        scans_tsv = scans + ".tsv"
+        scans_json = scans + ".json"
+
+        if os.path.isfile(scans_tsv):
+            with open(scans_tsv, "a") as f:
+                f.write(self.rec_BIDSfields.GetLine(
+                    self.rec_BIDSvalues))
+                f.write('\n')
+        else:
+            with open(scans_tsv, "w") as f:
+                f.write(self.rec_BIDSfields.GetHeader())
+                f.write('\n')
+                f.write(self.rec_BIDSfields.GetLine(
+                    self.rec_BIDSvalues))
+                f.write('\n')
+            self.rec_BIDSfields.DumpDefinitions(scans_json)
+
+        self._post_copy(bidsname, ext)
 
     def setLabels(self, run: Run=None):
         """
@@ -882,7 +915,7 @@ class baseModule(object):
 
         self.metaAuxiliary = dict()
         for key, val in run.json.items():
-            if key and run.json[key]:
+            if key:
                 if isinstance(val, list):
                     self.metaAuxiliary[key] = [
                             MetaField(key, None,
@@ -897,6 +930,30 @@ class baseModule(object):
                                                  cleanup=False,
                                                  raw=True))
 
+    def getBidsPrefix(self, sep: str='_') -> str:
+        """
+        Generates the subject/session prefix using separator,
+        like sub-123_ses-456
+
+        Parameters
+        ----------
+        sep: str
+            separator used for subject and session fields
+
+        Returns
+        -------
+        str
+        """
+        subid = self.subId()
+        sesid = self.sesId()
+        if not subid:
+            logger.error("{}: Subject Id not defined"
+                         .format(self.recIdentity()))
+            raise ValueError("Subject Id not defined")
+        if sesid:
+            subid += sep + sesid
+        return subid
+
     def getBidsname(self):
         """
         Generates bidsified name based on saved tags and suffixes
@@ -906,13 +963,7 @@ class baseModule(object):
         str:
             bidsified name
         """
-        tags_list = list()
-        subid = self.subId()
-        if subid:
-            tags_list.append(subid)
-        sesid = self.sesId()
-        if sesid:
-            tags_list.append(sesid)
+        tags_list = [self.getBidsPrefix()]
         for key, val in self.labels.items():
             if val:
                 tags_list.append(key + "-"

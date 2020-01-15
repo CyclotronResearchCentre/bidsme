@@ -179,8 +179,13 @@ class Nifti_SPM12(MRI):
         return res
 
     def _transformField(self, value, prefix: str):
-        if prefix == "time":
-            return value * 1e-6
+        if prefix.startswith("time"):
+            exp = prefix[len("time"):]
+            if exp:
+                exp = int(exp)
+            else:
+                exp = 3
+            return value / 10 ** exp
         elif prefix == "":
             return value
         else:
