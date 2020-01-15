@@ -269,7 +269,7 @@ def RecordingEP(session, recording):
     if session["session"] == "STROOP":
         return 0
 
-    logs = os.path.dirname(recording.rec_path) + "/inp"
+    logs = os.path.dirname(recording.recPath()) + "/inp"
     if not os.path.isdir(logs):
         raise NotADirectoryError(logs)
 

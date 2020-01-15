@@ -192,7 +192,7 @@ Templates:
       B1mapNominalFAValues: <B1mapNominalFAValues>
 
 MRI:
-  Nifti_dump:
+  Nifti_SPM12:
     anat:
     - <<: *mri_anat
       suffix: T1w

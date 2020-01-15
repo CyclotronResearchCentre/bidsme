@@ -18,7 +18,7 @@ import tools.tools as tools
 import tools.plugins as plugins
 import tools.exceptions as exceptions
 
-from Modules.MRI.selector import select as MRI_select
+from Modules import select
 
 
 logger = logging.getLogger()
@@ -78,18 +78,13 @@ def sortsession(destination: str,
 
     recording.index = -1
     while recording.loadNextFile():
-        seriesnr = recording.get_rec_no()
-        if seriesnr is None:
-            seriesnr = 0
-        seriesdescr = recording.get_rec_id()
-
         serie = os.path.join(outfolder, 
-                "{}/{:03}-{}".format(recording.Module,
-                                     seriesnr, seriesdescr))
+                "{}/{}".format(recording.Module(),
+                               recording.recIdentity(index=False)))
         plugins.RunPlugin("FileEP", scan, serie, recording)
         if not os.path.isdir(serie):
             os.makedirs(serie)
-        recording.copy_file(serie)
+        recording.copyRawFile(serie)
 
 
 def sortsessions(source: str, destination:str,
@@ -148,7 +143,7 @@ def sortsessions(source: str, destination:str,
                                            scan["session"],
                                            path))
                     continue
-                cls = MRI_select(path, rec_t)
+                cls = select(path, rec_t)
                 if cls is None:
                     logger.warning("Unable to identify data in folder {}"
                                   .format(path))

@@ -14,13 +14,9 @@ for other institutes out of the box).
 
 import os.path
 import textwrap
-import copy
 import logging
-import sys
-from PyQt5.QtWidgets import QApplication, QMessageBox
 
-import bids
-from Modules.MRI import selector
+from Modules import selector
 import bidsmap
 from tools import info
 from tools import tools
@@ -71,7 +67,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     # template, _ = bids.load_bidsmap(templatefile, bidscodefolder)
     logger.info("loading template bidsmap {}".format(templatefile))
     template = bidsmap.bidsmap(templatefile)
-    
+
     logger.info("loading working bidsmap {}".format(bidsmapfile))
     bidsmap_new = bidsmap.bidsmap(bidsmapfile)
 
@@ -105,28 +101,32 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                         logger.warning("Failed to identify data in {}"
                                        .format(mod_dir))
                         continue
-                    t_name = cls.get_type()
+                    t_name = cls.Type()
                     recording = cls(rec_path=run)
+                    recording.setSubId()
+                    recording.setSesId()
                     recording.index = -1
                     while recording.loadNextFile():
-                        modality, r_index, r_obj = bidsmap_new.match_run(recording)
+                        modality, r_index, r_obj = \
+                                bidsmap_new.match_run(recording)
                         if not modality:
                             logger.warning("No run found in bidsmap. "
                                            "Looking into template")
-                            modality, r_index, r_obj = template.match_run(recording,
-                                                                          fix=True)
+                            modality, r_index, r_obj = \
+                                template.match_run(recording,
+                                                   fix=True)
                             if not modality:
                                 logger.error("{}: No compatible run found"
                                              .format(os.path.basename(run)))
                                 bidsmap_unk[module][t_name]\
-                                        .append({"provenance":recording.currentFile(),
-                                                 "attributes":recording.attributes})
+                                    .append({"provenance":recording.currentFile(),
+                                             "attributes":recording.attributes})
                                 continue
                             r_obj.template = True
                             modality, r_index, run = bidsmap_new.add_run(
                                     r_obj,
-                                    recording.Module,
-                                    recording.get_type()
+                                    recording.Module(),
+                                    recording.Type()
                                     )
 
     # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
@@ -152,20 +152,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
 
     logger.info('-------------- FINISHED! -------------------')
     for mod in bidsmap_new.Modules:
-        if not bidsmap_new.Modules[mod]:
-            continue
-        unchecked = 0
-        template = 0
-        total = 0
-
-        for f_name, form in bidsmap_new.Modules[mod].items():
-            for modality in form:
-                for r in form[modality]:
-                    total += 1
-                    if not r.checked:
-                        unchecked += 1
-                    if r.template:
-                        template += 1
+        total, template, unchecked = bidsmap_new.countRuns(mod)
         logger.info("{}: {} runs from template, {} runs unchecked out of {}"
                     .format(mod, template, unchecked, total))
 
@@ -195,17 +182,18 @@ if __name__ == "__main__":
                         'data and the bidsfolder/code/bidscoin/bidsmap.yaml '
                         'output file')
     parser.add_argument('-b','--bidsmap',
-                        help='The bidsmap YAML-file with the study heuristics. ' 
-                        'If the bidsmap filename is relative (i.e. no "/" in '
-                        'the name) then it is assumed to be located in '
-                        'bidsfolder/code/bidscoin. Default: bidsmap.yaml',
+                        help='The bidsmap YAML-file with the study '
+                        'heuristics. If the bidsmap filename is relative '
+                        '(i.e. no "/" in the name) then it is assumed to '
+                        'be located in bidsfolder/code/bidscoin. '
+                        'Default: bidsmap.yaml',
                         default='bidsmap.yaml')
     parser.add_argument('-t','--template',
                         help='The bidsmap template with the default '
-                        'heuristics (this could be provided by your institute).'
-                        'If the bidsmap filename is relative (i.e. no "/" '
-                        'in the name) then it is assumed to be located in '
-                        'bidscoin/heuristics/. '
+                        'heuristics (this could be provided by your '
+                        'institute). If the bidsmap filename is relative '
+                        '(i.e. no "/" in the name) then it is assumed '
+                        'to be located in bidscoin/heuristics/. '
                         'Default: bidsmap_template.yaml',
                         default='bidsmap_template.yaml')
     parser.add_argument('-v','--version',

@@ -1,11 +1,12 @@
 import os
+import sys
 import logging
 from copy import deepcopy as copy
 from tools.yaml import yaml
 from collections import OrderedDict
 
 from tools import info
-from Modules.MRI import selector
+import Modules
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class Run(object):
         self.json = OrderedDict(check_type("json", dict, json))
 
     def __bool__(self):
-        if self._suffix = "":
+        if self._suffix == "":
             return False
         return True
 
@@ -260,7 +261,7 @@ class bidsmap(object):
         self.plugin_options = dict()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
-                        for mod, types in selector.types_list.items()
+                        for mod, types in Modules.types_list.items()
                         }
 
         self.filename = os.path.basename(yamlfile)
@@ -272,7 +273,14 @@ class bidsmap(object):
 
         # Read the heuristics from the bidsmap file
         with open(yamlfile, 'r') as stream:
-            yaml_map = yaml.load(stream)
+            try: 
+                yaml_map = yaml.load(stream)
+            except  Exception as e:
+                err = sys.exc_info()
+                logger.error("Failed to load bidsmap from {}"
+                             .format(yamlfile))
+                logger.error("{}: {}".format(err[0], err[1]))
+                raise
 
         if 'version' in yaml_map['Options']:
             ver = yaml_map['Options']['version']
@@ -314,7 +322,7 @@ class bidsmap(object):
                     continue
                 # Over Modalities
                 for m_name, modality in form.items():
-                    if not selector.select_by_name(f_name, module)\
+                    if not Modules.selectByName(f_name, module)\
                             .isValidModality(m_name):
                         logger.warning("Modality {} not defined for {}/{}"
                                        .format(m_name, module, f_name))
@@ -325,7 +333,7 @@ class bidsmap(object):
                         if not run:
                             continue
                         try:
-                            if m_name == selector.ignoremodality:
+                            if m_name == Modules.ignoremodality:
                                 r = Run(modality=m_name,
                                         attribute=run["attributes"],
                                         entity=OrderedDict(),
@@ -360,12 +368,11 @@ class bidsmap(object):
         res_mod = None
         res_index = None
         res_run = None
-        d = self.Modules[recording.Module][recording.get_type()]
+        d = self.Modules[recording.Module()][recording.Type()]
         for modality, r_list in d.items():
             for idx, run in enumerate(r_list):
                 if recording.match_run(run):
-                    recording.set_labels(run)
-                    recording.set_main_attributes(run)
+                    recording.setLabels(run)
                     if check_multiple:
                         if res_mod is None:
                             res_mod = modality
@@ -376,7 +383,7 @@ class bidsmap(object):
                                 run.checked = False
                                 run.example = "{}/{}".format(
                                         modality,
-                                        recording.get_bidsname())
+                                        recording.getBidsname())
                             logger.debug("Checked run: {}/{}"
                                          .format(res_mod, res_index))
                         else:
@@ -386,9 +393,8 @@ class bidsmap(object):
                     else:
                         break
         if res_mod and res_mod != d[res_mod][res_index].modality:
-            logger.warning("Run {}/{}/{}/{} mismach modality {}"
-                           .format(recording.Module,
-                                   recording.get_type(),
+            logger.warning("Run {}/{}/{} mismach modality {}"
+                           .format(recording.formatIdentity(),
                                    res_mod,
                                    res_index,
                                    d[res_mod][res_index].modality))
@@ -396,7 +402,7 @@ class bidsmap(object):
             res_run = copy(res_run)
             for att, val in res_run.attribute.items():
                 if val:
-                    res_run.set_attribute(att, recording.get_field(att))
+                    res_run.set_attribute(att, recording.getField(att))
             res_run.provenance = recording.currentFile()
         return (res_mod, res_index, res_run)
 
@@ -438,3 +444,49 @@ class bidsmap(object):
                                                    for run in modality]
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
+
+    def countRuns(self, module=""):
+        """
+        returns tuple (run, template, unchecked) of
+        number of runs, template runs and unchecked 
+        runs respectively for given module (or all
+        if empty string)
+        
+        Parameters
+        ----------
+        module: str
+            name of module to count
+
+        Return
+        ------
+        (int, int, int)
+        """
+        unchecked = 0
+        template = 0
+        total = 0
+
+        if module:
+            if  module not in self.Modules:
+                return 0, 0, 0
+            for f_name, form in self.Modules[module].items():
+                for modality in form:
+                    for r in form[modality]:
+                        total += 1
+                        if not r.checked:
+                            unchecked += 1
+                        if r.template:
+                            template += 1
+        else:
+            for module in self.Modules:
+                for f_name, form in self.Modules[module].items():
+                    for modality in form:
+                        for r in form[modality]:
+                            total += 1
+                            if not r.checked:
+                                unchecked += 1
+                            if r.template:
+                                template += 1
+        return total, template, unchecked
+
+
+

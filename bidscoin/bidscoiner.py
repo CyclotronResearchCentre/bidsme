@@ -25,8 +25,8 @@ import tempfile
 from tools import tools
 from tools import plugins
 from tools import info
+import Modules
 import bidsmap as Bidsmap
-from Modules.MRI import selector
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
@@ -56,12 +56,12 @@ def coin(session: str, bidsmap: dict,
     # Process all the dicom run subfolders
     for module in tools.lsdirs(session):
         module = os.path.basename(module)
-        if module not in selector.types_list:
+        if module not in Modules.types_list:
             continue
 
         for runfolder in tools.lsdirs(session, module + "/*"):
             logger.info('Processing: {}'.format(runfolder))
-            cls = selector.select(runfolder, module)
+            cls = Modules.select(runfolder, module)
             if cls is None:
                 logger.warning("Unable to identify data in folder {}"
                                .format(runfolder))
@@ -69,8 +69,10 @@ def coin(session: str, bidsmap: dict,
             # Get a recording
             recording = cls(rec_path=runfolder)
             seq = os.path.basename(runfolder)
-            sub = recording.getSubId()
-            ses = recording.getSesId()
+            recording.setSubId()
+            recording.setSesId()
+            sub = recording.subId()
+            ses = recording.sesId()
             logger.debug("Subject: {}; Session: {}".format(sub, ses))
             bidsses = os.path.join(bidsfolder, sub, ses)
 
@@ -99,22 +101,22 @@ def coin(session: str, bidsmap: dict,
             while recording.loadNextFile():
                 modality, r_index, r_obj = bidsmap.match_run(recording)
                 if not modality:
-                    e = "{}/{}: No compatible run found"\
-                        .format(os.path.basename(seq), recording.index)
+                    e = "{}: No compatible run found"\
+                        .format(recording.recIdentity())
                     logger.error(e)
                     raise ValueError(e)
-                if modality == recording.ignoremodality:
-                    logger.info('{}/{}: ignored modality'
-                                .format(seq, recording.index))
+                if modality == Modules.ignoremodality:
+                    logger.info('{}: ignored modality'
+                                .format(recording.recIdentity()))
                     continue
-                recording.set_labels(r_obj)
+                recording.setLabels(r_obj)
                 recording.generateMeta()
 
                 # plugin entry point
                 plugins.RunPlugin("RecordingEP", recording)
-                bidsname = recording.get_bidsname()
+                bidsname = recording.getBidsname()
 
-                bidsmodality = os.path.join(bidsses, recording.modality)
+                bidsmodality = os.path.join(bidsses, recording.Modality())
                 os.makedirs(bidsmodality, exist_ok=True)
 
                 # Check if file already exists
@@ -124,13 +126,12 @@ def coin(session: str, bidsmap: dict,
                         .format(bidsmodality, bidsname)
                     logger.error(e)
                     raise FileExistsError(e)
-                recording.cp(bidsmodality)
+                recording.bidsify(bidsfolder)
 
                 recording.rec_BIDSvalues["filename"]\
-                    = os.path.join(recording.modality, bidsname) + ".nii"
+                    = os.path.join(recording.Modality(), bidsname) + ".nii"
                 recording.rec_BIDSvalues["acq_time"]\
-                    = recording.acq_time().replace(microsecond=0)
-
+                    = recording.acqTime().replace(microsecond=0)
 
                 scans_tsv = os.path.join(bidsses,
                                          '{}_{}_scans.tsv'
@@ -232,6 +233,15 @@ def bidscoiner(rawfolder: str, bidsfolder: str,
     if not bidsmap:
         logger.error('Bidsmap file {} not found.'
                      .format(bidsfolder))
+        return
+    ntotal, ntemplate, nunchecked = bidsmap.countRuns()
+    logger.debug("Map contains {} runs".format(ntotal))
+    if ntemplate != 0:
+        logger.warning("Map contains {} template runs"
+                       .format(ntemplate))
+    if nunchecked != 0:
+        logger.error("Map contains {} unchecked runs"
+                       .format(nunchecked))
         return
 
     # Load and initialize plugin

@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - `time` tag for json fields that converts ms to seconds
 
+### Changed
+- `Nifti_dump` becomes `Nifti_SPM12`
+- Most of module functions moved to `Module/base.py` and becomes a package
+- `ignoremodality` and `unknownmodality` are `Modules` global constants
+
+
 ## [dev2.0.1] - 2019-12-23
 
 ### Changed

@@ -10,7 +10,9 @@ from tools import tools
 from bidsMeta import MetaField
 from bidsMeta import BIDSfieldLibrary
 
-from ..bidsmap import Run
+from bidsmap import Run
+
+from ._constants import ignoremodality, unknownmodality
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +24,14 @@ class baseModule(object):
     __slots__ = [
                  # bids name values
                  "_modality",
-                 "Subject",
-                 "Session",
+                 "_subject",
+                 "_session",
                  "labels",
                  "suffix",
                  # recording attributes
                  "attributes",
-                 "main_attributes",
                  # local file variables
-                 "_index", 
+                 "index", 
                  "files",
                  "_recPath",
                  # json meta variables
@@ -41,12 +42,10 @@ class baseModule(object):
                  "sub_BIDSvalues"
                  ]
 
-    _Module = "base"
-    _Type = "None"
+    _module = "base"
+    _type = "None"
 
     bidsmodalities = dict()
-    ignoremodality = '__ignore__'
-    unknownmodality = '__unknown__'
 
     rec_BIDSfields = BIDSfieldLibrary()
     rec_BIDSfields.AddField(
@@ -89,15 +88,14 @@ class baseModule(object):
         self.attributes = dict()
         self.labels = OrderedDict()
         self.suffix = ""
-        self.modality = self.unknownmodality
-        self.Subject = None
-        self.Session = None
-        self.main_attributes = set()
+        self._modality = unknownmodality
+        self._subject = None
+        self._session = None
 
         self.metaFields = dict()
         self.metaAuxiliary = dict()
-        self.rec_BIDSvalues = dict()
-        self.sub_BIDSvalues = dict()
+        self.rec_BIDSvalues = self.rec_BIDSfields.GetTemplate()
+        self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
 
     #########################
     # Pure virtual methodes #
@@ -132,7 +130,8 @@ class baseModule(object):
     def _getField(self, field: list, prefix: str=""):
         """
         Virtual function that retrives the field value 
-        from recording metadata.
+        from recording metadata. field is garanteed to be 
+        non-empty
 
         Parameters
         ----------
@@ -157,20 +156,20 @@ class baseModule(object):
         """
         raise NotImplementedError
 
-    def getRecNo(self):
+    def recNo(self):
         """
         Virtual function returning current serie number 
         (i.e. numero of scan in session).
-        getRecNo together with getRecId must uniquely 
+        recNo together with recId must uniquely 
         identify serie within session
         """
         raise NotImplementedError
 
-    def getRecId(self):
+    def recId(self):
         """
         Virtual function returning current serie id
         (i.e. name of scan in session).
-        getRecNo together with getRecId must uniquely 
+        recNo together with recId must uniquely 
         identify serie within session
         """
         raise NotImplementedError
@@ -208,20 +207,40 @@ class baseModule(object):
         """
         pass
 
-    def copy_raw(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> None:
         """
         Virtual function to Copy raw (non-bidsified) file
         to destination. 
-        Destination is intended to be directory that should 
-        be created if needed.
+        Destination is an existing writable directory
 
         Parameters
         ----------
         destination: str
             output folder to copied files
         """
-        os.makedirs(destination, exist_ok=True)
         shutil.copy2(self.currentFile(), destination)
+
+    def _transformField(self, value, prefix: str):
+        """
+        Virtual function to apply custom, format 
+        depended transformation to retrieved meta data,
+        for ex. units conversion.
+        Value is garanteed to not be list or dictionary
+        or None
+
+        Parameters
+        ----------
+        value:
+            value to transform
+        prefix:
+            identification of transformation
+        """
+        if prefix != "":
+            logger.warning("{}/{}: Undefined field prefix {}"
+                           .format(self.Module(),
+                                   self.Type(),
+                                   prefix))
+        return value
 
     ##################
     # Class methodes #
@@ -255,18 +274,18 @@ class baseModule(object):
         return cls._isValidFile(file)
 
     @classmethod
-    def getModule(cls):
+    def Module(cls):
         """
         returns Module name of current class
         """
-        return cls._Module
+        return cls._module
 
     @classmethod
-    def getType(cls):
+    def Type(cls):
         """
         returns file type of current class
         """
-        return cls._Type
+        return cls._type
 
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
@@ -346,15 +365,30 @@ class baseModule(object):
                 else:
                     idx += 1
         logger.warning("{}/{}: Cant find a valid file at index {} in {}"
-                       .format(self.getModule(), self.getType(), 
+                       .format(self.Module(), self.Type(), 
                                index, folder))
         return None
 
     @classmethod
     def isValidModality(cls, modality: str,
-                        include_unknown: bool = True) -> bool:
+                        include_ignored: bool = True) -> bool:
+        """
+        Returns True if given modality is in in the list 
+        of declared modalities and False otherwise.
+
+        Parameters
+        ----------
+        modality: str
+            modality name to check
+        include_ignored: bool
+            switch to include or not the ignored modality
+
+        Returns
+        -------
+        bool
+        """
         passed = False
-        if include_unknown and modality == cls.ignoremodality:
+        if include_ignored and modality == ignoremodality:
             passed = True
         if modality in cls.bidsmodalities:
             passed = True
@@ -363,6 +397,12 @@ class baseModule(object):
     ##################
     # Acess methodes #
     ##################
+
+    def Modality(self):
+        """
+        Returns current modality
+        """
+        return self._modality
 
     def getField(self, field: str, default=None, prefix=':',separator='/'):
         """
@@ -392,14 +432,25 @@ class baseModule(object):
         else:
             prefix = ""
             field = field[0]
-        result = self._getField(field.split(separator), prefix)
+        result = self._getField(field.split(separator))
 
         if result is None:
             return default
+        if prefix != "":
+            if isinstance(result, list):
+                for i, val in enumerate(result):
+                    result[i] = self._transformField(val, prefix)
+            elif isinstance(result, dict):
+                for i, val in result.items():
+                    result[i] = self._transformField(val, prefix)
+            else:
+                result = self._transformField(result, prefix)
+        if isinstance(result, str):
+            result = result.strip()
         return result
 
     def getAttribute(self, attribute: str,
-                     default: None):
+                     default=None):
         """
         Returns attribute (field from metadata).
         The main difference between this and getField
@@ -426,11 +477,11 @@ class baseModule(object):
         -------
         retrieved value
         """
-        if attribute in self._attributes:
-            return self._attributes[attribute]
+        if attribute in self.attributes:
+            return self.attributes[attribute]
         else:
             res = self.getField(attribute, default)
-            self._attributes[attribute] = res
+            self.attributes[attribute] = res
             return res
 
     def getDynamicField(self, field: str,
@@ -460,12 +511,18 @@ class baseModule(object):
                 query = field[pos:pos2]
                 if seek == '>':
                     result = self.getAttribute(query)
+                    if result is None:
+                        logger.warning("{}: Can't find '{}' "
+                                       "attribute from '{}'"
+                                       .format(self.recIdentity(),
+                                               query, field))
+                        result = query
                 else:
                     prefix = ""
                     if ":" in query:
                         prefix, query = query.split(":",1)
                     if prefix == "":
-                        result = self.getCharacteristic(query)
+                        result = self._getCharacteristic(query)
                     elif prefix == "bids":
                         result = self.labels[query]
                     elif prefix == "sub_tsv":
@@ -474,62 +531,134 @@ class baseModule(object):
                         result = self.sub_BIDSvalues[query]
                     else:
                         raise KeyError("Unknown prefix {}".format(prefix))
-                if result is None:
-                    raise KeyError("Cant interpret {} at {} from {}"
-                                   .format(query, pos, field))
                 # if field is composed only of one entry
                 if raw and pos2 - pos + 2 * len(seek) == len(field):
                     return result
                 res += str(result)
                 start = pos2 + len(seek)
             except Exception as e:
-                logger.error("Malformed field '{}': {}".format(field, str(e)))
+                logger.error("{}: Malformed field "
+                             "'{}': {}"
+                             .format(self.recIdentity(), field, str(e)))
                 raise
         if cleanup:
             res = tools.cleanup_value(res)
         return res
 
-    def getSubId(self):
+    def subId(self):
         """
-        Returns the current recording subject Id. First it tries 
-        to get it from saved value, if none, get from current 
-        file path
+        Returns current recording subject Id
+        """
+        return self._subject
 
-        Returns
-        -------
-        str:
-            sub-<Id>
+    def setSubId(self, name=""):
         """
-        if not self.Subject:
-            subid = self.getIdFolder("sub-")
-        else: 
-            subid = self.getDynamicField(self.Subject,
+        Sets current recording subject Id
+
+        Parameters
+        ----------
+        name: str
+            if empty, subject id retrieved from
+            filename, if not empty, getDynamicField 
+            is used to determine Id
+        """
+        if name == "":
+            subid = self._getIdFolder("sub-")
+        else:
+            subid = self.getDynamicField(name,
                                          cleanup=False,
-                                         default="")
-        if subid == "":
-            return subid
-        return 'sub-' + tools.cleanup_value(re.sub('^sub-', '', subid))
+                                         raw=False,
+                                         default=None)
+        if subid is None:
+            logger.error("{}/{}: Unable to determine subject Id from {}"
+                         .format(self.recNo(), self.recId(),
+                                 name))
+            raise ValueError("Invalid subject Id")
+        self._subject = 'sub-' \
+            + tools.cleanup_value(re.sub('^sub-', '', subid))
 
-    def getSesId(self):
+    def sesId(self):
         """
-        Returns the current recording session Id. First it tries 
-        to get it from saved value, if none, get from current 
-        file path
+        Returns current recording session Id
+        """
+        return self._session
+
+    def setSesId(self, name=""):
+        """
+        Sets current recording session Id
+
+        Parameters
+        ----------
+        name: str
+            if empty, session id retrieved from
+            filename, if not empty, getDynamicField 
+            is used to determine Id
+        """
+        if name == "":
+            subid = self._getIdFolder("ses-")
+        else:
+            subid = self.getDynamicField(name,
+                                         cleanup=False,
+                                         raw=False,
+                                         default=None)
+        if subid is None:
+            logger.error("{}/{}: Unable to determine session Id from {}"
+                         .format(self.recNo(), self.recId(),
+                                 name))
+            raise ValueError("Invalid subject Id")
+        self._session = 'ses-' \
+            + tools.cleanup_value(re.sub('^ses-', '', subid))
+
+    def _getIdFolder(self, prefix: str):
+        if self._recPath == "":
+            logger.error("Recording path not defined")
+            return
+        # recording path means to be organized as
+        # ..../sub-xxx/[ses-yyy]/sequence/files
+        try:
+            subid = self._recPath.rsplit("/" + prefix, 1)[1]\
+                    .split(os.sep)[0]
+        except Exception:
+            raise ValueError("Failed to extract '{}' form {}"
+                             .format(prefix, self._recPath))
+        return subid
+
+    def recIdentity(self, padding: int=3, index=True):
+        """
+        Returns identification string for current recording
+        in form {recNo}-{recId}/{index}
+
+        Parameters
+        ----------
+        prec: int
+            how much of padding 0 to add to recNo
+        index: bool
+            switch to print or not file index
 
         Returns
         -------
-        str:
-            ses-<Id>
+        str
         """
-        if not self.Session:
-            subid = self.getIdFolder("ses-")
-        else: 
-            subid = self.getDynamicField(self.Session,
-                                         cleanup=False, 
-                                         default="")
-        if subid == "":
-            return subid
-        return 'ses-' + tools.cleanup_value(re.sub('^ses-', '', subid))
+        if index: 
+            return "{:0{width}}-{}/{}".format(self.recNo(),
+                                              self.recId(), 
+                                              self.index,
+                                              width=padding)
+        else:
+            return "{:0{width}}-{}".format(self.recNo(),
+                                           self.recId(), 
+                                           width=padding)
+
+    def formatIdentity(self):
+        """
+        Returns identification string for current type
+        in form {Module}/{Type}
+
+        Returns
+        -------
+        str
+        """
+        return "{}/{}".format(self.Module(), self.Type())
 
     def _getCharacteristic(self, field):
         """
@@ -549,13 +678,13 @@ class baseModule(object):
             - None: void value
         """
         if field == "subject":
-            return self.getSubId()
+            return self.subId()
         if field == "session":
-            return self.getSesId()
+            return self.sesId()
         if field == "serieNumber":
-            return self.get_rec_no()
+            return self.recNo()
         if field == "serie":
-            return self.get_rec_id()
+            return self.recId()
         if field == "index":
             return self.index + 1
         if field == "nfiles":
@@ -565,14 +694,12 @@ class baseModule(object):
         if field == "suffix":
             return self.suffix
         if field == "modality":
-            return self.modality
+            return self._modality
         if field == "module":
             return self.Module
         if field == "placeholder":
-            logger.warning("{}-{}: Placehoder found"
-                           .format(self.get_rec_no(),
-                                   self.get_rec_id())
-                           )
+            logger.warning("{}: Placehoder found"
+                           .format(self.recIdentity()))
             return "<<placeholder>>"
         if field == "None":
             return None
@@ -606,46 +733,46 @@ class baseModule(object):
                                      .format(folder))
         self._recPath = os.path.normpath(folder)
         self.clearCache()
-        self._files.clear()
-        self._index = -1
+        self.files.clear()
+        self.index = -1
 
         for file in sorted(os.listdir(self._recPath)):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}/{}: Ignoring hidden file: {}'
-                               .format(self.getModule(),
-                                       self.getType(),
+                               .format(self.Module(),
+                                       self.Type(),
                                        file))
                 continue
             full_path = os.path.join(self._recPath, file)
             if self.isValidFile(full_path):
-                self._files.append(file)
-        if len(self._files) == 0:
+                self.files.append(file)
+        if len(self.files) == 0:
             logger.warning("{}/{}: No valid files found in {}"
-                           .format(self.getModule(),
-                                   self.getType(),
+                           .format(self.Module(),
+                                   self.Type(),
                                    self._recPath
                                    ))
         else:
             self.loadFile(0)
             logger.debug("{}/{}: {} valid files found in {}"
-                         .format(self.getModule(),
-                                 self.getType(),
-                                 len(self._files),
+                         .format(self.Module(),
+                                 self.Type(),
+                                 len(self.files),
                                  self._recPath
                                  ))
-        return len(self._files)
+        return len(self.files)
 
     def loadNextFile(self) -> bool:
         """
         Loads next file in serie. 
         Returns True in sucess, False othrwise
         """
-        if self._index + 1 >= len(self.files):
+        if self.index + 1 >= len(self.files):
             return False
-        self.loadFile(self._index + 1)
+        self.loadFile(self.index + 1)
         return True
 
-    def getCurrentFile(self, base: bool=False) -> str:
+    def currentFile(self, base: bool=False) -> str:
         """
         Returns the path to currently loaded file
 
@@ -660,12 +787,18 @@ class baseModule(object):
         str:
             currently loaded filename
         """
-        if self._index >= 0 and self._index < len(self.files):
+        if self.index >= 0 and self.index < len(self.files):
             if base:
-                return self.files[self._index]
+                return self.files[self.index]
             else:
-                return os.path.join(self._recPath, self.files[self._index])
+                return os.path.join(self._recPath, self.files[self.index])
         return None
+
+    def recPath(self):
+        """
+        Returns current recording path
+        """
+        return self._recPath
 
     #########################
     # Bids-related methodes #
@@ -682,21 +815,21 @@ class baseModule(object):
         bidsfolder: str
             path to root of output bids folder
         """
-        if self.Subject is None\
-                or self.Session is None\
-                or self.Modality is None:
+        if self._subject is None\
+                or self._session is None\
+                or self._modality is None:
             raise ValueError("Recording missing defined subject, "
                              "session and/or modality")
         outdir = os.path.join(bidsfolder, 
-                              self.Subject,
-                              self.Session,
-                              self.Modality)
+                              self._subject,
+                              self._session,
+                              self._modality)
         ext = os.path.splitext(self.currentFile(False))[1]
-        basename = "{}/{}".format(bidsfolder,self.get_bidsname())
+        basename = "{}/{}".format(bidsfolder,self.getBidsname())
 
         logger.debug("Creating folder {}".format(outdir))
         os.makedirs(outdir, exist_ok=True)
-        logger.debug("Copying {} to {}".fomat(self.currentFile(),
+        logger.debug("Copying {} to {}".format(self.currentFile(),
                                               basename + ext))
         shutil.copy2(self.currentFile(),
                      basename + ext)
@@ -717,8 +850,8 @@ class baseModule(object):
         """
 
         self._suffix = ""
-        self._modality = self.unknownmodality
-        self._labels = OrderedDict()
+        self._modality = unknownmodality
+        self.labels = OrderedDict()
         if not run:
             return
 
@@ -728,10 +861,8 @@ class baseModule(object):
                 - set(run.entity)
             if tags:
                 if not run.checked:
-                    logger.warning("{}-{}/{}: Naming schema not BIDS"
-                                   .format(self.get_rec_no(),
-                                           self.get_rec_id(),
-                                           self.index))
+                    logger.warning("{}: Naming schema not BIDS"
+                                   .format(self.recIdentity()))
                 self.labels = OrderedDict.fromkeys(run.entity)
             else:
                 self.labels = OrderedDict.fromkeys(
@@ -740,7 +871,7 @@ class baseModule(object):
             for key in run.entity:
                 val = self.getDynamicField(run.entity[key])
                 self.labels[key] = val
-        elif run.modality == self.ignoremodality:
+        elif run.modality == ignoremodality:
             self._modality = run.modality
             return
         else:
@@ -776,13 +907,13 @@ class baseModule(object):
             bidsified name
         """
         tags_list = list()
-        subid = self.getSubId()
+        subid = self.subId()
         if subid:
             tags_list.append(subid)
-        sesid = self.getSesId()
+        sesid = self.sesId()
         if sesid:
             tags_list.append(sesid)
-        for key, val in self._labels.items():
+        for key, val in self.labels.items():
             if val:
                 tags_list.append(key + "-"
                                  + tools.cleanup_value(val))
@@ -796,12 +927,14 @@ class baseModule(object):
         Fills standard meta values. Must be called before exporting
         these meta-data into json
         """
-        if not self.modality:
+        if not self._modality:
+            logger.error("{}/{}: Modality not defined"
+                         .format(self.Module(), self.Type()))
             raise ValueError("Modality wasn't defined")
 
         for key, field in self.metaFields.items():
             if field is not None:
-                field.value = self.get_field(field.name, field.default)
+                field.value = self.getField(field.name, field.default)
 
     def exportMeta(self):
         """
@@ -826,7 +959,7 @@ class baseModule(object):
     #####################################
     # Recording identification methodes #
     #####################################
-    def match_attribute(self, attribute: str, pattern:str) -> bool:
+    def matchAttribute(self, attribute: str, pattern:str) -> bool:
         """
         Return True if given attribute value matches pattern,
         False overwise
@@ -867,12 +1000,12 @@ class baseModule(object):
         """
         if run is None:
             logger.debug("{}/{}: trying to match empty runs"
-                         .format(self.getModule(),
-                                 self.getType()))
+                         .format(self.Module(),
+                                 self.Type()))
             return False
         match_one = False
         match_all = True
-        for attrkey, attrvalue in run._attribute.items():
+        for attrkey, attrvalue in run.attribute.items():
             if not attrvalue:
                 continue
             res = self.matchAttribute(attrkey, attrvalue)
