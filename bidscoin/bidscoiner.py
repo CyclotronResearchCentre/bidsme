@@ -97,6 +97,8 @@ def coin(session: str, bidsmap: dict,
 
             recording.index = -1
             while recording.loadNextFile():
+                plugins.RunPlugin("RecordingEP", recording)
+
                 modality, r_index, r_obj = bidsmap.match_run(recording)
                 if not modality:
                     e = "{}: No compatible run found"\
@@ -111,7 +113,6 @@ def coin(session: str, bidsmap: dict,
                 recording.generateMeta()
 
                 # plugin entry point
-                plugins.RunPlugin("RecordingEP", recording)
                 bidsname = recording.getBidsname()
 
                 bidsmodality = os.path.join(bidsses, recording.Modality())

@@ -15,6 +15,34 @@ df_subjects = None
 # scale to convert ms in log-files to seconds
 time_scale = 1e-3
 
+Series = {
+        "LCL": ('localizer',
+                'cmrr_mbep2d_bold_mb2_invertpe', 
+                'cmrr_mbep2d_bold_mb2_task_nfat', 
+                'cmrr_mbep2d_bold_mb2_rest',
+                'gre_field_mapping',
+                't1_mpr_sag_p2_iso',
+                't2_spc_da-fl_sag_p2_iso'
+                ),
+        "HCL": ('localizer',
+                'cmrr_mbep2d_bold_mb2_invertpe',
+                'cmrr_mbep2d_bold_mb2_task_fat',
+                'cmrr_mbep2d_bold_mb2_rest',
+                'gre_field_mapping',
+                'cmrr_mbep2d_diff_NODDI_invertpe',
+                'cmrr_mbep2d_diff_NODDI',
+                'cmrr_mbep2d_diff_NODDI_noise'
+                ),
+        "STROOP": ('localizer',
+                   'al_mtflash3d_sensArray',
+                   'al_mtflash3d_sensBody',
+                   'al_mtflash3d_PDw',
+                   'al_mtflash3d_T1w',
+                   'al_mtflash3d_MTw',
+                   'al_B1mapping',
+                   'gre_field_mapping'
+                   )
+        }
 
 excel_col_list = {'Patient' : 'pat',
                   'S_A_E' : "pat_sae",
@@ -263,9 +291,22 @@ def SubjectEP(session):
 
 def SessionEP(session):
     session["session"] = session["scans"][session["session"]]
+    if session["session"] not in Series:
+        logger.error("Invalid session name '{}'"
+                     .format(session["session"]))
+        raise KeyError("invalid session {}".format(session["session"]))
 
 
 def RecordingEP(session, recording):
+    recid = recording.recId()
+    ses = session["session"]
+        
+    if recid not in Series[ses]:
+        logger.error("{}: Invalid serie {} for session {}"
+                     .format(recording.recIdentity(),
+                             recid, ses))
+        raise KeyError("Invalid serie {}".format(recid))
+
     if session["session"] == "STROOP":
         return 0
 

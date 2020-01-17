@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `time` tag for json fields that converts ms to seconds
 - `getBidsPrefix` which generates `sub-..._ses-...` part of name
 - Check for unchecked runs in map file
+- `SetAttribute` function to manually set recording attributes
 
 ### Changed
 - `Nifti_dump` becomes `Nifti_SPM12`

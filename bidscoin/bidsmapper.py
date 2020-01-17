@@ -16,11 +16,12 @@ import os.path
 import textwrap
 import logging
 
-from Modules import selector
+from .Modules import selector
 import bidsmap
-from tools import info
-from tools import tools
-from tools.yaml import yaml
+from .tools import info
+from .tools import tools
+from .tools.yaml import yaml
+from .tools import plugins
 
 
 logger = logging.getLogger()
@@ -76,6 +77,15 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                         for t in types}
                    for mod, types in selector.types_list.items()}
 
+    if bidsmap_new.plugin_file:
+        plugins.ImportPlugins(bidsmap_new.plugin_file)
+        bidsmap_new.plugin_options["rawfolder"] = rawfolder
+        bidsmap_new.plugin_options["bidsfolder"] = bidsfolder
+        bidsmap_new.plugin_options["train"] = True
+        plugins.InitPlugin(bidsmap_new.plugin_options)
+
+
+
     # Loop over all subjects and sessions and built up the bidsmap entries
     subjects = tools.lsdirs(rawfolder, 'sub-*')
     if not subjects:
@@ -107,6 +117,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                     recording.setSesId()
                     recording.index = -1
                     while recording.loadNextFile():
+                        plugins.RunPlugin("RecordingEP", recording)
                         modality, r_index, r_obj = \
                                 bidsmap_new.match_run(recording)
                         if not modality:

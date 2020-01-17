@@ -484,6 +484,12 @@ class baseModule(object):
             self.attributes[attribute] = res
             return res
 
+    def setAttribute(self, attribute: str, value):
+        self.attributes[attribute] = value
+
+    def resetAttribute(self, attribute):
+        self.attributes.pop(attribute)
+
     def getDynamicField(self, field: str,
                         cleanup: bool=True, raw: bool=False):
         if not field or not isinstance(field, str):
