@@ -1,5 +1,5 @@
 # List of personalized, plugin-related errors
-import tools.exceptions as Error
+from plugins import exceptions as Error
 
 # Will integrate plugin into logging
 import logging
@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 rawfolder = ""
 bidsfolder = ""
 dry_run = False
+
+"""
+Additional exceptions must derive from corresponding exception class
+with changing code between 1 and 9. Code 0 is reserved for generic
+function error.
+"""
+class SubjectMissingError(exceptions.SubjectEPError):
+    """
+    Raises if subject id isn't found
+    """
+    code = 1
 
 
 def InitEP(source: str, destination: str,
@@ -57,7 +68,7 @@ def InitEP(source: str, destination: str,
     Raises
     ------
     Error.InitEPerror
-        generic Initialisation error, code equivalent 100
+        code 110
     """
     global rawfolder
     global bidsfolder
@@ -96,15 +107,14 @@ def SubjectEP(scan: dict) -> int:
     Raises
     ------
     Error.SubjectEPerror
-        generic Initialisation error, code equivalent 110
+        code 120
     """
     return 0
 
 def SessionEP(scan: dict) -> int:
     """
     This function is called after entering directory of session
-    and meant to perform session-global actions, like parcing 
-    session logs.
+    and meant to adapt session name.
 
     The default (folder-defined) session name can be modified 
     by modifying 'session' field in the passed dictionary.
@@ -126,7 +136,7 @@ def SessionEP(scan: dict) -> int:
     Raises
     ------
     Error.SessionEPerror
-        generic Initialisation error, code equivalent 120
+        code 130
     """
     return 0
 
@@ -154,7 +164,7 @@ def SequenceEP(recording: object) -> int:
     Raises
     ------
     Error.SequenceEPerror
-        generic Initialisation error, code equivalent 130
+        code 140
     """
     return 0
 
@@ -180,18 +190,20 @@ def RecordingEP(recording: object) -> int:
     Raises
     ------
     Error.RecordingEPerror
-        generic Initialisation error, code equivalent 140
+        code 150
     """
     return 0
 
-def FileEP(recording: object) -> int:
+def FileEP(path: str, recording: object) -> int:
     """
     This function is called after copiyng an individual
     recording file to its destination, for example checking
-    its integrity.
+    its integrity or anonimize.
     
     Parameters
     ----------
+    path: str
+        path to copied file, garanteed to exist
     recording: Modules.base.baseModule
         A recording with loaded file
 
@@ -206,11 +218,11 @@ def FileEP(recording: object) -> int:
     Raises
     ------
     Error.FileEPerror
-        generic Initialisation error, code equivalent 140
+        code 160
     """
     return 0
 
-def SequenceEndEP(recording: object) -> int:
+def SequenceEndEP(path: str, recording: object) -> int:
     """
     This function is called after treating all files from
     given sequence(recording). The currntFile for recording
@@ -219,6 +231,8 @@ def SequenceEndEP(recording: object) -> int:
     
     Parameters
     ----------
+    path:
+        path to folder with series of copied files
     recording: Modules.base.baseModule
         A recording with loaded file
 
@@ -233,7 +247,15 @@ def SequenceEndEP(recording: object) -> int:
     Raises
     ------
     Error.SequenceEndEPerror
-        generic Initialisation error, code equivalent 140
+        code 170
+    """
+    return 0
+
+def SessionEnd(session):
+    """
+    This function is called after processing last recording 
+    of the session and meant to complete session by any 
+    additional information.
     """
     return 0
 
@@ -254,6 +276,6 @@ def FinaliseEP() -> int:
     Raises
     ------
     Error.SequenceEndEPerror
-        generic Initialisation error, code equivalent 140
+        code 180
     """
     return 0

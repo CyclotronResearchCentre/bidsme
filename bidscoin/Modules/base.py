@@ -207,7 +207,7 @@ class baseModule(object):
         """
         pass
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         """
         Virtual function to Copy raw (non-bidsified) file
         to destination. 
@@ -217,8 +217,14 @@ class baseModule(object):
         ----------
         destination: str
             output folder to copied files
+
+        Returns
+        -------
+        str:
+            path to copied file
         """
         shutil.copy2(self.currentFile(), destination)
+        return os.path.join(destination, self.currentFile(False))
 
     def _transformField(self, value, prefix: str):
         """
@@ -573,8 +579,8 @@ class baseModule(object):
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,
-                                         raw=False,
-                                         default=None)
+                                         raw=False
+                                         )
         if subid is None:
             logger.error("{}/{}: Unable to determine subject Id from {}"
                          .format(self.recNo(), self.recId(),
@@ -605,8 +611,8 @@ class baseModule(object):
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,
-                                         raw=False,
-                                         default=None)
+                                         raw=False
+                                         )
         if subid is None:
             logger.error("{}/{}: Unable to determine session Id from {}"
                          .format(self.recNo(), self.recId(),

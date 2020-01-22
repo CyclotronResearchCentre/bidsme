@@ -8,15 +8,16 @@ creates in destination directory participants.tsv with subject
 information from external source
 """
 import os
-import warnings
 import logging
+import time as tm
+import traceback
 
 import bids
 
 from tools import info
 import tools.tools as tools
-import tools.plugins as plugins
-import tools.exceptions as exceptions
+import plugins 
+import exceptions
 
 from Modules import select
 
@@ -26,42 +27,7 @@ logger.name = os.path.splitext(os.path.basename(__file__))[0]
 info.setup_logging(logger, "", 'INFO')
 
 
-class SubjectEPerror(exceptions.PluginError):
-    """
-    Raises if error occured in SubjectEP plugin
-    """
-    code = 110
-
-
-class SessionEPerror(exceptions.PluginError):
-    """
-    Raises if error occured in SubjectEP plugin
-    """
-    code = 120
-
-class RecordingEPerror(exceptions.PluginError):
-    """
-    Raises if error occured in RecordingEP plugin
-    """
-    code = 130
-
-class FileEPerror(exceptions.PluginError):
-    """
-    Raises if error occured in FileEP plugin
-    """
-    code = 140
-
-plugins.entry_points = {
-        "InitEP" : exceptions.PluginError,
-        "SubjectEP" : SubjectEPerror,
-        "SessionEP" : SessionEPerror,
-        "RecordingEP" : RecordingEPerror,
-        "FileEP" : FileEPerror
-        }
-
-
-def sortsession(destination: str, 
-                scan: dict,
+def sortsession(scan: dict,
                 recording: object) -> None: 
 
     logger.info("Processing: sub '{}', ses '{}' ({} files)"
@@ -69,29 +35,27 @@ def sortsession(destination: str,
                         scan["session"],
                         len(recording.files)))
 
-    outfolder = os.path.join(destination, 
-                             bids.add_prefix("sub-",scan["subject"]),
-                             bids.add_prefix("ses-",scan["session"]))
-
-    if not os.path.isdir(outfolder):
-        os.makedirs(outfolder)
+    outfolder = scan["out_path"]
 
     recording.index = -1
     while recording.loadNextFile():
-        serie = os.path.join(outfolder, 
+        plugins.RunPlugin("RecordingEP", recording)
+        serie = os.path.join(
+                outfolder, 
                 "{}/{}".format(recording.Module(),
                                recording.recIdentity(index=False)))
         if not os.path.isdir(serie):
             os.makedirs(serie)
-        recording.copyRawFile(serie)
-        plugins.RunPlugin("FileEP", scan, serie, recording)
-
+        outfile = recording.copyRawFile(serie)
+        plugins.RunPlugin("FileEP", outfile, recording)
+    plugins.RunPlugin("SequenceEndEP", outfolder, recording)
 
 def sortsessions(source: str, destination:str,
                  subjectid: str='', sessionid: str='',
                  recfolder: list=[''],
                  rectypes: list=[''],
                  sessions: bool=True,
+                 subjects: bool=True,
                  plugin_file: str="",
                  plugin_opt: dict={}) -> None:
 
@@ -99,16 +63,23 @@ def sortsessions(source: str, destination:str,
     source = os.path.realpath(source)
 
     plugins.ImportPlugins(plugin_file)
-    plugin_opt["source"] = source
-    plugin_opt["destination"] = destination
-    plugins.InitPlugin(plugin_opt)
+    plugins.InitPlugin(source=source, 
+                       destination=destination,
+                       dry=False,
+                       **plugin_opt)
 
-    scan = {"subject": "", "session": "", "path": ""}
+    scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
 
-    folders = tools.lsdirs(source, subjectid + '*')
+    if subjects:
+        folders = tools.lsdirs(source, subjectid + '*')
+    else:
+        folders = [source]
 
     for f in folders:
-        scan["subject"] = os.path.basename(f)[len(subjectid):]
+        if subjects:
+            scan["subject"] = os.path.basename(f)[len(subjectid):]
+        else:
+            scan["subject"] = ""
         plugins.RunPlugin("SubjectEP", scan)
 
         # get name of subject from folder name
@@ -118,21 +89,41 @@ def sortsessions(source: str, destination:str,
             sfolders = [f]
 
         for s in sfolders:
+            scan["in_path"] = s
             if sessions:
                 scan["session"] = os.path.basename(s)
             else:
-                scan["session"] = ''
+                scan["session"] = ""
             plugins.RunPlugin("SessionEP", scan)
+
+            if not scan["subject"].startswith("sub-"):
+                scan["subject"] = "sub-" + scan["subject"]
+            if not scan["session"].startswith("ses-"):
+                scan["session"] = "ses-" + scan["session"]
+
+            scan["out_path"] = os.path.join(destination, 
+                                            scan["subject"], 
+                                            scan["session"])
+            os.makedirs(scan["out_path"], exist_ok=True)
+            if scan["session"] == "ses-":
+                scan["session"] = ""
+
             logger.info("Scanning subject {}/{} in {}"
                         .format(scan["subject"],
                                 scan["session"], 
                                 s))
 
-            scan["path"] = os.path.join(destination, 
-                                        bids.add_prefix("sub-",
-                                                        scan["subject"]),
-                                        bids.add_prefix("ses-",
-                                                        scan["session"]))
+            if not recfolder:
+                recfolder = [""]
+                rectypes = [""]
+
+            if not rectypes:
+                rectypes = [""] * len(recfolder)
+
+            if len(recfolder) != len(rectypes):
+                logger.critical("Size of list of data folders mismach "
+                                "size of list of types")
+                raise IndexError("List of types size")
 
             for rec_f, rec_t in zip(recfolder, rectypes):
                 path = os.path.join(s, rec_f)
@@ -146,20 +137,22 @@ def sortsessions(source: str, destination:str,
                 cls = select(path, rec_t)
                 if cls is None:
                     logger.warning("Unable to identify data in folder {}"
-                                  .format(path))
+                                   .format(path))
                     continue
                 recording = cls(rec_path=path)
                 if not recording or len(recording.files) == 0:
                     logger.warning("unable to load data in folder {}"
-                                  .format(path))
+                                   .format(path))
+                recording.setSubId(scan["subject"])
+                recording.setSesId(scan["session"])
+                plugins.RunPlugin("SequenceEP", recording)
 
-                plugins.RunPlugin("RecordingEP", scan, recording)
-                sortsession(destination,
-                            scan, 
+                sortsession(scan, 
                             recording)
+            plugins.RunPlugin("SessionEndEP", scan)
 
+    plugins.RunPlugin("FinaliseEP")
 
-# Shell usage
 if __name__ == "__main__":
     # Parse the input arguments and run the sortsessions(args)
     import argparse
@@ -204,7 +197,10 @@ if __name__ == "__main__":
                         'with recfolder folders. Must have same dimentions.',
                         default='')
     parser.add_argument('--no-session',
-                        help='Dataset do not contains session',
+                        help='Dataset do not contains session folders',
+                        action='store_true')
+    parser.add_argument('--no-subject',
+                        help='Dataset do not contains subject folders',
                         action='store_true')
     parser.add_argument('-p', '--plugin',
                         help="Path to a plugin file",
@@ -221,12 +217,35 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    sortsessions(source=args.source,
-                 destination=args.destination,
-                 subjectid=args.subjectid,
-                 sessionid=args.sessionid,
-                 recfolder=args.recfolder.split(','),
-                 rectypes=args.rectype.split(','),
-                 sessions=not args.no_session,
-                 plugin_file=args.plugin,
-                 plugin_opt=args.plugin_opt)
+    code = 0
+    logger.info("")
+    logger.info('-------------- START coinsort --------------')
+    logger.info('bidscoin ver {}'.format(info.version()))
+    logger.info('bids ver {}'.format(info.bidsversion()))
+
+    try: 
+        sortsessions(source=args.source,
+                     destination=args.destination,
+                     subjectid=args.subjectid,
+                     sessionid=args.sessionid,
+                     recfolder=args.recfolder.split(','),
+                     rectypes=args.rectype.split(','),
+                     sessions=not args.no_session,
+                     subjects=not args.no_subject,
+                     plugin_file=args.plugin,
+                     plugin_opt=args.plugin_opt)
+    except Exception as err:
+        if isinstance(err, exceptions.CoinException):
+            code = err.base + err.code
+        exc_type, exc_value, exc_traceback = os.sys.exc_info()
+        tr = traceback.extract_tb(exc_traceback)
+        for l in tr:
+            logger.error("{}({}) in {}: "
+                         .format(l[0], l[1], l[2]))
+        logger.error("{}({}): {}".format(exc_type.__name__, code, exc_value))
+        logger.info("Command: {}".format(os.sys.argv))
+    logger.info('-------------- FINISHED! -------------------')
+    info.reporterrors(logger)
+    logger.info("Took {} seconds".format(tm.process_time()))
+    logger.info('--------------------------------------------')
+    os.sys.exit(code)
