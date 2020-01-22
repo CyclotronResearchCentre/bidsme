@@ -81,10 +81,10 @@ def sortsession(destination: str,
         serie = os.path.join(outfolder, 
                 "{}/{}".format(recording.Module(),
                                recording.recIdentity(index=False)))
-        plugins.RunPlugin("FileEP", scan, serie, recording)
         if not os.path.isdir(serie):
             os.makedirs(serie)
         recording.copyRawFile(serie)
+        plugins.RunPlugin("FileEP", scan, serie, recording)
 
 
 def sortsessions(source: str, destination:str,

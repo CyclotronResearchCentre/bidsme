@@ -298,15 +298,6 @@ def SessionEP(session):
 
 
 def RecordingEP(session, recording):
-    recid = recording.recId()
-    ses = session["session"]
-        
-    if recid not in Series[ses]:
-        logger.error("{}: Invalid serie {} for session {}"
-                     .format(recording.recIdentity(),
-                             recid, ses))
-        raise KeyError("Invalid serie {}".format(recid))
-
     if session["session"] == "STROOP":
         return 0
 
@@ -459,8 +450,14 @@ def RecordingEP(session, recording):
     return 0
 
 
-# def FileEP(session, path, recording):
-#     pass
+def FileEP(session, serie, recording):
+    recid = recording.recId()
+    ses = session["session"]
+        
+    if recid not in Series[ses]:
+        logger.error("{}: Invalid serie {} for session {}"
+                     .format(recording.recIdentity(),
+                             recid, ses))
 
 
 def parce_logline(line, split=None):

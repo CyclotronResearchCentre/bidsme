@@ -16,16 +16,25 @@ import os.path
 import textwrap
 import logging
 
-from .Modules import selector
+from Modules import selector
 import bidsmap
-from .tools import info
-from .tools import tools
-from .tools.yaml import yaml
-from .tools import plugins
+from tools import info
+import tools.tools as tools
+import tools.plugins as plugins
+import tools.exceptions as exceptions
+import tools.yaml as yaml
 
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
+plugins.entry_points = {
+        "InitEP" : exceptions.PluginError,
+        "SubjectEP" : exceptions.PluginError,
+        "SessionEP" : exceptions.PluginError,
+        "RecordingEP" : exceptions.PluginError,
+        "FileEP" : exceptions.PluginError,
+        }
+
 
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
@@ -78,7 +87,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                    for mod, types in selector.types_list.items()}
 
     if bidsmap_new.plugin_file:
-        plugins.ImportPlugins(bidsmap_new.plugin_file)
+        plugins.ImportPlugins(str(bidsmap_new.plugin_file))
         bidsmap_new.plugin_options["rawfolder"] = rawfolder
         bidsmap_new.plugin_options["bidsfolder"] = bidsfolder
         bidsmap_new.plugin_options["train"] = True
