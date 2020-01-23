@@ -24,26 +24,33 @@ def lsdirs(folder: str, wildcard: str='*'):
             if os.path.isdir(fname)]
 
 
-def cleanup_value(label):
+def cleanup_value(label, prefix=""):
     """
     Converts a given label to a cleaned-up label
     that can be used as a BIDS label. 
     Remove leading and trailing spaces;
-    convert other spaces, special BIDS characters and anything 
-    that is not an alphanumeric to a ''. This will for example 
-    map "Joe's reward_task" to "Joesrewardtask"
+    removes all non ASCII alphanumeric characters,
+    for example "Joe's reward_task" changes to "Joesrewardtask"
+
+    If prefix is specified, it will be added to final result.
+    If prefix is present in initial field, it is removed, for ex:
+    "task-Joe's reward_task" changes to "task-Joesrewardtask"
+    if prefix is "task-"
 
     :param label:   The given label
+    :param prefix:  Specified prefix
     :return:        The cleaned-up / BIDS-valid labe
     """
 
     if label is None:
         return label
-    special_characters = (' ', '_', '-','.')
-    for special in special_characters:
-        label = str(label).strip().replace(special, '')
+    label = label.strip()
+    if prefix and label.startswith(prefix):
+        label = label[len(prefix):]
+    if label == "":
+        return label
+    return prefix + re.sub(r'[^a-zA-Z0-9]', '', label, re.ASCII)
 
-    return re.sub(r'(?u)[^-\w.]', '', label)
 
 def match_value(val, regexp, force_str=False):
     if force_str:
@@ -84,3 +91,33 @@ def change_ext(filename, new_ext):
     if pos > 0 :
         filename = filename[:pos]
     return filename + "." + new_ext
+
+
+def check_type(name: str, cls: type, val: object) -> object:
+    """
+    Checks if passed value is of type.
+
+    Parameters:
+    -----------
+    name: str
+        name of variable
+    cls: type
+        type to test
+    val: object
+        object to test
+
+    Returns:
+    --------
+    object
+        Succesfully tested object
+
+    Raises:
+    -------
+    TypeError:
+        if test is unsuccesful
+    """
+    if isinstance(val, cls):
+        return val
+    else:
+        raise TypeError("{}: {} expected, {} recieved"
+                        .format(name, cls, type(val)))

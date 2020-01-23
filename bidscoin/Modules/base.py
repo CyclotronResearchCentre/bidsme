@@ -182,6 +182,20 @@ class baseModule(object):
         """
         raise NotImplementedError
 
+    def _getSubId(self) -> str:
+        """
+        Virtual function
+        Returns subject id as defined in metadata
+        """
+        raise NotImplementedError
+
+    def _getSesId(self) -> str:
+        """
+        Virtual function
+        Returns session id as defined in metadata
+        """
+        raise NotImplementedError
+
     #############################
     # Optional virtual methodes #
     #############################
@@ -574,8 +588,8 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == "":
-            subid = self._getIdFolder("sub-")
+        if name == "" or name == "sub-":
+            subid = self._getSubId()
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,
@@ -586,8 +600,7 @@ class baseModule(object):
                          .format(self.recNo(), self.recId(),
                                  name))
             raise ValueError("Invalid subject Id")
-        self._subject = 'sub-' \
-            + tools.cleanup_value(re.sub('^sub-', '', subid))
+        self._subject = tools.cleanup_value(subid, 'sub-')
 
     def sesId(self):
         """
@@ -606,8 +619,8 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == "":
-            subid = self._getIdFolder("ses-")
+        if name == "" or name == "ses-":
+            subid = self._getSesId()
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,
@@ -617,23 +630,8 @@ class baseModule(object):
             logger.error("{}/{}: Unable to determine session Id from {}"
                          .format(self.recNo(), self.recId(),
                                  name))
-            raise ValueError("Invalid subject Id")
-        self._session = 'ses-' \
-            + tools.cleanup_value(re.sub('^ses-', '', subid))
-
-    def _getIdFolder(self, prefix: str):
-        if self._recPath == "":
-            logger.error("Recording path not defined")
-            return
-        # recording path means to be organized as
-        # ..../sub-xxx/[ses-yyy]/sequence/files
-        try:
-            subid = self._recPath.rsplit("/" + prefix, 1)[1]\
-                    .split(os.sep)[0]
-        except Exception:
-            raise ValueError("Failed to extract '{}' form {}"
-                             .format(prefix, self._recPath))
-        return subid
+            raise ValueError("Invalid sessiom Id")
+        self._session = tools.cleanup_value(subid, "ses-")
 
     def recIdentity(self, padding: int=3, index=True):
         """
@@ -978,8 +976,7 @@ class baseModule(object):
         tags_list = [self.getBidsPrefix()]
         for key, val in self.labels.items():
             if val:
-                tags_list.append(key + "-"
-                                 + tools.cleanup_value(val))
+                tags_list.append(tools.cleanup_value(val, key + "-"))
 
         if self.suffix:
             tags_list.append(tools.cleanup_value(self.suffix))

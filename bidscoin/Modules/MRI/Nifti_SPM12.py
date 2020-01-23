@@ -216,9 +216,20 @@ class Nifti_SPM12(MRI):
         self._DICOMFILE_CACHE = ""
 
     def copyRawFile(self, destination: str) -> None:
+        if os.path.isfile(os.path.join(destination,
+                                       self.currentFile(True))):
+            logger.warning("{}: File {} exists at destination"
+                           .format(self.recIdentity(),
+                                   self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
         shutil.copy2(tools.change_ext(self.currentFile(),"json"),
                      destination)
+
+    def _getSubId(self) -> str:
+        return str(self.getField("PatientID"))
+
+    def _getSesId(self) -> str:
+        return ""
 
     ########################
     # Additional fonctions #

@@ -5,256 +5,26 @@ from copy import deepcopy as copy
 from tools.yaml import yaml
 from collections import OrderedDict
 
+from ._run import Run
 from tools import info
 import Modules
 
 logger = logging.getLogger(__name__)
 
 
-def check_type(name, cls, val):
-    if isinstance(val, cls):
-        return val
-    else:
-        raise TypeError("{}: {} expected, {} recieved"
-                        .format(name, str(cls), str(type(val))))
-
-
-class Run(object):
-    __slots__ = [
-            "_modality",     # modality associeted with this run
-            "attribute",     # dictionary of attr:regexp
-            "entity",        # dictionary for run entities
-            "json",          # dictionary for json fields
-            "_suffix",       # suffix associated with run
-            "_bk_modality",  # copy of self old values
-            "_bk_attribute",
-            "_bk_entity",
-            "_bk_suffix",
-            "_bk_json",
-            "provenance",    # file from which run is modelled
-            "example",       # bids name from provenance file
-            "writable",
-            "checked",       # switch if run was confirmed by user
-            "template"       # switch if run was extracted from template
-            ]
-
-    def __init__(self, *,
-                 modality: str = "",
-                 attribute: OrderedDict = {},
-                 entity: dict = {},
-                 json: OrderedDict = {},
-                 suffix: str = "",
-                 provenance: str = None,
-                 example: str = None
-                 ):
-        self._bk_modality = None
-        self._bk_attribute = dict()
-        self._bk_entity = dict()
-        self._bk_suffix = None
-        self._bk_json = dict()
-        self.writable = True
-        self.template = False
-        self.checked = False
-        self.example = example
-
-        self.provenance = provenance
-        self._modality = check_type("modality", str, modality)
-        self._suffix = check_type("suffix", str, suffix)
-        self.attribute = dict(check_type("attribute", dict, attribute))
-        self.entity = OrderedDict(check_type("entity", dict, entity))
-        self.json = OrderedDict(check_type("json", dict, json))
-
-    def __bool__(self):
-        if self._suffix == "":
-            return False
-        return True
-
-    @property
-    def modality(self):
-        return self._modality
-
-    @modality.setter
-    def modality(self, value):
-        if self._bk_modality is None:
-            self._bk_modality = self._modality
-        self.modality = value
-
-    def restore_modality(self):
-        if self._bk_modality is not None:
-            self._modality = self._bk_modality
-            self._bk_modality = None
-
-    @property
-    def suffix(self):
-        return self._suffix
-
-    @suffix.setter
-    def suffix(self, value):
-        if self._bk_suffix is None:
-            self._bk_suffix = self._suffix
-        self.suffix = value
-
-    def restore_suffix(self):
-        if self._bk_suffix is not None:
-            self._suffix = self._bk_suffix
-            self._bk_suffix = None
-
-    def set_attribute(self, attr, val):
-        # val = check_type("val", str, val)
-        if isinstance(val, str):
-            val = val.encode('unicode_escape').decode()
-        attr = check_type("attr", str, attr)
-
-        if attr in self.attribute:
-            if self.attribute[attr] == val:
-                return
-
-            if attr not in self._bk_attribute:
-                self._bk_attribute[attr] = self.attribute[attr]
-
-            if val:
-                self.attribute[attr] = val
-            else:
-                self.attribute.remove(attr)
-            return
-
-        else:
-            if val == "":
-                return
-            self.attribute[attr] = val
-            if attr not in self._bk_attribute:
-                self._bk_attribute[attr] = None
-
-    def set_entity(self, ent, val):
-        val = check_type("val", str, val)
-        attr = check_type("ent", str, ent)
-
-        if attr in self.entity:
-            if self.entity[attr] == val:
-                return
-
-            if attr not in self._bk_entity:
-                self._bk_entity[attr] = self.entity[attr]
-
-            if val:
-                self.entity[attr] = val
-            else:
-                self.entity.remove(attr)
-            return
-
-        else:
-            if val == "":
-                return
-            self.entity[attr] = val
-            if attr not in self._bk_entity:
-                self._bk_entity[attr] = None
-
-    def set_json_field(self, field, val):
-        if isinstance(val, str):
-            val = val.encode('unicode_escape').decode()
-        attr = check_type("field", str, field)
-
-        if attr in self.json:
-            if self.json[attr] == val:
-                return
-
-            if attr not in self._bk_json:
-                self._bk_json[attr] = self.json[attr]
-
-            if val:
-                self.json[attr] = val
-            else:
-                self.json.remove(attr)
-            return
-
-        else:
-            if val == "":
-                return
-            self.json[attr] = val
-            if attr not in self._bk_json:
-                self._bk_json[attr] = None
-
-    def restore_attribute(self, attr):
-        self.__restore_val(attr,
-                           self.attribute,
-                           self._bk_attribute)
-
-    def restore_attributes(self):
-        for attr in self.attribute:
-            self.__restore_val(attr,
-                               self.attribute,
-                               self._bk_attribute)
-
-    def restore_entity(self, attr):
-        self.__restore_val(attr,
-                           self.entity,
-                           self._bk_entity)
-
-    def restore_entities(self):
-        for attr in self.entity:
-            self.__restore_val(attr,
-                               self.entity,
-                               self._bk_entity)
-
-    def restore_json_field(self, attr):
-        self.__restore_val(attr,
-                           self.json,
-                           self._bk_json)
-
-    def restore_json(self):
-        for attr in self.json:
-            self.__restore_val(attr,
-                               self.json,
-                               self._bk_json)
-
-    def restore(self):
-        self.restore_modality()
-        self.restore_suffix()
-        self.restore_attributes()
-        self.restore_entities()
-        self.restore_json()
-
-    def save(self):
-        self._bk_modality = None
-        self._bk_attribute = dict()
-        self._bk_entity = dict()
-        self._bk_json = dict()
-        self._bk_suffix = None
-
-    def __restore_val(self, attr, dest, source):
-        if attr not in source:
-            return
-        if source[attr] is None:
-            if attr in dest:
-                dest.remove(attr)
-            return
-        dest[attr] = source.pop(attr)
-
-    def dump(self, empty_attributes=True):
-        d = dict()
-        d["provenance"] = self.provenance
-        if self.example:
-            d["example"] = self.example
-        if self.template:
-            d["template"] = self.template
-        d["checked"] = self.checked
-        d["suffix"] = self.suffix
-        d["attributes"] = {k: v for k, v in self.attribute.items()
-                           if empty_attributes or v
-                           }
-        d["bids"] = self.entity
-        d["json"] = self.json
-
-        return d
-
-
-class bidsmap(object):
+class Bidsmap(object):
     __slots__ = ["Modules",
                  "filename",
                  "version", "bidsignore",
                  "plugin_file", "plugin_options"]
 
     def __init__(self, yamlfile='bidsmap.yaml'):
+        """
+        Parameters:
+        -----------
+        yamlfile: str
+            YAML file to load
+        """
         self.version = info.version()
         self.bidsignore = list()
         self.plugin_file = ""
@@ -275,7 +45,7 @@ class bidsmap(object):
         with open(yamlfile, 'r') as stream:
             try: 
                 yaml_map = yaml.load(stream)
-            except  Exception as e:
+            except Exception as e:
                 err = sys.exc_info()
                 logger.error("Failed to load bidsmap from {}"
                              .format(yamlfile))
@@ -364,7 +134,27 @@ class bidsmap(object):
                             continue
                         self.Modules[module][f_name][m_name][ind] = r
 
-    def match_run(self, recording, check_multiple=True, fix=False):
+    def match_run(self, recording: Modules.baseModule, 
+                  check_multiple: bool=True, fix: bool=False) -> tuple:
+        """
+        Matches run for given recording
+
+        Parameters:
+        -----------
+        recording: Module.baseModule
+            recording to match
+        check_multiple: bool
+            if True, proceeds over all runs and print warning if more
+            than on run matches
+        fix: bool
+            if True, matched run attriburtes are fixed after the succesful 
+            match
+
+        Returns
+        -------
+        tuple
+            (modality, run index, run)
+        """
         res_mod = None
         res_index = None
         res_run = None
@@ -406,7 +196,26 @@ class bidsmap(object):
             res_run.provenance = recording.currentFile()
         return (res_mod, res_index, res_run)
 
-    def add_run(self, run, module, form):
+    def add_run(self, run: Run, module: str, form: str) -> tuple:
+        """
+        Add new run to list for given module and format.
+        Added run is copied and behaves as independent 
+        object
+
+        Parameters:
+        -----------
+        run: Run
+            run to add
+        module: str
+            name of module to which run will be added
+        form: str
+            name of format to wich run will be added
+
+        Returns:
+        --------
+        tuple
+            (modality, run index, run)
+        """
         run = copy(run)
         run.save()
         if run.modality in self.Modules[module][form]:
@@ -417,7 +226,21 @@ class bidsmap(object):
                 len(self.Modules[module][form][run.modality]) - 1,
                 run)
 
-    def save(self, filename, empty_modules=False, empty_attributes=True):
+    def save(self, filename: str, 
+             empty_modules: bool=False, 
+             empty_attributes: bool=True) -> None:
+        """
+        Writes map to YAML file
+
+        Parameters:
+        -----------
+        filename: str
+            name of file to be written
+        empty_modules: bool
+            if True, Modules with no runs will be saved
+        empty_attributes: bool
+            if True, Attributes with no values will be saved
+        """
         logger.info("Writing bidsmap to: {}".format(filename))
         # TODO: use ruamel dump class ability
         # building dictionary
@@ -445,28 +268,29 @@ class bidsmap(object):
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
 
-    def countRuns(self, module=""):
+    def countRuns(self, module: str="") -> tuple:
         """
         returns tuple (run, template, unchecked) of
         number of runs, template runs and unchecked 
         runs respectively for given module (or all
         if empty string)
-        
-        Parameters
-        ----------
+
+        Parameters:
+        -----------
         module: str
             name of module to count
 
-        Return
-        ------
-        (int, int, int)
+        Returns:
+        --------
+        tuple
+            (total runs, template runs, unchecked runs)
         """
         unchecked = 0
         template = 0
         total = 0
 
         if module:
-            if  module not in self.Modules:
+            if module not in self.Modules:
                 return 0, 0, 0
             for f_name, form in self.Modules[module].items():
                 for modality in form:
@@ -487,6 +311,3 @@ class bidsmap(object):
                             if r.template:
                                 template += 1
         return total, template, unchecked
-
-
-

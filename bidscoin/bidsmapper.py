@@ -12,29 +12,25 @@ the Donders Institute can serve as an example (or may even mostly work
 for other institutes out of the box).
 """
 
-import os.path
-import textwrap
+import os
 import logging
+import time
+import traceback
+import textwrap
+import argparse
 
-from Modules import selector
-import bidsmap
 from tools import info
 import tools.tools as tools
-import tools.plugins as plugins
-import tools.exceptions as exceptions
 import tools.yaml as yaml
+import bidsmap
+import plugins
+import exceptions
 
+from Modules import select
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
-plugins.entry_points = {
-        "InitEP" : exceptions.PluginError,
-        "SubjectEP" : exceptions.PluginError,
-        "SessionEP" : exceptions.PluginError,
-        "RecordingEP" : exceptions.PluginError,
-        "FileEP" : exceptions.PluginError,
-        }
-
+info.setup_logging(logger, "", 'INFO')
 
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
@@ -61,13 +57,6 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     bidscodefolder = os.path.join(bidsfolder,'code','bidscoin')
     bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
 
-    # Start logging
-    info.setup_logging(logger, bidscodefolder, 'INFO')
-    logger.info('')
-    logger.info('-------------- START BIDSmapper ------------')
-    logger.info('bidscoin ver {}'.format(info.version()))
-    logger.info('bids ver {}'.format(info.bidsversion()))
-
     # removing old unknown files
     if os.path.isfile(bidsunknown):
         os.remove(bidsunknown)
@@ -76,10 +65,10 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     # bidsmap_old, _ = bids.load_bidsmap(bidsmapfile, bidscodefolder)
     # template, _ = bids.load_bidsmap(templatefile, bidscodefolder)
     logger.info("loading template bidsmap {}".format(templatefile))
-    template = bidsmap.bidsmap(templatefile)
+    template = bidsmap.Bidsmap(templatefile)
 
     logger.info("loading working bidsmap {}".format(bidsmapfile))
-    bidsmap_new = bidsmap.bidsmap(bidsmapfile)
+    bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
     logger.info("creating bidsmap for unknown modalities")
     bidsmap_unk = {mod:{t.__name__:list() 
@@ -183,9 +172,19 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
 
 # Shell usage
 if __name__ == "__main__":
-
     # Parse the input arguments and run bidsmapper(args)
-    import argparse
+    class appPluginOpt(argparse.Action):
+        def __call__(self, parser, args, values, option_string=None):
+            if getattr(args, self.dest) is None:
+                setattr(args, self.dest, dict())
+            for v in values:
+                key, value = v.split("=", maxsplit=1)
+                getattr(args, self.dest)[key] = value
+
+    class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
+                          argparse.RawDescriptionHelpFormatter):
+        pass
+
     parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description=textwrap.dedent(__doc__),
@@ -221,7 +220,26 @@ if __name__ == "__main__":
                         action='version', 
                         version='BIDS-version:\t\t{}\nBIDScoin-version:\t{}'
                         .format(info.bidsversion(), info.version()))
+    parser.add_argument('-o',
+                        metavar="OptName=OptValue",
+                        dest="plugin_opt",
+                        help="Options passed to plugin in form "
+                        "-o OptName=OptValue, several options can be passed",
+                        action=appPluginOpt,
+                        default={},
+                        nargs="+"
+                        )
     args = parser.parse_args()
+
+    # checking paths
+    if not os.path.isdir(args.sourcefolder):
+        logger.critical("Source directory {} don't exists"
+                        .format(args.sourcefolder))
+        raise NotADirectoryError(args.sourcefolder)
+    if not os.path.isdir(args.bidsfolder):
+        logger.critical("Bids directory {} don't exists"
+                        .format(args.bidsfolder))
+        raise NotADirectoryError(args.bidsfolder)
 
     if os.path.dirname(args.bidsmap) == "":
         args.bidsmap = os.path.join(args.bidsfolder, 
@@ -231,7 +249,39 @@ if __name__ == "__main__":
         args.template = os.path.join(os.path.dirname(__file__),
                                      "../heuristics",
                                      args.template)
-    bidsmapper(rawfolder=args.sourcefolder,
-               bidsfolder=args.bidsfolder,
-               bidsmapfile=args.bidsmap,
-               templatefile=args.template)
+    info.addFileLogger(logger, os.path.join(os.path.join(args.bidsfolder,
+                                                         "code/bidscoin",
+                                                         "log")))
+
+    code = 0
+    # Start logging
+    logger.info('')
+    logger.info('-------------- START BIDSmapper ------------')
+    logger.info('bidscoin ver {}'.format(info.version()))
+    logger.info('bids ver {}'.format(info.bidsversion()))
+
+    try:
+        bidsmapper(rawfolder=args.sourcefolder,
+                   bidsfolder=args.bidsfolder,
+                   bidsmapfile=args.bidsmap,
+                   templatefile=args.template)
+    except Exception as err:
+        if isinstance(err, exceptions.CoinException):
+            code = err.base + err.code
+        else:
+            code = 1
+        exc_type, exc_value, exc_traceback = os.sys.exc_info()
+        tr = traceback.extract_tb(exc_traceback)
+        for l in tr:
+            logger.error("{}({}) in {}: "
+                         .format(l[0], l[1], l[2]))
+        logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
+        logger.info("Command: {}".format(os.sys.argv))
+    logger.info('-------------- FINISHED! -------------------')
+    errors = info.reporterrors(logger)
+    logger.info("Took {} seconds".format(time.process_time()))
+    logger.info('--------------------------------------------')
+    if code == 0 and errors > 0:
+        logger.warning("Several errors detected but exit code is 0")
+        code = 1
+    os.sys.exit(code)

@@ -2,16 +2,22 @@ import os
 import logging
 import coloredlogs
 
+fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
+datefmt = '%Y-%m-%d %H:%M:%S'
+formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+
+
 class CallCounted:
     """Decorator to determine number of calls for a method"""
 
     def __init__(self,method):
-        self.method=method
-        self.counter=0
+        self.method = method
+        self.counter = 0
 
     def __call__(self,*args,**kwargs):
-        self.counter+=1
+        self.counter += 1
         return self.method(*args,**kwargs)
+
 
 class MsgCounterHandler(logging.Handler):
     level2count = None
@@ -21,10 +27,10 @@ class MsgCounterHandler(logging.Handler):
         self.level2count = {}
 
     def emit(self, record):
-        l = record.levelname
-        if (l not in self.level2count):
-            self.level2count[l] = 0
-        self.level2count[l] += 1
+        lvl = record.levelname
+        if (lvl not in self.level2count):
+            self.level2count[lvl] = 0
+        self.level2count[lvl] += 1
 
 
 def bidsversion() -> str:
@@ -69,9 +75,6 @@ def setup_logging(logger: logging.Logger,
      """
 
     # Set the format and logging level
-    fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
-    datefmt = '%Y-%m-%d %H:%M:%S'
-    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
     logger.setLevel(level)
 
     counthandler = MsgCounterHandler()
@@ -80,36 +83,42 @@ def setup_logging(logger: logging.Logger,
 
     logger.addHandler(counthandler)
 
-    # Create the log dir if it does not exist
-    if log_dir != "":
-        os.makedirs(log_dir, exist_ok=True)
-
-        log_file = os.path.join(log_dir, logger.name + '.log')
-        error_file = os.path.join(log_dir, logger.name + '.err')
-
-        # Set & add the log filehandler
-        loghandler = logging.FileHandler(log_file, mode="w")
-        loghandler.setLevel(level)
-        loghandler.setFormatter(formatter)
-        loghandler.set_name('loghandler')
-        logger.addHandler(loghandler)
-
-        # Set & add the error / warnings handler
-        errorhandler = logging.FileHandler(error_file, mode='w')
-        errorhandler.setLevel(logging.WARNING)
-        errorhandler.setFormatter(formatter)
-        errorhandler.set_name('errorhandler')
-        logger.addHandler(errorhandler)
+    if log_dir:
+        addFileLogger(logger, log_dir)
 
     # Set & add the streamhandler and 
     # add some color to those boring terminal logs! :-)
     coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
 
 
+def addFileLogger(logger, log_dir):
+    os.makedirs(log_dir, exist_ok=True)
+
+    log_file = os.path.join(log_dir, logger.name + '.log')
+    error_file = os.path.join(log_dir, logger.name + '.err')
+
+    # Set & add the log filehandler
+    loghandler = logging.FileHandler(log_file, mode="w")
+    loghandler.setLevel(logger.level)
+    loghandler.setFormatter(formatter)
+    loghandler.set_name('loghandler')
+    logger.addHandler(loghandler)
+
+    # Set & add the error / warnings handler
+    errorhandler = logging.FileHandler(error_file, mode='w')
+    errorhandler.setLevel(logging.WARNING)
+    errorhandler.setFormatter(formatter)
+    errorhandler.set_name('errorhandler')
+    logger.addHandler(errorhandler)
+
+
 def reporterrors(logger):
+    errors = 0
     for handler in logger.handlers:
         if isinstance(handler,MsgCounterHandler):
             logger.info("{}:{}"
                         .format(handler.name, handler.level2count))
+            errors = handler.level2count.get('ERROR', 0)
         if isinstance(handler, logging.FileHandler):
             logger.info("{}:{}".format(handler.name, handler.baseFilename))
+    return errors

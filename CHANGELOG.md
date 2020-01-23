@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `getBidsPrefix` which generates `sub-..._ses-...` part of name
 - Check for unchecked runs in map file
 - `SetAttribute` function to manually set recording attributes
+- Warning on duplicated file in `MRI/Nifti_SPM12.py:copyRawFile`
 
 ### Changed
 - `Nifti_dump` becomes `Nifti_SPM12`
@@ -15,8 +16,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - `ignoremodality` and `unknownmodality` are `Modules` global constants
 - Set variable time scaling in `time` prefix for `Nifti_SPM12` 
 - Moved tsv and json creation to `bidsify` function
+- Simplified `tools.cleanup_value`, it removes all non ASCII alphanumeric
+and add prefix, if specified
+- `setSubId` and `setSesId` retrieves by default values from metadata and 
+no more forom file path
+- Moved Bidsmap into its own module, separated Bidsmap and Run into 2 files
+- `cleanup_value` now removes etherithing not ASCII alphanumerical
+and can add a prefix
+- Moved `check_type` to tools
 
+### Removed
+- subId and sesId retrieval from folder path
 
+### Fixed
+- Plugins now can import local files, their directory is added to pythonpath
 
 
 ## [dev2.0.1] - 2019-12-23

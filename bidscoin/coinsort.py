@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """
-Sorts and renames NII files into local sub-direcories
-/sub-xxx/[ses-xxx/]zzz[-seriename]/file.nii
-/sub-xxx/[ses-xxx/]zzz[-seriename]/file.json
+Sorts and data files into local sub-direcories
+destination/sub-xxx/ses-xxx/zzz-seriename/<data-file>
 
-creates in destination directory participants.tsv with subject
-information from external source
+Plugins allow to modify subjects and session names
+and preform various operations on data files.
 """
 import os
 import logging
-import time as tm
+import time
 import traceback
-
-import bids
+import argparse
+import textwrap
 
 from tools import info
 import tools.tools as tools
@@ -49,6 +48,7 @@ def sortsession(scan: dict,
         outfile = recording.copyRawFile(serie)
         plugins.RunPlugin("FileEP", outfile, recording)
     plugins.RunPlugin("SequenceEndEP", outfolder, recording)
+
 
 def sortsessions(source: str, destination:str,
                  subjectid: str='', sessionid: str='',
@@ -96,17 +96,8 @@ def sortsessions(source: str, destination:str,
                 scan["session"] = ""
             plugins.RunPlugin("SessionEP", scan)
 
-            if not scan["subject"].startswith("sub-"):
-                scan["subject"] = "sub-" + scan["subject"]
-            if not scan["session"].startswith("ses-"):
-                scan["session"] = "ses-" + scan["session"]
-
-            scan["out_path"] = os.path.join(destination, 
-                                            scan["subject"], 
-                                            scan["session"])
-            os.makedirs(scan["out_path"], exist_ok=True)
-            if scan["session"] == "ses-":
-                scan["session"] = ""
+            scan["subject"] = tools.cleanup_value(scan["subject"], "sub-")
+            scan["session"] = tools.cleanup_value(scan["session"], "ses-")
 
             logger.info("Scanning subject {}/{} in {}"
                         .format(scan["subject"],
@@ -143,8 +134,25 @@ def sortsessions(source: str, destination:str,
                 if not recording or len(recording.files) == 0:
                     logger.warning("unable to load data in folder {}"
                                    .format(path))
-                recording.setSubId(scan["subject"])
-                recording.setSesId(scan["session"])
+                if scan["subject"] == "":
+                    recording.setSubId()
+                else:
+                    recording.setSubId(scan["subject"])
+                if scan["session"] == "":
+                    recording.setSesId()
+                else:
+                    recording.setSesId(scan["session"])
+                if recording.subId() == "":
+                    logger.critical("Empty subject id not permitted")
+                    raise ValueError("Empty subject id")
+                if recording.sesId() == "":
+                    sesId = "ses-"
+                else:
+                    sesId = recording.sesId()
+                scan["out_path"] = os.path.join(destination, 
+                                                recording.subId(), 
+                                                sesId)
+                os.makedirs(scan["out_path"], exist_ok=True)
                 plugins.RunPlugin("SequenceEP", recording)
 
                 sortsession(scan, 
@@ -153,11 +161,9 @@ def sortsessions(source: str, destination:str,
 
     plugins.RunPlugin("FinaliseEP")
 
+
 if __name__ == "__main__":
     # Parse the input arguments and run the sortsessions(args)
-    import argparse
-    import textwrap
-
     class appPluginOpt(argparse.Action):
         def __call__(self, parser, args, values, option_string=None):
             if getattr(args, self.dest) is None:
@@ -217,6 +223,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    # checking paths
+    if not os.path.isdir(args.source):
+        logger.critical("Source directory {} don't exists"
+                        .format(args.source))
+        raise NotADirectoryError(args.source)
+    if not os.path.isdir(args.destination):
+        logger.critical("Destination directory {} don't exists"
+                        .format(args.destination))
+        raise NotADirectoryError(args.destination)
+
+    info.addFileLogger(logger, os.path.join(args.destination, "log"))
+
     code = 0
     logger.info("")
     logger.info('-------------- START coinsort --------------')
@@ -237,15 +255,20 @@ if __name__ == "__main__":
     except Exception as err:
         if isinstance(err, exceptions.CoinException):
             code = err.base + err.code
+        else:
+            code = 1
         exc_type, exc_value, exc_traceback = os.sys.exc_info()
         tr = traceback.extract_tb(exc_traceback)
         for l in tr:
             logger.error("{}({}) in {}: "
                          .format(l[0], l[1], l[2]))
-        logger.error("{}({}): {}".format(exc_type.__name__, code, exc_value))
+        logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
         logger.info("Command: {}".format(os.sys.argv))
     logger.info('-------------- FINISHED! -------------------')
-    info.reporterrors(logger)
-    logger.info("Took {} seconds".format(tm.process_time()))
+    errors = info.reporterrors(logger)
+    logger.info("Took {} seconds".format(time.process_time()))
     logger.info('--------------------------------------------')
+    if code == 0 and errors > 0:
+        logger.warning("Several errors detected but exit code is 0")
+        code = 1
     os.sys.exit(code)

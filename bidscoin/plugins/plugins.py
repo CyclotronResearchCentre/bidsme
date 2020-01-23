@@ -79,6 +79,10 @@ def ImportPlugins(plugin_file):
                 .format(pl_name, file)
                 )
     itertools = importlib.util.module_from_spec(spec)
+    # Adding plugin directory to path
+    # Need better solution
+    sys.path.append(os.path.dirname(file))
+    #
     spec.loader.exec_module(itertools)
     f_list = dir(itertools)
     for ep in entry_points:

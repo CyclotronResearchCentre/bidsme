@@ -1,3 +1,4 @@
+from .base import baseModule
 from . import MRI
 from .selector import types_list, select, selectFile, selectByName
 from ._constants import ignoremodality, unknownmodality
