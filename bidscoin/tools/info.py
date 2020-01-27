@@ -64,13 +64,11 @@ def version() -> str:
 
 
 def setup_logging(logger: logging.Logger, 
-                  log_dir: str = "",  
                   level: str = 'INFO') -> None:
     """
     Setup the logging
 
     :param logger:      Logger to setup
-    :param log_dir:     Name of the logdir, will be created if not existing
     :param level:       Logger level
      """
 
@@ -82,9 +80,6 @@ def setup_logging(logger: logging.Logger,
     counthandler.set_name('counthangler')
 
     logger.addHandler(counthandler)
-
-    if log_dir:
-        addFileLogger(logger, log_dir)
 
     # Set & add the streamhandler and 
     # add some color to those boring terminal logs! :-)

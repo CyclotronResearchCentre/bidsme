@@ -23,7 +23,7 @@ from Modules import select
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
-info.setup_logging(logger, "", 'INFO')
+info.setup_logging(logger, 'INFO')
 
 
 def sortsession(scan: dict,
@@ -60,7 +60,7 @@ def sortsessions(source: str, destination:str,
                  plugin_opt: dict={}) -> None:
 
     # Input checking
-    source = os.path.realpath(source)
+    source = os.path.abspath(source)
 
     plugins.ImportPlugins(plugin_file)
     plugins.InitPlugin(source=source, 
@@ -155,8 +155,7 @@ def sortsessions(source: str, destination:str,
                 os.makedirs(scan["out_path"], exist_ok=True)
                 plugins.RunPlugin("SequenceEP", recording)
 
-                sortsession(scan, 
-                            recording)
+                sortsession(scan, recording)
             plugins.RunPlugin("SessionEndEP", scan)
 
     plugins.RunPlugin("FinaliseEP")
@@ -264,6 +263,7 @@ if __name__ == "__main__":
                          .format(l[0], l[1], l[2]))
         logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
         logger.info("Command: {}".format(os.sys.argv))
+
     logger.info('-------------- FINISHED! -------------------')
     errors = info.reporterrors(logger)
     logger.info("Took {} seconds".format(time.process_time()))

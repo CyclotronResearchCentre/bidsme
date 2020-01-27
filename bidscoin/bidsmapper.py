@@ -2,14 +2,7 @@
 """
 Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
 that maps the information from all raw source data to the BIDS labels.
-You can check and edit the bidsmap file with the bidseditor 
-(but also with any text-editor) before passing it to the bidscoiner.
-See the bidseditor help for more information.
-
-N.B.: Institute users may want to use a site-customized template bidsmap
-(see the --template option). The bidsmap_dccn template from 
-the Donders Institute can serve as an example (or may even mostly work 
-for other institutes out of the box).
+Created map can be edited/adjusted manually
 """
 
 import os
@@ -26,11 +19,50 @@ import bidsmap
 import plugins
 import exceptions
 
-from Modules import select
+import Modules
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
-info.setup_logging(logger, "", 'INFO')
+info.setup_logging(logger, 'INFO')
+
+# global maps
+bidsmap_new = None
+template = None
+bidsmap_unk = None
+
+
+def createmap(scan: dict, recording: Modules.baseModule) -> None:
+    logger.info("Processing: sub '{}', ses '{}' ({} files)"
+                .format(scan["subject"],
+                        scan["session"],
+                        len(recording.files)))
+
+    recording.index = -1
+    while recording.loadNextFile():
+        plugins.RunPlugin("RecordingEP", recording)
+        # checking in the current map
+        modality, r_index, r_obj = bidsmap_new.match_run(recording)
+        if not modality:
+            logger.warning("{}/{}: No run found in bidsmap. "
+                           "Looking into template"
+                           .format(recording.Module(),
+                                   recording.recIdentity()))
+            # checking in the template map
+            modality, r_index, r_obj = template.match_run(recording, fix=True)
+            if not modality:
+                logger.error("{}/{}: No compatible run found"
+                             .format(recording.Module(),
+                                     recording.recIdentity()))
+                bidsmap_unk[recording.Modulei()][recording.Type()].append({
+                    "provenance":recording.currentFile(),
+                    "attributes":recording.attributes})
+                continue
+            r_obj.template = True
+            modality, r_index, run = bidsmap_new.add_run(
+                    r_obj,
+                    recording.Module(),
+                    recording.Type()
+                    )
 
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
@@ -62,39 +94,49 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
         os.remove(bidsunknown)
 
     # Get the heuristics for filling the new bidsmap
-    # bidsmap_old, _ = bids.load_bidsmap(bidsmapfile, bidscodefolder)
-    # template, _ = bids.load_bidsmap(templatefile, bidscodefolder)
+    global template
     logger.info("loading template bidsmap {}".format(templatefile))
     template = bidsmap.Bidsmap(templatefile)
 
+    global bidsmap_new
     logger.info("loading working bidsmap {}".format(bidsmapfile))
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
+    global bidsmap_unk
     logger.info("creating bidsmap for unknown modalities")
     bidsmap_unk = {mod:{t.__name__:list() 
                         for t in types}
-                   for mod, types in selector.types_list.items()}
+                   for mod, types in Modules.selector.types_list.items()}
 
     if bidsmap_new.plugin_file:
-        plugins.ImportPlugins(str(bidsmap_new.plugin_file))
-        bidsmap_new.plugin_options["rawfolder"] = rawfolder
-        bidsmap_new.plugin_options["bidsfolder"] = bidsfolder
-        bidsmap_new.plugin_options["train"] = True
-        plugins.InitPlugin(bidsmap_new.plugin_options)
-
-
+        plugins.ImportPlugins(bidsmap_new.plugin_file)
+        plugins.InitPlugin(source=rawfolder,
+                           destination=bidsfolder,
+                           dry=False,
+                           **bidsmap_new.plugin_options)
+    scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
 
     # Loop over all subjects and sessions and built up the bidsmap entries
     subjects = tools.lsdirs(rawfolder, 'sub-*')
     if not subjects:
-        logger.warning('No subjects found in: {}/sub-*'
-                       .format(rawfolder))
+        logger.critical('No subjects found in: {}'
+                        .format(rawfolder))
+        raise ValueError("No subjects found")
 
     for n, subject in enumerate(subjects,1):
+        scan["subject"] = os.path.basename(subject)
+        plugins.RunPlugin("SubjectEP", scan)
         sessions = tools.lsdirs(subject, 'ses-*')
-        if not sessions: sessions = [subject]
+        if not sessions:
+            logger.error("{}: No sessions found in: {}"
+                         .format(scan["subject"], subject))
+            continue
+
         for session in sessions:
-            for module in selector.types_list:
+            scan["session"] = os.path.basename(session)
+            plugins.RunPlugin("SessionEP", scan)
+
+            for module in Modules.selector.types_list:
                 mod_dir = os.path.join(session, module)
                 if not os.path.isdir(mod_dir):
                     logger.debug("Module {} not found in {}"
@@ -104,39 +146,23 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                             .format(mod_dir, n, len(subjects)))
 
                 for run in tools.lsdirs(mod_dir):
-                    cls = selector.select(run, module)
+                    cls = Modules.selector.select(run, module)
                     if cls is None:
-                        logger.warning("Failed to identify data in {}"
-                                       .format(mod_dir))
+                        logger.error("Failed to identify data in {}"
+                                     .format(mod_dir))
                         continue
-                    t_name = cls.Type()
                     recording = cls(rec_path=run)
-                    recording.setSubId()
-                    recording.setSesId()
-                    recording.index = -1
-                    while recording.loadNextFile():
-                        plugins.RunPlugin("RecordingEP", recording)
-                        modality, r_index, r_obj = \
-                                bidsmap_new.match_run(recording)
-                        if not modality:
-                            logger.warning("No run found in bidsmap. "
-                                           "Looking into template")
-                            modality, r_index, r_obj = \
-                                template.match_run(recording,
-                                                   fix=True)
-                            if not modality:
-                                logger.error("{}: No compatible run found"
-                                             .format(os.path.basename(run)))
-                                bidsmap_unk[module][t_name]\
-                                    .append({"provenance":recording.currentFile(),
-                                             "attributes":recording.attributes})
-                                continue
-                            r_obj.template = True
-                            modality, r_index, run = bidsmap_new.add_run(
-                                    r_obj,
-                                    recording.Module(),
-                                    recording.Type()
-                                    )
+                    if not recording or len(recording.files) == 0:
+                        logger.error("unable to load data in folder {}"
+                                     .format(run))
+                    recording.setSubId(scan["subject"])
+                    recording.setSesId(scan["session"])
+                    if recording.subId() == "":
+                        logger.error("Empty subject id not permitted")
+                        continue
+                    plugins.RunPlugin("SequenceEP", recording)
+                    createmap(scan, recording)
+                    plugins.RunPlugin("SequenceEndEP", recording)
 
     # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
     os.makedirs(os.path.join(bidsfolder,'code','bidscoin'), exist_ok=True)
@@ -158,16 +184,6 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                      "See {} for details".format(bidsunknown))
         with open(bidsunknown, 'w') as stream:
             yaml.dump(d, stream)
-
-    logger.info('-------------- FINISHED! -------------------')
-    for mod in bidsmap_new.Modules:
-        total, template, unchecked = bidsmap_new.countRuns(mod)
-        logger.info("{}: {} runs from template, {} runs unchecked out of {}"
-                    .format(mod, template, unchecked, total))
-
-    logger.info('')
-
-    info.reporterrors(logger)
 
 
 # Shell usage
@@ -277,6 +293,7 @@ if __name__ == "__main__":
                          .format(l[0], l[1], l[2]))
         logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
         logger.info("Command: {}".format(os.sys.argv))
+
     logger.info('-------------- FINISHED! -------------------')
     errors = info.reporterrors(logger)
     logger.info("Took {} seconds".format(time.process_time()))

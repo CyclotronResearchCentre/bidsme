@@ -134,7 +134,7 @@ class Bidsmap(object):
                             continue
                         self.Modules[module][f_name][m_name][ind] = r
 
-    def match_run(self, recording: Modules.baseModule, 
+    def match_run(self, recording: object, 
                   check_multiple: bool=True, fix: bool=False) -> tuple:
         """
         Matches run for given recording

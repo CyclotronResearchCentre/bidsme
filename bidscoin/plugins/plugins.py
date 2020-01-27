@@ -26,6 +26,9 @@ import sys
 import os
 import importlib.util
 import logging
+
+from tools.tools import check_type
+
 from . import exceptions 
 from .entry_points import entry_points
 
@@ -56,15 +59,13 @@ def ImportPlugins(plugin_file):
     exceptions.PluginModuleNotFound :
         if inable to load plugin module
     """
-    if not isinstance(plugin_file, str):
-        raise TypeError("plugin_file must be a string")
-
+    plugin_file = check_type("plugin_file", str, plugin_file)
     if plugin_file == "":
         return 0
 
     global file 
 
-    file = plugin_file
+    file = str(plugin_file)
 
     if not os.path.isfile(file):
         raise exceptions.PluginNotFoundError("Plug-in file {} not found"

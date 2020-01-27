@@ -577,7 +577,7 @@ class baseModule(object):
         """
         return self._subject
 
-    def setSubId(self, name=""):
+    def setSubId(self, name=None):
         """
         Sets current recording subject Id
 
@@ -588,8 +588,10 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == "" or name == "sub-":
+        if name == None:
             subid = self._getSubId()
+        elif name == "" or name == "sub-":
+            subid = ""
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,
@@ -608,7 +610,7 @@ class baseModule(object):
         """
         return self._session
 
-    def setSesId(self, name=""):
+    def setSesId(self, name=None):
         """
         Sets current recording session Id
 
@@ -619,8 +621,10 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == "" or name == "ses-":
+        if name == None:
             subid = self._getSesId()
+        elif name == "" or name == "ses-":
+            subid = ""
         else:
             subid = self.getDynamicField(name,
                                          cleanup=False,

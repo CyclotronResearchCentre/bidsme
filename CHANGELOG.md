@@ -24,6 +24,10 @@ no more forom file path
 - `cleanup_value` now removes etherithing not ASCII alphanumerical
 and can add a prefix
 - Moved `check_type` to tools
+- Removed identification from folder for recordings, now `setSubId` and `setSesid`
+sets to value from metadata by default
+- Improved interactions with plugins
+- Improved logging messages
 
 ### Removed
 - subId and sesId retrieval from folder path
