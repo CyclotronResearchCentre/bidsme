@@ -69,7 +69,7 @@ class Nifti_SPM12(MRI):
         self.metaFields["EchoTime"]\
             = MetaField("EchoTime",0.001)
         self.metaFields["DwellTime"]\
-            = MetaField("Private_0019_1018",0.001)
+            = MetaField("Private_0019_1018",0.000001)
         self.metaFields["FlipAngle"]\
             = MetaField("FlipAngle",1.)
         self.metaFields["ProtocolName"]\
@@ -105,6 +105,11 @@ class Nifti_SPM12(MRI):
                                        file))
             try:
                 acqpar = cls.__loadJsonDump(file)
+            except json.JSONDecodeError as e:
+                logger.error("{}: corrupted file {}"
+                             .format(cls.formatIdentity(),
+                                     file))
+                raise
             except Exception as e:
                 return False
             if "Modality" in acqpar:

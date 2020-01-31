@@ -308,6 +308,18 @@ class baseModule(object):
         return cls._type
 
     @classmethod
+    def formatIdentity(cls):
+        """
+        Returns identification string for current type
+        in form {Module}/{Type}
+
+        Returns
+        -------
+        str
+        """
+        return "{}/{}".format(cls.Module(), cls.Type())
+
+    @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
         """
         Checks for all files in given directory and returns true if 
@@ -662,17 +674,6 @@ class baseModule(object):
             return "{:0{width}}-{}".format(self.recNo(),
                                            self.recId(), 
                                            width=padding)
-
-    def formatIdentity(self):
-        """
-        Returns identification string for current type
-        in form {Module}/{Type}
-
-        Returns
-        -------
-        str
-        """
-        return "{}/{}".format(self.Module(), self.Type())
 
     def _getCharacteristic(self, field):
         """
