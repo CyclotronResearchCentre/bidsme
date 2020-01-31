@@ -67,6 +67,8 @@ def createmap(scan: dict, recording: Modules.baseModule) -> None:
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
                bidsmapfile: str, templatefile: str, 
+               plugin: str=None,
+               options: dict = {}
                ) -> None:
     """
     Main function that processes all the subjects and session 
@@ -79,6 +81,8 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     :param bidsfolder:      The name of the BIDS root folder
     :param bidsmapfile:     The name of the bidsmap YAML-file
     :param templatefile:    The name of the bidsmap template YAML-file
+    :param plugin:          Path to plugin file to use
+    :param options:         A list of parameters passed to plugin
     if an unknown run is encountered
     :return:bidsmapfile:    The name of the mapped bidsmap YAML-file
     """
@@ -101,6 +105,10 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
     global bidsmap_new
     logger.info("loading working bidsmap {}".format(bidsmapfile))
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
+    if plugin:
+        bidsmap_new.plugin_file = plugin
+    if options:
+        bidsmap_new.plugin_options = options
 
     global bidsmap_unk
     logger.info("creating bidsmap for unknown modalities")
@@ -231,11 +239,10 @@ if __name__ == "__main__":
                         'to be located in bidscoin/heuristics/. '
                         'Default: bidsmap_template.yaml',
                         default='bidsmap_template.yaml')
-    parser.add_argument('-v','--version',
-                        help='Show the BIDS and BIDScoin version',
-                        action='version', 
-                        version='BIDS-version:\t\t{}\nBIDScoin-version:\t{}'
-                        .format(info.bidsversion(), info.version()))
+    parser.add_argument('-p','--plugin',
+                        help='Path to plugin file intended to be used with '
+                        'bidsification. This needed only for creation of '
+                        'new file')
     parser.add_argument('-o',
                         metavar="OptName=OptValue",
                         dest="plugin_opt",
@@ -245,6 +252,11 @@ if __name__ == "__main__":
                         default={},
                         nargs="+"
                         )
+    parser.add_argument('-v','--version',
+                        help='Show the BIDS and BIDScoin version',
+                        action='version', 
+                        version='BIDS-version:\t\t{}\nBIDScoin-version:\t{}'
+                        .format(info.bidsversion(), info.version()))
     args = parser.parse_args()
 
     # checking paths
@@ -265,6 +277,13 @@ if __name__ == "__main__":
         args.template = os.path.join(os.path.dirname(__file__),
                                      "../heuristics",
                                      args.template)
+    if args.plugin:
+         if not os.path.isfile(args.plugin):
+            logger.critical("Plugin file {} not found"
+                            .format(args.plugin))
+            raise FileNotFoundError("Plugin file {} not found"
+                                    .format(args.plugin))
+
     info.addFileLogger(logger, os.path.join(os.path.join(args.bidsfolder,
                                                          "code/bidscoin",
                                                          "log")))
@@ -280,7 +299,9 @@ if __name__ == "__main__":
         bidsmapper(rawfolder=args.sourcefolder,
                    bidsfolder=args.bidsfolder,
                    bidsmapfile=args.bidsmap,
-                   templatefile=args.template)
+                   templatefile=args.template,
+                   plugin=args.plugin,
+                   options=args.plugin_opt)
     except Exception as err:
         if isinstance(err, exceptions.CoinException):
             code = err.base + err.code

@@ -113,7 +113,7 @@ def bidscoiner(force: bool = False,
                participants: bool = False,
                bidsmapfile: str = 'bidsmap.yaml',
                dry_run=True,
-               options: list = []) -> None:
+               options: dict = {}) -> None:
     """
     Main function that processes all the subjects and session
     in the sourcefolder and uses the bidsmap.yaml file in
