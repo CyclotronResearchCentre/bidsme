@@ -120,7 +120,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
         plugins.ImportPlugins(bidsmap_new.plugin_file)
         plugins.InitPlugin(source=rawfolder,
                            destination=bidsfolder,
-                           dry=False,
+                           dry=True,
                            **bidsmap_new.plugin_options)
     scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
 
