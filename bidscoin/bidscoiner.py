@@ -93,6 +93,8 @@ def coin(scan: dict, recording: Modules.baseModule,
         recording.generateMeta()
 
         bidsname = recording.getBidsname()
+        scan["out_path"] = os.path.join(bidsfolder,
+                                        recording.getBidsPrefix("/"))
 
         bidsmodality = os.path.join(scan["out_path"], recording.Modality())
 
@@ -104,7 +106,6 @@ def coin(scan: dict, recording: Modules.baseModule,
             logger.error(e)
             raise FileExistsError(e)
         if not dry_run:
-            os.makedirs(bidsmodality, exist_ok=True)
             recording.bidsify(bidsfolder)
 
 
