@@ -53,9 +53,10 @@ Templates:
     - mod: ~
   - &mri_json_anat_mpm !!omap
     - ContrastBolusIngredient: <ContrastBolusIngredient>
-    - EchoTime: <EchoTime>
     - RepetitionTime: <RepetitionTime>
     - FlipAngle: <FlipAngle>
+    - RFSpoilingPhaseIncrement: <RFSpoilingPhaseIncrement>
+    - MTState: <MTState>
   - &mri_anat_mpm
     provenance: ~
     suffix: MPM
@@ -67,10 +68,10 @@ Templates:
 
   # fMRI
   - &mri_bids_func !!omap
-    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
-    # [_ce-<label>][_dir-<label>][_rec-<label>][_run-<index>][_echo-<index>]_sbref.nii[.gz]
+    # task-<label>[_acq-<label>][_ce-<label>][_dir-<label>][_rec-<label>]
+    # [_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
     - task: <<placeholder>>
-    - acq: ~
+    - acq: <SeriesDescription>
     - ce: ~
     - dir: ~
     - rec: ~
@@ -84,15 +85,16 @@ Templates:
       <<: *mri_bids_func
     json:
       TaskName: <<bids:task>>
-      Instructions: ""
-      TaskDescription: ""
-      CogAtlasID: ""
-      CogPOID: ""
+      Instructions: <<placeholder>>
+      TaskDescription: <<placeholder>>
+      CogAtlasID: <<placeholder>>
+      CogPOID: <<placeholder>>
       RepetitionTime: <RepetitionTime>
-      NumberOfVolumesDiscardedByScanner: ""
-      NumberOfVolumesDiscardedByUser: ""
-      DelayTime: ""
-      DelayAfterTrigger: ""
+      SliceTiming: <<placeholder>>
+      DelayTime: <<placeholder>>
+      NumberOfVolumesDiscardedByScanner: <<placeholder>>
+      NumberOfVolumesDiscardedByUser: <<placeholder>>
+      DelayAfterTrigger: <<placeholder>>
 
   # diffusion MRI
   - &mri_bids_dwi !!omap
@@ -144,7 +146,6 @@ Templates:
       <<: *mri_bids_fmap
     json:
       <<: *mri_json_fmap
-      EchoTime: <EchoTime>
   - &mri_fmap_magnitude
     provenance: ~
     suffix: magnitude<EchoNumbers>
@@ -153,17 +154,16 @@ Templates:
       <<: *mri_bids_fmap
     json:
       <<: *mri_json_fmap
-      EchoTime: <EchoTime>
   - &mri_fmap_pepolar
     provenance: ~
     suffix: epi
     attributes: {}
     bids: 
       <<: *mri_bids_fmap
+    - ce: <<placeholder>>
     json:
       <<: *mri_json_fmap
       PhaseEncodingDirection: <<placeholder>>
-      EchoTime: <EchoTime>
   - &mri_bids_fmap_mpm_minus
     - acq: ~
     - mod: ~
@@ -176,7 +176,6 @@ Templates:
     json:
       IntendedFor:
         - "anat/<<subject>>_<<session>>_acq-<<bids:mod>>_echo-*_MPM.nii"
-      EchoTime: <EchoTime>
   - &mri_bids_fmap_mpm_plus
     - echo: ~
     - fa: ~
@@ -189,7 +188,6 @@ Templates:
     json:
       <<: *mri_json_fmap
       EchoTime: <EchoTime>
-      B1mapNominalFAValues: <B1mapNominalFAValues>
 
 MRI:
   Nifti_SPM12:
