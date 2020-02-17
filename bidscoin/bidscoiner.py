@@ -235,7 +235,6 @@ def bidscoiner(force: bool = False,
     old_sub = None
     if os.path.isfile(old_sub_file):
         old_sub = pd.read_csv(old_sub_file, sep="\t", header=0,
-                              index_col="participant_id",
                               na_values="n/a")
 
     # Loop over all subjects and sessions
@@ -244,7 +243,7 @@ def bidscoiner(force: bool = False,
         scan["subject"] = os.path.basename(subject)
         plugins.RunPlugin("SubjectEP", scan)
         if participants and old_sub:
-            if scan["subject"] in old_sub.index:
+            if scan["subject"] in old_sub["participant_id"].values:
                 logger.info("{}: In particicpants.tsv. Skipping"
                             .format(scan["subject"]))
         sessions = tools.lsdirs(subject, 'ses-*')
@@ -289,16 +288,15 @@ def bidscoiner(force: bool = False,
     old_sub_file = os.path.join(bidsfolder, "participants.tsv")
     if os.path.isfile(new_sub_file):
         new_sub = pd.read_csv(new_sub_file, sep="\t", header=0,
-                              index_col="participant_id",
                               na_values="n/a")
         new_sub = new_sub.groupby("participant_id").ffill().drop_duplicates()
-        duplicates = new_sub.index.duplicated(keep=False)
+        duplicates = new_sub.duplicated(keep=False)
         if duplicates.any():
             logger.error("One or several subjects have conflicting values."
                          "See {} for details"
                          .format(new_sub_file))
             raise ValueError("Conflicting values in subject descriptions")
-    if old_sub:
+    if old_sub is not None:
         if set(new_sub.columns) != set(old_sub.columns):
             logger.error("Subject table header mismach, "
                          "see {} and {} for details."
@@ -307,7 +305,7 @@ def bidscoiner(force: bool = False,
         new_sub = new_sub.append(old_sub)
         new_sub = new_sub.groupby("participant_id")\
             .ffill().drop_duplicates()
-        duplicates = new_sub.index.duplicated()
+        duplicates = new_sub.duplicated()
         if duplicates.any():
             logger.error("One or several subjects have conflicting values."
                          "See {} and {} for details"
@@ -316,7 +314,7 @@ def bidscoiner(force: bool = False,
     if not dry_run:
         new_sub.to_csv(old_sub_file,
                        sep='\t', na_rep="n/a",
-                       index=True, header=True)
+                       index=False, header=True)
         json_file = tools.change_ext(old_sub_file, "json")
         if not os.path.isfile(json_file):
             shutil.copyfile(tools.change_ext(new_sub_file, "json"), json_file)

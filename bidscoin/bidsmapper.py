@@ -14,7 +14,7 @@ import argparse
 
 from tools import info
 import tools.tools as tools
-import tools.yaml as yaml
+from tools.yaml import yaml
 import bidsmap
 import plugins
 import exceptions
@@ -53,7 +53,7 @@ def createmap(scan: dict, recording: Modules.baseModule) -> None:
                 logger.error("{}/{}: No compatible run found"
                              .format(recording.Module(),
                                      recording.recIdentity()))
-                bidsmap_unk[recording.Modulei()][recording.Type()].append({
+                bidsmap_unk[recording.Module()][recording.Type()].append({
                     "provenance":recording.currentFile(),
                     "attributes":recording.attributes})
                 continue

@@ -1,6 +1,7 @@
-from . import MRI
+from . import MRI, EEG
 
-types_list = {"MRI": (MRI.DICOM, MRI.Nifti_SPM12)}
+types_list = {"MRI": (MRI.DICOM, MRI.Nifti_SPM12),
+              "EEG": (EEG.BrainVision,)}
 
 def select(folder: str, module: str=""):
     """

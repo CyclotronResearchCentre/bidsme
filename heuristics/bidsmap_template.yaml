@@ -160,7 +160,7 @@ Templates:
     attributes: {}
     bids: 
       <<: *mri_bids_fmap
-    - ce: <<placeholder>>
+      ce: <<placeholder>>
     json:
       <<: *mri_json_fmap
       PhaseEncodingDirection: <<placeholder>>

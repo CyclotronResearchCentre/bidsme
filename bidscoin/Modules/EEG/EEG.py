@@ -38,7 +38,7 @@ eeg_meta = [
         ]
 
 
-class MRI(baseModule):
+class EEG(baseModule):
     _module = "EEG"
 
     bidsmodalities = {

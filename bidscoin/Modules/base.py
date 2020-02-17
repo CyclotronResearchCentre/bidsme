@@ -999,7 +999,7 @@ class baseModule(object):
 
         for key, field in self.metaFields.items():
             if field is not None:
-                field.value = self.getField(field.name, field.default)
+                field.value = self.getDynamicField(field.name, field.default)
 
     def exportMeta(self):
         """
