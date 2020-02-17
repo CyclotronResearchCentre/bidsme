@@ -16,7 +16,9 @@ class BrainVision(EEG):
     __slots__ = ["_CACHE", "_FILE_CACHE",
                  "_MRK_CACHE",
                  "_datafile", "_markfile",
-                 "_acqTime"]
+                 "_acqTime",
+                 "_chanValues"
+                 ]
     __spetialFields = {}
     __fileversion = "Brain Vision Data Exchange Header File Version 1.0"
 
@@ -33,6 +35,14 @@ class BrainVision(EEG):
         # Series number and secription is not defined
         self.setAttribute("SeriesNumber", 0)
         self.setAttribute("SeriesDescription", "unknown")
+
+        self._chan_BIDS.Activate("sampling_frequency")
+        self._chan_BIDS.Activate("reference")
+        self._chan_BIDS.AddField(
+                name="resolution",
+                longName="Channel signal resolution",
+                override=True
+                )
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -187,7 +197,7 @@ class BrainVision(EEG):
                 return val[0]
             elif det == "ref":
                 return val[1]
-            elif det ==  "resolution":
+            elif det == "resolution":
                 return float(val[2])
             elif det == "unit":
                 return val[3]
@@ -196,7 +206,6 @@ class BrainVision(EEG):
                        .format(self.formatIdentity(),
                                prefix))
         return value
-                
 
     def recNo(self):
         return self.getAttribute("SeriesNumber", 0)
@@ -252,6 +261,55 @@ class BrainVision(EEG):
         dest_vhdr = dest_base + ".eeg"
         shutil.copy2(self._datafile, dest_vhdr)
 
+    def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
+        """
+        Copy all data files to destination, and adapt file references.
+        Also creates channels, electrodes and events tsv files
+
+        Parameters
+        ----------
+        directory: str
+            destination directory where files should be copies,
+            including modality folder. Assured to exists.
+        bidsname: str
+            bidsified name without extention
+        ext: str
+            extention of the data file
+        """
+        # Copiyng header
+        dest_vhdr = os.path.join(directory, bidsname + ext)
+        with open(self.currentFile(), "r") as f_in,\
+                open(dest_vhdr, "w") as f_out:
+            for line in f_in.readlines():
+                line = re.sub("DataFile *=.*",
+                              "DataFile={}.eeg".format(bidsname),
+                              line)
+                f_out.write(line)
+        # copiyng data file
+        shutil.copy2(self._datafile,
+                     os.path.join(directory, bidsname + ".eeg"))
+
+        # Getting channels info
+        base = bidsname.rsplit("_",1)[0]
+        dest_chan = os.path.join(directory, base + "_channels")
+        with open(dest_chan + ".tsv", "w") as f:
+            f.write(self._chan_BIDS.GetHeader())
+            f.write("\n")
+            for key, val in self._CACHE["Channel Infos"].items():
+                chanValues = self._chan_BIDS.GetTemplate()
+                val = val.split(",")
+                chanValues["name"] = val[0]
+                chanValues["type"] = None
+                chanValues["reference"] = val[1]
+                chanValues["sampling_frequency"] = \
+                    self.getAttribute("SamplingFrequency")
+                chanValues["resolution"] = float(val[2])
+                if len(val) >= 4:
+                    chanValues["units"] = val[3]
+                f.write(self._chan_BIDS.GetLine(chanValues))
+                f.write("\n")
+            self._chan_BIDS.DumpDefinitions(dest_chan + ".json")
+
     def _post_copy(self, basename: str, ext: str) -> None:
         shutil.copy2(self._datafile, basename + ".eeg")
 
@@ -265,10 +323,6 @@ class BrainVision(EEG):
                                   "DataFile={}.eeg".format(base),
                                   line)
                     f_out.write(line)
-            for mk, val in self._MRK_CACHE["Marker Infos"].items():
-                val = val.split(",")
-
-
 
     def _getSubId(self) -> str:
         return "unknown"

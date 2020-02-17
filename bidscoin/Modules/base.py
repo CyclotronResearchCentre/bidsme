@@ -2,7 +2,6 @@ import os
 import shutil
 import logging
 import json
-import re
 from datetime import datetime
 from collections import OrderedDict
 
@@ -205,21 +204,23 @@ class baseModule(object):
         """
         pass
 
-    def _post_copy(self, basename: str, ext: str) -> None:
+    def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         """
-        Virtual function used to internally adapt bidsified 
-        files to new name.
-        The data file is retrieved by basename + ext.
-        Accompanying json file is retrieved by basename + ".json"
+        Virtual function that copies bidsified data files to
+        its destinattion.
 
         Parameters
         ----------
-        basename: str
-            full path to file without extension
+        directory: str
+            destination directory where files should be copies,
+            including modality folder. Assured to exists.
+        bidsname: str
+            bidsified name without extention
         ext: str
-            extension to data file
+            extention of the data file
         """
-        pass
+        shutil.copy2(self.currentFile(),
+                     os.path.join(directory, bidsname + ext))
 
     def copyRawFile(self, destination: str) -> str:
         """
@@ -600,7 +601,7 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == None:
+        if name is None:
             subid = self._getSubId()
         elif name == "" or name == "sub-":
             subid = ""
@@ -633,7 +634,7 @@ class baseModule(object):
             filename, if not empty, getDynamicField 
             is used to determine Id
         """
-        if name == None:
+        if name is None:
             subid = self._getSesId()
         elif name == "" or name == "ses-":
             subid = ""
@@ -849,18 +850,22 @@ class baseModule(object):
         os.makedirs(outdir, exist_ok=True)
 
         ext = os.path.splitext(self.currentFile(False))[1]
-        bidsname = os.path.join(outdir, self.getBidsname())
+        bidsname = self.getBidsname()
+        # bidsname = os.path.join(outdir, self.getBidsname())
 
-        logger.debug("Copying {} to {}".format(self.currentFile(),
-                                               bidsname + ext))
-        shutil.copy2(self.currentFile(),
-                     bidsname + ext)
+        logger.debug("Copying {} to {}/{}{}".format(self.currentFile(),
+                                                    outdir,
+                                                    bidsname,
+                                                    ext))
+
+        self._copy_bidsified(outdir, bidsname, ext)
+
         with open(bidsname + ".json", "w") as f:
             js_dict = self.exportMeta()
             json.dump(js_dict, f, indent=2)
 
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
-                                                       self.getBidsname()
+                                                       bidsname
                                                        + ext)
         self.rec_BIDSvalues["acq_time"] = self.acqTime()\
             .replace(microsecond=0)
@@ -884,8 +889,6 @@ class baseModule(object):
                     self.rec_BIDSvalues))
                 f.write('\n')
             self.rec_BIDSfields.DumpDefinitions(scans_json)
-
-        self._post_copy(bidsname, ext)
 
     def setLabels(self, run: Run=None):
         """
