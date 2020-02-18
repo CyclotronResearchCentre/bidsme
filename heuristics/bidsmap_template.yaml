@@ -186,8 +186,8 @@ Templates:
     bids: 
       <<: *mri_bids_fmap_mpm_plus
     json:
-      <<: *mri_json_fmap
       EchoTime: <EchoTime>
+      B1mapNominalFAValues: <B1mapNominalFAValues>
 
 MRI:
   Nifti_SPM12:
@@ -292,3 +292,18 @@ MRI:
       attributes:
         ProtocolName: 'localizer'
       bids: {}
+
+EEG:
+  BrainVision:
+    eeg:
+      - provenance: ~
+        suffix: "eeg"
+        attributes:
+          SeriesDescription: '.*'
+        bids: !!omap
+          - task: "<<placeholder>>"
+          - acq: ~
+          - run: ~
+        json: !!omap
+          - Task: <<bids:task>>
+          - TaskDescription: ""

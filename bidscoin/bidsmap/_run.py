@@ -147,7 +147,7 @@ class Run(object):
         if isinstance(val, str):
             val = val.encode('unicode_escape').decode()
         attr = check_type("attr", str, attr)
-
+        to_remove = list
         if attr in self.attribute:
             if self.attribute[attr] == val:
                 return
@@ -155,10 +155,7 @@ class Run(object):
             if attr not in self._bk_attribute:
                 self._bk_attribute[attr] = self.attribute[attr]
 
-            if val:
                 self.attribute[attr] = val
-            else:
-                self.attribute.remove(attr)
             return
 
         else:

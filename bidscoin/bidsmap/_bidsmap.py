@@ -91,6 +91,12 @@ class Bidsmap(object):
                                    .format(module, f_name, yamlfile))
                     continue
                 # Over Modalities
+                if not isinstance(form, dict):
+                    logger.error("{}: {}/{} Malformed map, no modalities found"
+                                 .format(os.path.basename(yamlfile), 
+                                         module, f_name))
+                    raise TypeError("Malformed map")
+
                 for m_name, modality in form.items():
                     if not Modules.selectByName(f_name, module)\
                             .isValidModality(m_name):
@@ -131,7 +137,7 @@ class Bidsmap(object):
                                          )
                             logger.error("{}:{}"
                                          .format(type(e).__name__, e.args))
-                            continue
+                            raise
                         self.Modules[module][f_name][m_name][ind] = r
 
     def match_run(self, recording: object, 

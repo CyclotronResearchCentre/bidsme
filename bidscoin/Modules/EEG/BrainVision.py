@@ -246,8 +246,10 @@ class BrainVision(EEG):
                               line)
                 if self._markfile:
                     line = re.sub("MarkerFile *=.*",
-                                  "MarkerFile={}.eeg".format(base),
+                                  "MarkerFile={}.vmrk".format(base),
                                   line)
+                else:
+                    line = re.sub("MarkerFile *=.*", "")
                 f_out.write(line)
 
         # Copying marker file

@@ -1002,7 +1002,10 @@ class baseModule(object):
 
         for key, field in self.metaFields.items():
             if field is not None:
-                field.value = self.getDynamicField(field.name, field.default)
+                if field.name.startswith("<"):
+                    field.value = self.getDynamicField(field.name, field.default)
+                else:
+                    field.value = self.getField(field.name, field.default)
 
     def exportMeta(self):
         """
