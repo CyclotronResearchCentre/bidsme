@@ -5,6 +5,7 @@ import os
 import re
 import logging
 import shutil
+import json
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,9 @@ class BrainVision(EEG):
                 longName="Channel signal resolution",
                 override=True
                 )
+
+        self._task_BIDS.Activate("sample")
+        self._task_BIDS.Activate("trial_type")
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -310,19 +314,77 @@ class BrainVision(EEG):
                 f.write("\n")
             self._chan_BIDS.DumpDefinitions(dest_chan + ".json")
 
-    def _post_copy(self, basename: str, ext: str) -> None:
-        shutil.copy2(self._datafile, basename + ".eeg")
+        # Getting electrodes info
+        if "Coordinates" in self._CACHE:
+            dest_elec = os.path.join(directory, base + "_electrodes")
+            with open(dest_elec + ".tsv", "w") as f:
+                f.write(self._elec_BIDS.GetHeader())
+                f.write("\n")
+                for key, val in self._CACHE["Coordinates"].items():
+                    chanValues = self._elec_BIDS.GetTemplate()
+                    val = val.split(",")
+                    chId = key[2:]
+                    chanValues["name"] = self._CACHE["Channel Infos"]\
+                            .get(key).split(",")[0]
+                    r = float(val[0])
 
+                    theta = math.pi * float(val[1]) / 180
+                    phi = math.pi * float(val[2]) / 180
+                    if r == 0:
+                        chanValues["x"] = None
+                        chanValues["y"] = None
+                        chanValues["z"] = None
+                    else:
+                        chanValues["x"] = r * math.sin(theta) * math.cos(phi)
+                        chanValues["y"] = r * math.sin(theta) * math.sin(phi)
+                        chanValues["z"] = r * math.cos(theta)
+                    f.write(self._elec_BIDS.GetLine(chanValues))
+                    f.write("\n")
+                self._elec_BIDS.DumpDefinitions(dest_elec + ".json")
+                dest_coord = os.path.join(directory, base + "_coordsystem.json")
+                d = {"EEGCoordinateSystem": "BESA", 
+                     "EEGCoordinateSystemUnits": "mm"}
+                with open(dest_coord, "w") as f:
+                    json.dump(d, f, indent = "  ", separators=(',', ':'))
+
+        # Gettin markers info
         if self._markfile:
-            dest_vmrk = basename + ".vmrk"
-            base = os.path.basename(basename)
+            dest_vmrk = os.path.join(directory, bidsname + ".vmrk")
             with open(self._markfile, "r") as f_in,\
                     open(dest_vmrk, "w") as f_out:
                 for line in f_in.readlines():
                     line = re.sub("DataFile *=.*",
-                                  "DataFile={}.eeg".format(base),
+                                  "DataFile={}.eeg".format(bidsname),
                                   line)
                     f_out.write(line)
+
+            dest_vmrk = os.path.join(directory, base + "_events")
+            with open(dest_vmrk + ".tsv", "w") as f:
+                last_time = self._acqTime
+                last_seg = 0
+                dt = timedelta(microseconds=
+                               self.getAttribute("SamplingInterval"))
+                f.write(self._task_BIDS.GetHeader())
+                f.write("\n")
+                for mk, val in self._MRK_CACHE["Marker Infos"].items():
+                    mrkValues = self._task_BIDS.GetTemplate()
+                    val = val.split(",")
+                    name = val[0]
+                    descr = val[1]
+                    pos = int(val[2])
+                    dur = dt * int(val[3])
+                    chan = val[4]
+
+                    if name.strip() == "New Segment":
+                        last_time = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
+                        last_seg = pos
+                    mrkValues["onset"] = ((pos - last_seg) * dt).total_seconds()
+                    mrkValues["duration"] = dur
+                    mrkValues["sample"] = pos
+                    mrkValues["trial_type"] = name
+                    f.write(self._task_BIDS.GetLine(mrkValues))
+                    f.write("\n")
+            self._task_BIDS.DumpDefinitions(dest_vmrk + ".json")
 
     def _getSubId(self) -> str:
         return "unknown"

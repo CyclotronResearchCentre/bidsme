@@ -860,7 +860,7 @@ class baseModule(object):
 
         self._copy_bidsified(outdir, bidsname, ext)
 
-        with open(bidsname + ".json", "w") as f:
+        with open(os.path.join(outdir, bidsname + ".json"), "w") as f:
             js_dict = self.exportMeta()
             json.dump(js_dict, f, indent=2)
 

@@ -9,6 +9,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
 - plugin option to `bidsmapper`
+- Support for EEG (BrainVision)
+
+### Changed
+- copy of bidsificated file(s) are performed by virtual function
+`_copy_bidsified`
 
 ## [dev2.0.2] - 2020-01-27
 
