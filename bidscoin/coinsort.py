@@ -179,7 +179,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(formatter_class=CustomFormatter,
                                      description=textwrap.dedent(__doc__),
-                                     epilog='examples:\n')
+                                     epilog='examples:\n\t'
+                                     'python3 coinsort.py source renamed '
+                                     '-r nii -t MRI')
     parser.add_argument('source',
                         help='The name of the root folder containing ' 
                         'the recording file source/[sub/][ses/]<type>'),
