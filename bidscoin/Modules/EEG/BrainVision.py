@@ -6,6 +6,7 @@ import re
 import logging
 import shutil
 import json
+import math
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -318,16 +319,16 @@ class BrainVision(EEG):
 
         # Getting electrodes info
         if "Coordinates" in self._CACHE:
-            dest_elec = os.path.join(directory, base + "_electrodes")
+            dest_elec = os.path.join(directory, base)
+            dest_elec = re.sub("task-", "acq-", )
             with open(dest_elec + ".tsv", "w") as f:
                 f.write(self._elec_BIDS.GetHeader())
                 f.write("\n")
                 for key, val in self._CACHE["Coordinates"].items():
                     chanValues = self._elec_BIDS.GetTemplate()
                     val = val.split(",")
-                    chId = key[2:]
                     chanValues["name"] = self._CACHE["Channel Infos"]\
-                            .get(key).split(",")[0]
+                        .get(key).split(",")[0]
                     r = float(val[0])
 
                     theta = math.pi * float(val[1]) / 180
@@ -343,11 +344,14 @@ class BrainVision(EEG):
                     f.write(self._elec_BIDS.GetLine(chanValues))
                     f.write("\n")
                 self._elec_BIDS.DumpDefinitions(dest_elec + ".json")
-                dest_coord = os.path.join(directory, base + "_coordsystem.json")
+                dest_coord = os.path.join(directory, 
+                                          "{}_acq-{}_coordsystem.json"
+                                          .format(self.getBidsPrefix(),
+                                                  self.labels["task"]))
                 d = {"EEGCoordinateSystem": "BESA", 
                      "EEGCoordinateSystemUnits": "mm"}
                 with open(dest_coord, "w") as f:
-                    json.dump(d, f, indent = "  ", separators=(',', ':'))
+                    json.dump(d, f, indent="  ", separators=(',', ':'))
 
         # Gettin markers info
         if self._markfile:
@@ -362,25 +366,28 @@ class BrainVision(EEG):
 
             dest_vmrk = os.path.join(directory, base + "_events")
             with open(dest_vmrk + ".tsv", "w") as f:
-                last_time = self._acqTime
-                last_seg = 0
-                dt = timedelta(microseconds=
-                               self.getAttribute("SamplingInterval"))
+                last_onset = 0
+                last_onset = 0
+                dt = timedelta(
+                        microseconds=self.getAttribute("SamplingInterval"))
                 f.write(self._task_BIDS.GetHeader())
                 f.write("\n")
                 for mk, val in self._MRK_CACHE["Marker Infos"].items():
                     mrkValues = self._task_BIDS.GetTemplate()
                     val = val.split(",")
                     name = val[0]
-                    descr = val[1]
+                    # descr = val[1]
                     pos = int(val[2])
                     dur = dt * int(val[3])
-                    chan = val[4]
+                    # chan = val[4]
 
                     if name.strip() == "New Segment":
-                        last_time = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
+                        last_onset = datetime.strptime(val[5],
+                                                       "%Y%m%d%H%M%S%f")\
+                                - self._acqTime
                         last_seg = pos
-                    mrkValues["onset"] = ((pos - last_seg) * dt).total_seconds()
+                    mrkValues["onset"] = ((pos - last_seg) * dt + last_onset)\
+                        .total_seconds()
                     mrkValues["duration"] = dur
                     mrkValues["sample"] = pos
                     mrkValues["trial_type"] = name

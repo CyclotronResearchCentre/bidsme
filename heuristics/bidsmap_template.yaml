@@ -302,7 +302,6 @@ EEG:
           SeriesDescription: '.*'
         bids: !!omap
           - task: "<<placeholder>>"
-          - acq: ~
           - run: ~
         json: !!omap
           - Task: <<bids:task>>

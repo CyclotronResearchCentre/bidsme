@@ -44,7 +44,7 @@ class EEG(baseModule):
     _module = "EEG"
 
     bidsmodalities = {
-            "eeg": ("task", "acq", "run")
+            "eeg": ("task", "run")
             }
 
     _chan_BIDS = BIDSfieldLibrary()
