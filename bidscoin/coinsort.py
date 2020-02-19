@@ -12,6 +12,7 @@ import time
 import traceback
 import argparse
 import textwrap
+import glob
 
 from tools import info
 import tools.tools as tools
@@ -117,45 +118,46 @@ def sortsessions(source: str, destination:str,
                 raise IndexError("List of types size")
 
             for rec_f, rec_t in zip(recfolder, rectypes):
-                path = os.path.join(s, rec_f)
-                if not os.path.isdir(path):
-                    logger.warning("Sub: '{}', Ses: '{}' : '{}' don't exists "
-                                   "or not a folder"
-                                   .format(scan["subject"],
-                                           scan["session"],
-                                           path))
-                    continue
-                cls = select(path, rec_t)
-                if cls is None:
-                    logger.warning("Unable to identify data in folder {}"
-                                   .format(path))
-                    continue
-                recording = cls(rec_path=path)
-                if not recording or len(recording.files) == 0:
-                    logger.warning("unable to load data in folder {}"
-                                   .format(path))
-                if scan["subject"] == "":
-                    recording.setSubId()
-                else:
-                    recording.setSubId(scan["subject"])
-                if scan["session"] == "":
-                    recording.setSesId()
-                else:
-                    recording.setSesId(scan["session"])
-                if recording.subId() == "":
-                    logger.critical("Empty subject id not permitted")
-                    raise ValueError("Empty subject id")
-                if recording.sesId() == "":
-                    sesId = "ses-"
-                else:
-                    sesId = recording.sesId()
-                scan["out_path"] = os.path.join(destination, 
-                                                recording.subId(), 
-                                                sesId)
-                os.makedirs(scan["out_path"], exist_ok=True)
-                plugins.RunPlugin("SequenceEP", recording)
+                paths = [f for f in glob.glob(os.path.join(s, rec_f) + "/")]
+                for path in paths:
+                    if not os.path.isdir(path):
+                        logger.warning("Sub: '{}', Ses: '{}' : '{}' don't exists "
+                                       "or not a folder"
+                                       .format(scan["subject"],
+                                               scan["session"],
+                                               path))
+                        continue
+                    cls = select(path, rec_t)
+                    if cls is None:
+                        logger.warning("Unable to identify data in folder {}"
+                                       .format(path))
+                        continue
+                    recording = cls(rec_path=path)
+                    if not recording or len(recording.files) == 0:
+                        logger.warning("unable to load data in folder {}"
+                                       .format(path))
+                    if scan["subject"] == "":
+                        recording.setSubId()
+                    else:
+                        recording.setSubId(scan["subject"])
+                    if scan["session"] == "":
+                        recording.setSesId()
+                    else:
+                        recording.setSesId(scan["session"])
+                    if recording.subId() == "":
+                        logger.critical("Empty subject id not permitted")
+                        raise ValueError("Empty subject id")
+                    if recording.sesId() == "":
+                        sesId = "ses-"
+                    else:
+                        sesId = recording.sesId()
+                    scan["out_path"] = os.path.join(destination, 
+                                                    recording.subId(), 
+                                                    sesId)
+                    os.makedirs(scan["out_path"], exist_ok=True)
+                    plugins.RunPlugin("SequenceEP", recording)
 
-                sortsession(scan, recording)
+                    sortsession(scan, recording)
             plugins.RunPlugin("SessionEndEP", scan)
 
     plugins.RunPlugin("FinaliseEP")
