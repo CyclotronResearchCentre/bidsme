@@ -1,5 +1,6 @@
 # List of personalized, plugin-related errors
 from plugins import exceptions as Error
+from bids.BidsSession import BidsSession
 
 # Will integrate plugin into logging
 import logging
@@ -81,7 +82,7 @@ def InitEP(source: str, destination: str,
     
     return 0
 
-def SubjectEP(scan: dict) -> int:
+def SubjectEP(scan: BidsSession) -> int:
     """
     This function is called after entering directory of subjects
     and meant to perform subject-global actions, like extracting 
@@ -111,7 +112,7 @@ def SubjectEP(scan: dict) -> int:
     """
     return 0
 
-def SessionEP(scan: dict) -> int:
+def SessionEP(scan: BidsSession) -> int:
     """
     This function is called after entering directory of session
     and meant to adapt session name.
@@ -251,7 +252,7 @@ def SequenceEndEP(path: str, recording: object) -> int:
     """
     return 0
 
-def SessionEnd(session):
+def SessionEnd(scan: BidsSession) -> int:
     """
     This function is called after processing last recording 
     of the session and meant to complete session by any 

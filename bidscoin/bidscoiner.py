@@ -33,6 +33,7 @@ import exceptions
 
 import Modules
 from bidsmap import Bidsmap
+from bids.BidsSession import BidsSession
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
@@ -43,7 +44,7 @@ bidsfolder = ""
 rawfolder = ""
 
 
-def coin(scan: dict, recording: Modules.baseModule,
+def coin(recording: Modules.baseModule,
          bidsmap: Bidsmap, dry_run: bool) -> None:
     """
     Converts the session dicom-files into BIDS-valid nifti-files
@@ -52,13 +53,12 @@ def coin(scan: dict, recording: Modules.baseModule,
 
     :param session:     The full-path name of the subject/session source folder
     :param bidsmap:     The full mapping heuristics from the bidsmap YAML-file
-    :param bidsfolder:  The full-path name of the BIDS root-folder
     :param personals:   The dictionary with the personal information
     :param subprefix:   The prefix common for all source subject-folders
     :param sesprefix:   The prefix common for all source session-folders
     :return:            Nothing
     """
-    recording.sub_BIDSvalues["participant_id"] = scan["subject"]
+    recording.sub_BIDSvalues["participant_id"] = recording.subId()
     sub_tsv = os.path.join(tmpDir, 'participants.tsv')
     if os.path.isfile(sub_tsv):
         with open(sub_tsv, "a") as f:
@@ -74,10 +74,14 @@ def coin(scan: dict, recording: Modules.baseModule,
             f.write('\n')
         recording.sub_BIDSfields.DumpDefinitions(
                 tools.change_ext(sub_tsv, "json"))
+    out_path = os.path.join(bidsfolder,
+                            recording.getBidsPrefix("/"))
 
     recording.index = -1
     while recording.loadNextFile():
         plugins.RunPlugin("RecordingEP", recording)
+        out_path = os.path.join(bidsfolder,
+                                recording.getBidsPrefix("/"))
         # checking in the current map
         modality, r_index, r_obj = bidsmap.match_run(recording)
         if not modality:
@@ -93,10 +97,8 @@ def coin(scan: dict, recording: Modules.baseModule,
         recording.generateMeta()
 
         bidsname = recording.getBidsname()
-        scan["out_path"] = os.path.join(bidsfolder,
-                                        recording.getBidsPrefix("/"))
 
-        bidsmodality = os.path.join(scan["out_path"], recording.Modality())
+        bidsmodality = os.path.join(out_path, recording.Modality())
 
         # Check if file already exists
         if os.path.isfile(os.path.join(bidsmodality,
@@ -107,6 +109,10 @@ def coin(scan: dict, recording: Modules.baseModule,
             raise FileExistsError(e)
         if not dry_run:
             recording.bidsify(bidsfolder)
+    if dry_run:
+        plugins.RunPlugin("SequenceEndEP", out_path, recording)
+    else:
+        plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
 def bidscoiner(force: bool = False,
@@ -213,8 +219,6 @@ def bidscoiner(force: bool = False,
             for item in bidsignore_items:
                 bidsignore.write(item + '\n')
 
-    scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
-
     if subject_list:
         subjects = []
         for sub in subject_list:
@@ -240,20 +244,21 @@ def bidscoiner(force: bool = False,
     # Loop over all subjects and sessions
     # and convert them using the bidsmap entries
     for n, subject in enumerate(subjects, 1):
-        scan["subject"] = os.path.basename(subject)
+        scan = BidsSession()
+        scan.subject = os.path.basename(subject)
         plugins.RunPlugin("SubjectEP", scan)
         if participants and old_sub:
-            if scan["subject"] in old_sub["participant_id"].values:
+            if scan.subject in old_sub["participant_id"].values:
                 logger.info("{}: In particicpants.tsv. Skipping"
-                            .format(scan["subject"]))
+                            .format(scan.subject))
         sessions = tools.lsdirs(subject, 'ses-*')
         if not sessions:
             logger.error("{}: No sessions found in: {}"
-                         .format(scan["subject"], subject))
+                         .format(scan.subject, subject))
             continue
 
         for session in sessions:
-            scan["session"] = os.path.basename(session)
+            scan.session = os.path.basename(session)
             plugins.RunPlugin("SessionEP", scan)
 
             for module in Modules.selector.types_list:
@@ -274,14 +279,9 @@ def bidscoiner(force: bool = False,
                     if not recording or len(recording.files) == 0:
                         logger.error("unable to load data in folder {}"
                                      .format(run))
-                    recording.setSubId(scan["subject"])
-                    recording.setSesId(scan["session"])
-                    if recording.subId() == "":
-                        logger.error("Empty subject id not permitted")
-                        continue
+                    recording.setSession(scan)
                     plugins.RunPlugin("SequenceEP", recording)
-                    coin(scan, recording, bidsmap, dry_run)
-                    plugins.RunPlugin("SequenceEndEP", recording)
+                    coin(recording, bidsmap, dry_run)
 
     # Synchronizing subject list
     new_sub_file = os.path.join(tmpDir, "participants.tsv")
@@ -311,6 +311,9 @@ def bidscoiner(force: bool = False,
                          "See {} and {} for details"
                          .format(new_sub_file, old_sub_file))
             raise ValueError("Conflicting values in subject descriptions")
+
+    plugins.RunPlugin("FinaliseEP")
+
     if not dry_run:
         new_sub.to_csv(old_sub_file,
                        sep='\t', na_rep="n/a",

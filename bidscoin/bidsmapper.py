@@ -20,6 +20,7 @@ import plugins
 import exceptions
 
 import Modules
+from bids.BidsSession import BidsSession
 
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
@@ -31,10 +32,11 @@ template = None
 bidsmap_unk = None
 
 
-def createmap(scan: dict, recording: Modules.baseModule) -> None:
+def createmap(recording: Modules.baseModule) -> None:
+
     logger.info("Processing: sub '{}', ses '{}' ({} files)"
-                .format(scan["subject"],
-                        scan["session"],
+                .format(recording.subId(),
+                        recording.sesId(),
                         len(recording.files)))
 
     recording.index = -1
@@ -63,6 +65,7 @@ def createmap(scan: dict, recording: Modules.baseModule) -> None:
                     recording.Module(),
                     recording.Type()
                     )
+            plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
 def bidsmapper(rawfolder: str, bidsfolder: str,
@@ -122,7 +125,6 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                            destination=bidsfolder,
                            dry=True,
                            **bidsmap_new.plugin_options)
-    scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
 
     # Loop over all subjects and sessions and built up the bidsmap entries
     subjects = tools.lsdirs(rawfolder, 'sub-*')
@@ -132,16 +134,17 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
         raise ValueError("No subjects found")
 
     for n, subject in enumerate(subjects,1):
-        scan["subject"] = os.path.basename(subject)
+        scan = BidsSession()
+        scan.subject = os.path.basename(subject)
         plugins.RunPlugin("SubjectEP", scan)
         sessions = tools.lsdirs(subject, 'ses-*')
         if not sessions:
             logger.error("{}: No sessions found in: {}"
-                         .format(scan["subject"], subject))
+                         .format(scan.subject, subject))
             continue
 
         for session in sessions:
-            scan["session"] = os.path.basename(session)
+            scan.session = os.path.basename(session)
             plugins.RunPlugin("SessionEP", scan)
 
             for module in Modules.selector.types_list:
@@ -163,14 +166,9 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                     if not recording or len(recording.files) == 0:
                         logger.error("unable to load data in folder {}"
                                      .format(run))
-                    recording.setSubId(scan["subject"])
-                    recording.setSesId(scan["session"])
-                    if recording.subId() == "":
-                        logger.error("Empty subject id not permitted")
-                        continue
+                    recording.setSession(scan)
                     plugins.RunPlugin("SequenceEP", recording)
-                    createmap(scan, recording)
-                    plugins.RunPlugin("SequenceEndEP", recording)
+                    createmap(recording)
 
     # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
     os.makedirs(os.path.join(bidsfolder,'code','bidscoin'), exist_ok=True)
@@ -278,7 +276,7 @@ if __name__ == "__main__":
                                      "../heuristics",
                                      args.template)
     if args.plugin:
-         if not os.path.isfile(args.plugin):
+        if not os.path.isfile(args.plugin):
             logger.critical("Plugin file {} not found"
                             .format(args.plugin))
             raise FileNotFoundError("Plugin file {} not found"

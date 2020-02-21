@@ -1,11 +1,14 @@
+from tools import tools
+
+
 class BidsSession(object):
     __slots__ = ["__subject", "__session", 
                  "in_path",
                  "__sub_locked", "__ses_locked"]
 
     def __init__(self):
-        self.__subject = None
-        self.__session = None
+        self.__subject = ""
+        self.__session = ""
         self.in_path = None
 
         self.__sub_locked = False
@@ -15,11 +18,11 @@ class BidsSession(object):
     def subject(self) -> str:
         return self.__subject
 
-    @property.setter
+    @subject.setter
     def subject(self, val: str):
         if self.__sub_locked:
             raise Exception("Subject Id is locked")
-        if val is not None or not isinstance(str, val):
+        if val is not None and not isinstance(val, str):
             raise TypeError("Subject Id must be str")
         self.__subject = val
 
@@ -27,11 +30,11 @@ class BidsSession(object):
     def session(self) -> str:
         return self.__session
 
-    @property.setter
+    @session.setter
     def session(self, val: str) ->str:
-        if self.__sub_locked:
+        if self.__ses_locked:
             raise Exception("Session Id is locked")
-        if val is not None or not isinstance(str, val):
+        if val is not None and not isinstance(val, str):
             raise TypeError("Session Id must be str")
         self.__session = val
 
@@ -76,6 +79,8 @@ class BidsSession(object):
         class must be valid
         """
         res = self.__subject
+        if res is None:
+            res = "Unknown"
         if self.__session:
             res += "_" + self.__session
         return res
@@ -91,10 +96,15 @@ class BidsSession(object):
             path will still contain "ses-"
         """
         res = self.__subject
+        if res is None:
+            res = "Unknown"
         if self.__session:
             res += "/" + self.__session
         elif empty:
-            res += "/ses-"
+            if self.__session is None:
+                res += "/Unknown"
+            else:
+                res += "/ses-"
         return res
 
     def isValid(self) -> bool:
@@ -103,10 +113,19 @@ class BidsSession(object):
         i.e. both are locked and defined (i.e. not None),
         and subject Id not an empty string
         """
-        if not self.__sub_locked or not self.__ses_locked:
+        if not self.isLocked():
             return False
         if self.__subject is None or self.__session is None:
             return False
         if self.__subject == "":
             return False
         return True
+
+    def isLocked(self) -> bool:
+        """
+        returns True if both session and subject are locked
+        """
+        if not self.__sub_locked or not self.__ses_locked:
+            return False
+        else:
+            return True

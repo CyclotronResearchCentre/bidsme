@@ -11,6 +11,8 @@ from bidsMeta import BIDSfieldLibrary
 
 from bidsmap import Run
 
+from bids import BidsSession
+
 from ._constants import ignoremodality, unknownmodality
 
 logger = logging.getLogger(__name__)
@@ -23,8 +25,7 @@ class baseModule(object):
     __slots__ = [
                  # bids name values
                  "_modality",
-                 "_subject",
-                 "_session",
+                 "_bidsSession",
                  "labels",
                  "suffix",
                  # recording attributes
@@ -88,8 +89,7 @@ class baseModule(object):
         self.labels = OrderedDict()
         self.suffix = ""
         self._modality = unknownmodality
-        self._subject = None
-        self._session = None
+        self._bidsSession = None
 
         self.metaFields = dict()
         self.metaAuxiliary = dict()
@@ -584,23 +584,32 @@ class baseModule(object):
             res = tools.cleanup_value(res)
         return res
 
+    def setBidsSession(self, session: BidsSession) -> None:
+        """
+        Set session class
+        """
+        if self._bidsSession is not None:
+            logger.warning("{}: Resetting BidsSession"
+                           .format(self.recIdentity()))
+        self._bidsSession = session
+        self.setSubId()
+        self.setSesId()
+
+    def getBidsSession(self):
+        return self._bidsSession
+
     def subId(self):
         """
         Returns current recording subject Id
         """
-        return self._subject
+        return self._bidsSession.subject
 
-    def setSubId(self, name=None):
+    def setSubId(self) -> None:
         """
-        Sets current recording subject Id
-
-        Parameters
-        ----------
-        name: str
-            if empty, subject id retrieved from
-            filename, if not empty, getDynamicField 
-            is used to determine Id
+        Sets current recording subject Id from value 
+        in BidsSession
         """
+        name = self._bidsSession.subject
         if name is None:
             subid = self._getSubId()
         elif name == "" or name == "sub-":
@@ -610,30 +619,25 @@ class baseModule(object):
                                          cleanup=False,
                                          raw=False
                                          )
-        if subid is None:
-            logger.error("{}/{}: Unable to determine subject Id from {}"
-                         .format(self.recNo(), self.recId(),
-                                 name))
+        if subid is None or subid == "":
+            logger.error("{}: Unable to determine subject Id from '{}'"
+                         .format(self.recIdentity, name))
             raise ValueError("Invalid subject Id")
-        self._subject = tools.cleanup_value(subid, 'sub-')
+        self._bidsSession.unlock_subject()
+        self._bidsSession.subject = subid
+        self._bidsSession.lock_subject()
 
     def sesId(self):
         """
         Returns current recording session Id
         """
-        return self._session
+        return self._bidsSession.session
 
-    def setSesId(self, name=None):
+    def setSesId(self):
         """
         Sets current recording session Id
-
-        Parameters
-        ----------
-        name: str
-            if empty, session id retrieved from
-            filename, if not empty, getDynamicField 
-            is used to determine Id
         """
+        name = self._bidsSession.session
         if name is None:
             subid = self._getSesId()
         elif name == "" or name == "ses-":
@@ -647,8 +651,10 @@ class baseModule(object):
             logger.error("{}/{}: Unable to determine session Id from {}"
                          .format(self.recNo(), self.recId(),
                                  name))
-            raise ValueError("Invalid sessiom Id")
-        self._session = tools.cleanup_value(subid, "ses-")
+            raise ValueError("Invalid session Id")
+        self._bidsSession.unlock_session()
+        self._bidsSession.session = subid
+        self._bidsSession.lock_session()
 
     def recIdentity(self, padding: int=3, index=True):
         """
@@ -831,11 +837,9 @@ class baseModule(object):
         bidsfolder: str
             path to root of output bids folder
         """
-        if self._subject is None\
-                or self._session is None\
-                or self._modality is None:
-            raise ValueError("Recording missing defined subject, "
-                             "session and/or modality")
+        if not self._bidsSession.isValid():
+            raise ValueError("{}: Recording have invalid bids session"
+                             .format(self.recIdentity()))
         if not self.isValidModality(self._modality, False):
             logger.error("{}: Invalid modality {}"
                          .format(self.recIdentity(),
@@ -1003,7 +1007,8 @@ class baseModule(object):
         for key, field in self.metaFields.items():
             if field is not None:
                 if field.name.startswith("<"):
-                    field.value = self.getDynamicField(field.name, field.default)
+                    field.value = self.getDynamicField(field.name,
+                                                       field.default)
                 else:
                     field.value = self.getField(field.name, field.default)
 

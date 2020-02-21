@@ -20,6 +20,7 @@ import plugins
 import exceptions
 
 from Modules import select
+from bids import BidsSession
 
 
 logger = logging.getLogger()
@@ -27,16 +28,15 @@ logger.name = os.path.splitext(os.path.basename(__file__))[0]
 info.setup_logging(logger, 'INFO')
 
 
-def sortsession(scan: dict,
+def sortsession(outfolder: str,
                 recording: object) -> None: 
 
     logger.info("Processing: sub '{}', ses '{}' ({} files)"
-                .format(scan["subject"],
-                        scan["session"],
+                .format(recording.subId(),
+                        recording.sesId(),
                         len(recording.files)))
 
-    outfolder = scan["out_path"]
-
+    os.makedirs(outfolder, exist_ok=True)
     recording.index = -1
     while recording.loadNextFile():
         plugins.RunPlugin("RecordingEP", recording)
@@ -69,18 +69,16 @@ def sortsessions(source: str, destination:str,
                        dry=False,
                        **plugin_opt)
 
-    scan = {"subject": "", "session": "", "in_path": "", "out_path": ""}
-
     if subjects:
         folders = tools.lsdirs(source, subjectid + '*')
     else:
         folders = [source]
 
     for f in folders:
+        scan = BidsSession()
+        scan.in_path = f
         if subjects:
-            scan["subject"] = os.path.basename(f)[len(subjectid):]
-        else:
-            scan["subject"] = ""
+            scan.subject = os.path.basename(f)[len(subjectid):]
         plugins.RunPlugin("SubjectEP", scan)
 
         # get name of subject from folder name
@@ -90,19 +88,16 @@ def sortsessions(source: str, destination:str,
             sfolders = [f]
 
         for s in sfolders:
-            scan["in_path"] = s
+            scan.in_path = s
             if sessions:
-                scan["session"] = os.path.basename(s)
-            else:
-                scan["session"] = ""
+                scan.unlock_session()
+                scan.session = os.path.basename(s)[len(sessionid):]
             plugins.RunPlugin("SessionEP", scan)
-
-            scan["subject"] = tools.cleanup_value(scan["subject"], "sub-")
-            scan["session"] = tools.cleanup_value(scan["session"], "ses-")
+            scan.lock()
 
             logger.info("Scanning subject {}/{} in {}"
-                        .format(scan["subject"],
-                                scan["session"], 
+                        .format(scan.subject,
+                                scan.session, 
                                 s))
 
             if not recfolder:
@@ -121,10 +116,11 @@ def sortsessions(source: str, destination:str,
                 paths = [f for f in glob.glob(os.path.join(s, rec_f) + "/")]
                 for path in paths:
                     if not os.path.isdir(path):
-                        logger.warning("Sub: '{}', Ses: '{}' : '{}' don't exists "
+                        logger.warning("Sub: '{}', Ses: '{}': "
+                                       "'{}' don't exists "
                                        "or not a folder"
-                                       .format(scan["subject"],
-                                               scan["session"],
+                                       .format(scan.subject,
+                                               scan.session,
                                                path))
                         continue
                     cls = select(path, rec_t)
@@ -136,28 +132,12 @@ def sortsessions(source: str, destination:str,
                     if not recording or len(recording.files) == 0:
                         logger.warning("unable to load data in folder {}"
                                        .format(path))
-                    if scan["subject"] == "":
-                        recording.setSubId()
-                    else:
-                        recording.setSubId(scan["subject"])
-                    if scan["session"] == "":
-                        recording.setSesId()
-                    else:
-                        recording.setSesId(scan["session"])
-                    if recording.subId() == "":
-                        logger.critical("Empty subject id not permitted")
-                        raise ValueError("Empty subject id")
-                    if recording.sesId() == "":
-                        sesId = "ses-"
-                    else:
-                        sesId = recording.sesId()
-                    scan["out_path"] = os.path.join(destination, 
-                                                    recording.subId(), 
-                                                    sesId)
-                    os.makedirs(scan["out_path"], exist_ok=True)
+                    recording.setBidsSession(scan)
                     plugins.RunPlugin("SequenceEP", recording)
-
-                    sortsession(scan, recording)
+                    scan = recording.getBidsSession()
+                    out_path = os.path.join(destination, 
+                                            scan.getPath(True))
+                    sortsession(out_path, recording)
             plugins.RunPlugin("SessionEndEP", scan)
 
     plugins.RunPlugin("FinaliseEP")
