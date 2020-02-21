@@ -4,16 +4,21 @@
 
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bidscoin.svg)
 
-- [The BIDScoin workflow](#the-bidscoin-workflow)
-  * [Required source data structure](#required-source-data-structure)
-  * [Coining your source data to BIDS](#coining-your-source-data-to-bids)
-    + [Step 1a: Running the bidsmapper](#step-1a-running-the-bidsmapper)
-    + [Step 1b: Running the bidseditor](#step-1b-running-the-bidseditor)
-    + [Step 2: Running the bidscoiner](#step-2-running-the-bidscoiner)
-  * [Finishing up](#finishing-up)
-- [Plug-in functions](#options-and-plug-in-functions)
-- [BIDScoin functionality / TODO](#bidscoin-functionality--todo)
-- [BIDScoin tutorial](#bidscoin-tutorial)
+- [The BIDScoin workflow](#workflow)
+  * [Data preparation](#wf_prep)
+  * [Data bidsification](#wf_bids)
+  * [Bidsmap configuration](#wf_map)
+  * [Plugin configuration](#wf_plug)
+- [Examples](#examples)
+  * [Dataset 1](#ex1)
+- [Supported formats](#formats)
+  * [MRI](#mri)
+    + [Nifti\_SPM12](#Nifti_SPM12)
+  * [EEG](#eeg)
+    + [BrainVision](#BV)
+- [Plug-in functions](#plugins)
+- [Implementing additional formats](#new_formats)
+- [Bidsmap file structure](#bidsmap)
 
 
 BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin) python toolkit that converts ("bidsifies") source-level (raw) neuroimaging data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable). 
@@ -22,27 +27,29 @@ The information sources that can be used to map the source data to BIDS are retr
 source data header files (DICOM, BrainVision, nifti etc...) and file source data-set file structure 
 (file- and/or directory names, e.g. number of files).
 
-The retrieved information can be modified/adjusted by a set of plugins, described [here](#options-and-plug-in-functions).
+The retrieved information can be modified/adjusted by a set of plugins, described [here](#plugins).
 Plugins can also be used to complete the bidsified dataset, for example by parcing log files. 
 
-> NB: BIDScoin support variaty of formats listed in [supported formats](#Supported-formats).
-Additional formats can be implemented following instructions [here](#Implementing-new-modalities-and-data-formats) 
+> NB: BIDScoin support variaty of formats listed in [supported formats](#formats).
+Additional formats can be implemented following instructions [here](#new_formats) 
 
-The mapping information is stored as key-value pairs in the human readable and widely supported [YAML](http://yaml.org/) files,
-generated from a template yaml-file.
+The mapping information is stored as key-value pairs in the human readable and 
+widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
- 
+<a name="workflow">
 ## The BIDScoin workflow
 
 The BIDScoin workfolw is composed in two steps:
 
-  1. [Data preparation](#Data-preparation), in which the source dataset is reorganazed into stadard bids-like structure
-  2. [Data bidsification](#Data-bidsification), in which prepeared data is bidsified.
+  1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into 
+stadard bids-like structure
+  2. [Data bidsification](#wf_bids), in which prepeared data is bidsified.
 
 This organisation allow to user intervene before the bidsification in case of presence of errors,
 or to complete the data manually if it could not be completed numerically.
 
-### Data preparation
+<a name="wf_prep">
+### Data preparation 
 
 In order to be bidsified, dataset should be put into a form:
 ```
@@ -161,10 +168,11 @@ A working example of source dataset and `coinsort` configuration can be found
 > NB: The logs for standard output and separetly errors and warnings are stored
 in destination folder in `log` directory. 
 
+<a name="wf_bids">
 ### Data bidsification
 
-Considering that the data is [prepeared](#Data--preparation) together with 
-[bidsmap](#Creation-and-configuration-of-bidsmap-file) and [plugins](#Plugins),
+Considering that the data is [prepeared](#wf_prep) together with 
+[bidsmap](#wf_map) and [plugins](#wf_plug),
 the bidsification is performed by `bidscoiner` tool:
 ```
 usage: bidscoiner.py [-h] [-p PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]] [-s]
@@ -236,19 +244,193 @@ permutation on the subjects, for additional layer of anonymisation.
 > NB: The log files with messages and, separately the errors are stored in
 destination directory in `source/bidscoin/log` sub-directory.
 
-## Options and plug-in functions
-BIDScoin provides the possibility for researchers to write custom python functions that will be executed at bidsmapper.py and bidscoiner.py runtime. To use this functionality, enter the name of the module (default location is the plugins-folder; otherwise the full path must be provided) in the bidsmap dictionary file to import the plugin functions. The functions in the module should be named `bidsmapper_plugin` for bidsmapper.py and `bidscoiner_plugin` for bidscoiner.py. See [README.py](./bidscoin/plugins/README.py) for more details and placeholder code.
+<a name="wf_map">
+### Bidsmap configuration
 
-## BIDScoin functionality / TODO
-- [x] DICOM source data
-- [ ] PAR / REC source data
-- [ ] P7 source data
-- [ ] Nifti source data
-- [x] Fieldmaps
-- [x] Multi-echo data
-- [x] Multi-coil data
-- [x] PET data
-- [ ] Stimulus / behavioural logfiles
+Bidsmap is the central piece of BIDScoin. 
+It tells how to identify any data file, and what modality and bids labels 
+to attribute.
 
-> Are you a python programmer with an interest in BIDS who knows all about GE and / or Philips data? Are you experienced with parsing stimulus presentation log-files? Or do you have ideas to improve the this toolkit or its documentation? Have you come across bugs? Then you are highly encouraged to provide feedback or contribute to this project on [https://github.com/Donders-Institute/bidscoin](https://github.com/Donders-Institute/bidscoin).
+It is a configuration file written in [YAML](http://yaml.org/) format, which is a 
+compromize between human readability and machine parcing.
 
+By default this file, once created is stored within bidsified dataset in 
+`code/bidscoin/bidsmap.yaml`.
+
+The structure of a valid bidsmap is described in the section [Bidsmap file structure](#bidsmap).
+
+The first step of creating a bidsmap is to prepare a reference dataset,
+which is a subset of full dataset, containing only one or two subjects.
+It is important to these subjects being complete (i.e. no missing scans)
+and without errors made in protocol (no duplicated scans, scans in good order etc...).
+This reference dataset will serve as a model for bidsmap.
+
+Once the reference dataset is ready, the bidsmap is created by running the tool
+`bidsmapper`:
+```
+usage: bidsmapper.py [-h] [-b BIDSMAP] [-t TEMPLATE] [-p PLUGIN]
+                     [-o OptName=OptValue [OptName=OptValue ...]] [-v]
+                     sourcefolder bidsfolder
+
+Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
+that maps the information from all raw source data to the BIDS labels.
+Created map can be edited/adjusted manually
+
+positional arguments:
+  sourcefolder          The source folder containing the raw data in
+                        sub-#/ses-#/run format (or specify --subprefix and
+                        --sesprefix for different prefixes)
+  bidsfolder            The destination folder with the (future) bids data and
+                        the bidsfolder/code/bidscoin/bidsmap.yaml output file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b BIDSMAP, --bidsmap BIDSMAP
+                        The bidsmap YAML-file with the study heuristics. If
+                        the bidsmap filename is relative (i.e. no "/" in the
+                        name) then it is assumed to be located in
+                        bidsfolder/code/bidscoin. Default: bidsmap.yaml
+  -t TEMPLATE, --template TEMPLATE
+                        The bidsmap template with the default heuristics (this
+                        could be provided by your institute). If the bidsmap
+                        filename is relative (i.e. no "/" in the name) then it
+                        is assumed to be located in bidscoin/heuristics/.
+                        Default: bidsmap_template.yaml
+  -p PLUGIN, --plugin PLUGIN
+                        Path to plugin file intended to be used with
+                        bidsification. This needed only for creation of new
+                        file
+  -o OptName=OptValue [OptName=OptValue ...]
+                        Options passed to plugin in form -o OptName=OptValue,
+                        several options can be passed
+  -v, --version         Show the BIDS and BIDScoin version
+
+examples:
+  bidsmapper.py /project/foo/raw /project/foo/bids
+  bidsmapper.py /project/foo/raw /project/foo/bids -t bidsmap_dccn
+```
+At first pass tool will scan reference dataset and try to guess 
+correct parameters for bidsification. If he can't find correct
+parameters or couldn't identify the run, a corresponding warning
+or error will be shown on stdout (and reported in the log file).
+These warnings and errors should be corrected before re-run of
+`bidsmapper`. 
+The final goal is to achieve state than `bidsmapper` will no more produce
+any warnings and errors.
+
+> NB:If bidsifigation requiers plugins, it is important to run `bidsmapper` 
+with the same plugin.
+
+Using [example 1](#ex1), the first pass of `bidsmapper` will produce around 500
+warning, but they are repetetive. 
+
+> 1WARNING MRI/001-localizer/0: No run found in bidsmap. Looking into template`
+
+It means that give sample (first file - index `0`, of sequence `001-localizer`, 
+of type `MRI`) wasn't identified in the bidsmap. `bidsmapper` will try to look 
+in the template map to identify the sample. If sample is identified, then
+`bidsmapper` will complete the bidsmap by information found in the template.
+If sample is not identified in the template, a corresponding error will show
+and samples attributes will be stored in `code/bidsmap/unknown.yaml`.
+It is up to user to manually integrate this sample into bidsmap (and eventually
+complete the template).
+
+> `WARNING 002-cmrr_mbep2d_bold_mb2_invertpe/0: Placehoder found`
+
+This warning tells that given sample is identified, but bids parameters
+contains placeholder. To correct this warning it is enought to find
+an corresponding entry in `bidsmap` and replaced placeholders by needed
+values. 
+The easiest way is to search for line `002-cmrr_mbep2d_bold_mb2_invertpe`:
+```
+- provenance: /home/beliy/Works/bidscoin_example/example1/renamed/sub-001/ses-HCL/MRI/002-cmrr_mbep2d_bold_mb2_invertpe/f1513-0002-00001-000001-01.nii
+        example: func/sub-001_ses-HCL_task-placeholder_acq-nBack_dir-PA_run-1_echo-1_bold
+        template: true
+        checked: false
+        suffix: bold
+        attributes:
+          ProtocolName: cmrr_mbep2d_bold_mb2_invertpe
+          ImageType: ORIGINAL\\PRIMARY\\M\\MB\\ND\\MOSAIC
+        bids: !!omap
+          - dir: PA
+          - task: <<placeholder>>
+....
+```
+and replace `task: <<placeholder>>` by `task: nBack`.
+
+> NB: If the run is edited, it is a good practice to change `template: true`
+to `template: false`. It will mark that this run is no more automatically
+generated from template.
+
+> `WARNING func/0: also checks run: func/1`
+This warning indicates that first run of `func` modality and second one
+cheks the same scan. At first run it is normal, as samples are identified 
+from template, and some overlaps are expected. If this warning remains in
+subsequent passes, then the attributes of mentioned runs must be moved apart.
+
+> `WARNING 012-t1_mpr_sag_p2_iso/0: Can't find 'ContrastBolusIngredient' attribute from '<ContrastBolusIngredient>'`
+This warning means that `bidsmapper` can't extract given attribute from 
+a scan. To correct the warning, cited attribute must be set manually, for ex.
+in :
+```
+json: !!omap
+          - ContrastBolusIngredient: <ContrastBolusIngredient>
+```
+change `<ContrastBolusIngredient>` to a used value (if contrast element is used),
+or an empty string (otherwise).
+
+> `WARNING 014-al_B1mapping/9: Naming schema not BIDS`
+This warning appears when specified BIDS schema do not follows the standard. 
+To correct this warning it will be enought to put bids section in bidsmap
+into conform form ti the BIDS specifications. 
+Alternitavly, if the deviation from the standard is intentional (e.g. 
+given data type is not officialy supported by BIDS), the warning can be silenced 
+by setting `checked` to `true`. 
+
+Bidsmap contain several automatically filled fields that are to simplify the map 
+adjustements:
+- provenance: contains the path to the first data file matched to this run. 
+This field is updated at each run of `bidsmapper`, but only if `checked` is 
+false 
+- example: this field shows an generated bids name for the file in `provenance`
+- template: indicates if run was generated from template map. This value is 
+not updated, and should be set to `false` at first manual edit
+- checked: indicates if operator checked the run and is satisfied with the
+results. In order to bidsify dataset, all runs must be checked.
+
+Finally `bidscoiner` can be run of reference dataset, to assure that there 
+no conflicts in definitions and the bidsified dataset is correct.
+
+<a name="wf_plug">
+### Plugin configuration
+
+<a name="examples">
+## Examples
+
+<a name="ex1">
+### Dataset 1
+
+<a name="formats">
+## Supported formats
+
+<a name="mri">
+### MRI
+
+<a name="Nifti_SPM12">
+#### Nifti\_SPM12
+
+
+<a name="eeg">
+### EEG
+
+<a name="BV">
+#### BrainVision
+
+<a name="plugins">
+## Plug-in functions
+
+<a name="new_formats">
+## Implementing additional formats
+
+<a name="bidsmap">
+## Bidsmap file structure
