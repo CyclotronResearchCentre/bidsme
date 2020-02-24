@@ -135,6 +135,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
 
     for n, subject in enumerate(subjects,1):
         scan = BidsSession()
+        scan.in_path = subject
         scan.subject = os.path.basename(subject)
         plugins.RunPlugin("SubjectEP", scan)
         sessions = tools.lsdirs(subject, 'ses-*')
@@ -144,8 +145,11 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
             continue
 
         for session in sessions:
+            scan.in_path = session
+            scan.unlock_session()
             scan.session = os.path.basename(session)
             plugins.RunPlugin("SessionEP", scan)
+            scan.lock()
 
             for module in Modules.selector.types_list:
                 mod_dir = os.path.join(session, module)
@@ -166,7 +170,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                     if not recording or len(recording.files) == 0:
                         logger.error("unable to load data in folder {}"
                                      .format(run))
-                    recording.setSession(scan)
+                    recording.setBidsSession(scan)
                     plugins.RunPlugin("SequenceEP", recording)
                     createmap(recording)
 
