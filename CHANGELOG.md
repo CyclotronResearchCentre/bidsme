@@ -10,6 +10,9 @@ by single quote to avoid bash expantion
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
 
+### Changed
+- subject and session info are managed via BidsSession class
+
 ## [dev2.1.0] - 2020-02-19
 
 ### Fixed 
