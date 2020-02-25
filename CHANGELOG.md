@@ -12,6 +12,8 @@ by single quote to avoid bash expantion
 
 ### Changed
 - subject and session info are managed via BidsSession class
+- `participants.tsv` file now created at prepearing stage, with warning
+if field values are conflicting
 
 ## [dev2.1.0] - 2020-02-19
 

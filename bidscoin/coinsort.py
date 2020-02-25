@@ -54,6 +54,7 @@ def sortsession(outfolder: str,
 
 def sortsessions(source: str, destination:str,
                  subjectid: str='', sessionid: str='',
+                 part_template: str=None,
                  recfolder: list=[''],
                  rectypes: list=[''],
                  sessions: bool=True,
@@ -75,7 +76,7 @@ def sortsessions(source: str, destination:str,
     else:
         folders = [source]
 
-    BidsSession.loadSubjectFields()
+    BidsSession.loadSubjectFields(part_template)
     for f in folders:
         scan = BidsSession()
         scan.in_path = f
@@ -169,6 +170,8 @@ if __name__ == "__main__":
     parser.add_argument('destination',
                         help='The name of the folder where sotred ' 
                         'files will be placed'),
+    parser.add_argument('--part-template',
+                        help='Path to the template used for participants.tsv')
     parser.add_argument('-i','--subjectid', 
                         help='The prefix string for recursive searching '
                         'in niisource/subject subfolders (e.g. "sub-")',
@@ -216,6 +219,11 @@ if __name__ == "__main__":
         logger.critical("Destination directory {} don't exists"
                         .format(args.destination))
         raise NotADirectoryError(args.destination)
+    if args.part_template is not None and \
+            not os.path.isfile(args.part_template):
+        logger.critical("Participants.tsv template not found at {}"
+                        .format(args.part_template))
+        raise FileNotFoundError(args.part_template)
 
     info.addFileLogger(logger, os.path.join(args.destination, "log"))
 
@@ -230,6 +238,7 @@ if __name__ == "__main__":
                      destination=args.destination,
                      subjectid=args.subjectid,
                      sessionid=args.sessionid,
+                     part_template=args.part_template,
                      recfolder=args.recfolder.split(','),
                      rectypes=args.rectype.split(','),
                      sessions=not args.no_session,

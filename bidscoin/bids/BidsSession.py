@@ -1,5 +1,6 @@
 import os
 import logging 
+from copy import deepcopy as copy
 
 from tools import tools
 from bidsMeta import BIDSfieldLibrary
@@ -159,8 +160,8 @@ class BidsSession(object):
         """
         if cls.__sub_columns is not None:
             raise ValueError("Redefinition of participants template")
+        cls.__sub_columns = BIDSfieldLibrary()
         if filename is None:
-            cls.__sub_columns = BIDSfieldLibrary()
             cls.__sub_columns.AddField(
                     name="participant_id",
                     longName="Participant Id",
@@ -192,8 +193,10 @@ class BidsSession(object):
             if conflict:
                 if conflicting:
                     logger.warning("{}/{}: participants contains "
-                                   "conflicting values")
-                    self.__sub_values.append(self.sub_values)
+                                   "conflicting values"
+                                   .format(self.subject, self.session))
+                    self.__sub_values[self.subject].append(
+                            copy(self.sub_values))
                 else:
                     logger.critical("{}/{}: {} conflicts with {}"
                                     .format(self.subject, self.session,
@@ -201,10 +204,10 @@ class BidsSession(object):
                                     )
                     raise ValueError("Conflicting participant values")
             else:
-                self.__sub_values[self.subject][-1] = self.sub_values
+                self.__sub_values[self.subject][-1] = copy(self.sub_values)
         else:
-            self.__sub_values[self.subject] = [self.sub_values]
-        self.sub_values = self.__sub_columns.GetTemplate()
+            self.__sub_values[self.subject] = [copy(self.sub_values)]
+        # self.sub_values = self.__sub_columns.GetTemplate()
 
     @classmethod
     def exportParticipants(cls, output:str) -> None:
@@ -219,6 +222,8 @@ class BidsSession(object):
         fname = os.path.join(output, "participants.tsv")
         if os.path.isfile(fname):
             f = open(fname, "a")
+            logger.warning("participants.tsv already exists, "
+                            "some subjects may be duplicated")
         else:
             f = open(fname, "w")
             f.write(cls.__sub_columns.GetHeader())
