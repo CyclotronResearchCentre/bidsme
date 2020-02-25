@@ -11,6 +11,8 @@ import time
 import traceback
 import textwrap
 import argparse
+import pandas
+import json
 
 from tools import info
 import tools.tools as tools
@@ -119,6 +121,34 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                         for t in types}
                    for mod, types in Modules.selector.types_list.items()}
 
+    # loading subject list
+    df_sub = pandas.read_csv(os.path.join(rawfolder, "participants.tsv"), 
+                             sep="\t", header=0,
+                             na_values="n/a")
+    df_dupl = df_sub.duplicated("participant_id")
+    if df_dupl.any():
+        logger.critical("Participant list contains one or several duplicated "
+                        "entries: {}"
+                        .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                        )
+        raise Exception("Duplicated subjects")
+    
+    with open (os.path.join(rawfolder, "participants.json"), "r") as f:
+        df_definitions = json.load(f)
+    BidsSession.loadSubjectFields(os.path.join(rawfolder, "participants.json"))
+    if len(df_definitions) != len(df_sub.columns):
+        logger.critical("Participant.tsv contains {} columns, while "
+                        "sidecar contain {} definitions"
+                        .format(len(df_sub.columns),
+                                len(df_definitions)))
+        raise Exception("Participants column mismatch")
+    for col in df_sub.columns:
+        if col not in df_definitions:
+            logger.critical("Participant.tsv contains undefined "
+                            "column '{}'"
+                            .format(col))
+    del df_definitions
+
     if bidsmap_new.plugin_file:
         plugins.ImportPlugins(bidsmap_new.plugin_file)
         plugins.InitPlugin(source=rawfolder,
@@ -126,17 +156,16 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                            dry=True,
                            **bidsmap_new.plugin_options)
 
-    # Loop over all subjects and sessions and built up the bidsmap entries
-    subjects = tools.lsdirs(rawfolder, 'sub-*')
-    if not subjects:
-        logger.critical('No subjects found in: {}'
-                        .format(rawfolder))
-        raise ValueError("No subjects found")
-
-    for n, subject in enumerate(subjects,1):
+    n_subjects = len(df_sub["participant_id"])
+    for n, subid in enumerate(df_sub["participant_id"],1):
+        subject = os.path.join(rawfolder, subid)
+        if not os.path.isdir(subject):
+            logger.error("{}: Not found in {}"
+                         .format(subid, rawfolder))
+            continue
         scan = BidsSession()
         scan.in_path = subject
-        scan.subject = os.path.basename(subject)
+        scan.subject = subid
         plugins.RunPlugin("SubjectEP", scan)
         sessions = tools.lsdirs(subject, 'ses-*')
         if not sessions:
@@ -158,7 +187,7 @@ def bidsmapper(rawfolder: str, bidsfolder: str,
                                  .format(module, session))
                     continue
                 logger.info('Parsing: {} (subject {}/{})'
-                            .format(mod_dir, n, len(subjects)))
+                            .format(mod_dir, n, n_subjects))
 
                 for run in tools.lsdirs(mod_dir):
                     cls = Modules.selector.select(run, module)
