@@ -15,13 +15,12 @@ bidsfolder/code/bidscoin/bidscoiner.log file.
 """
 
 import os
-import sys
 import shutil
-import pandas as pd
+import pandas
+import json
 import logging
 import time
 import traceback
-import tempfile
 
 import argparse
 import textwrap
@@ -38,7 +37,6 @@ from bids.BidsSession import BidsSession
 logger = logging.getLogger()
 logger.name = os.path.splitext(os.path.basename(__file__))[0]
 info.setup_logging(logger, 'INFO')
-tmpDir = None
 
 bidsfolder = ""
 rawfolder = ""
@@ -59,21 +57,6 @@ def coin(recording: Modules.baseModule,
     :return:            Nothing
     """
     recording.sub_BIDSvalues["participant_id"] = recording.subId()
-    sub_tsv = os.path.join(tmpDir, 'participants.tsv')
-    if os.path.isfile(sub_tsv):
-        with open(sub_tsv, "a") as f:
-            f.write(recording.sub_BIDSfields.GetLine(
-                recording.sub_BIDSvalues))
-            f.write('\n')
-    else:
-        with open(sub_tsv, "w") as f:
-            f.write(recording.sub_BIDSfields.GetHeader())
-            f.write('\n')
-            f.write(recording.sub_BIDSfields.GetLine(
-                    recording.sub_BIDSvalues))
-            f.write('\n')
-        recording.sub_BIDSfields.DumpDefinitions(
-                tools.change_ext(sub_tsv, "json"))
     out_path = os.path.join(bidsfolder,
                             recording.getBidsPrefix("/"))
 
@@ -152,20 +135,6 @@ def bidscoiner(force: bool = False,
     # Input checking & defaults
     bidscodefolder = os.path.join(bidsfolder, 'code', 'bidscoin')
 
-    # Creating temporary directory
-    global tmpDir
-    try:
-        tmpDir = tempfile.mkdtemp(
-            prefix=os.path.basename(sys.argv[0]) + "_"
-            ) + "/"
-    except FileNotFoundError:
-        logger.warning("TMPDIR: Failed to create temporary directory."
-                       "Will try current directory")
-        tmpDir = tempfile.mkdtemp(
-            prefix=os.path.basename(sys.argv[0]) + "_", dir="."
-            ) + "/"
-    logger.debug("Temporary directory: {}".format(tmpDir))
-
     # Create a code/bidscoin subfolder
     os.makedirs(bidscodefolder, exist_ok=True)
 
@@ -219,34 +188,73 @@ def bidscoiner(force: bool = False,
             for item in bidsignore_items:
                 bidsignore.write(item + '\n')
 
-    if subject_list:
-        subjects = []
-        for sub in subject_list:
-            sub_dir = os.path.join(rawfolder, sub)
-            if os.path.isdir(sub_dir):
-                subjects.append(sub_dir)
-            else:
-                logger.warning("Subject {} not found in {}"
-                               .format(sub, rawfolder))
-    else:
-        subjects = tools.lsdirs(rawfolder, 'sub-*')
-    if not subjects:
-        logger.critical('No subjects found in: {}'
-                        .format(rawfolder))
-        raise ValueError("No subjects found")
+    new_sub_file = os.path.join(rawfolder, "participants.tsv")
+    df_sub = pandas.read_csv(new_sub_file,
+                             sep="\t", header=0,
+                             na_values="n/a")
+    df_dupl = df_sub.duplicated("participant_id")
+    if df_dupl.any():
+        logger.critical("Participant list contains one or several duplicated "
+                        "entries: {}"
+                        .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                        )
+        raise Exception("Duplicated subjects")
 
+    with open(os.path.join(rawfolder, "participants.json"), "r") as f:
+        df_definitions = json.load(f)
+    BidsSession.loadSubjectFields(os.path.join(rawfolder, "participants.json"))
+    if len(df_definitions) != len(df_sub.columns):
+        logger.critical("Participant.tsv contains {} columns, while "
+                        "sidecar contain {} definitions"
+                        .format(len(df_sub.columns),
+                                len(df_definitions)))
+        raise Exception("Participants column mismatch")
+    for col in df_sub.columns:
+        if col not in df_definitions:
+            logger.critical("Participant.tsv contains undefined "
+                            "column '{}'"
+                            .format(col))
+    del df_definitions
     old_sub_file = os.path.join(bidsfolder, "participants.tsv")
     old_sub = None
     if os.path.isfile(old_sub_file):
-        old_sub = pd.read_csv(old_sub_file, sep="\t", header=0,
-                              na_values="n/a")
+        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
+                                  na_values="n/a")
+
+    df_res = df_sub
+    if old_sub is not None:
+        if not old_sub.columns.equals(df_sub.columns):
+            logger.critical("Participant.tsv has differenrt columns "
+                            "from destination dataset")
+            raise Exception("Participants column mismatch")
+        if participants:
+            df_sub.drop(df_sub[df_sub["participant_id"].isin(
+                               old_sub["participant_id"]) 
+                               ].index,
+                        inplace=True).reset_index(inplace=True)
+        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplucates()
+        df_dupl = df_res.duplicated("participant_id")
+        if df_dupl.any():
+            logger.critical("Joined participant list contains one or "
+                            "several duplicated entries: {}"
+                            .format(", ".join(
+                                    df_sub[df_dupl]["participant_id"])
+                                    )
+                            )
+            raise Exception("Duplicated subjects")
 
     # Loop over all subjects and sessions
     # and convert them using the bidsmap entries
-    for n, subject in enumerate(subjects, 1):
+    n_subjects = len(df_sub["participant_id"])
+    for n, subid in enumerate(df_sub["participant_id"], 1):
+        subject = os.path.join(rawfolder, subid)
+        if not os.path.isdir(subject):
+            logger.critical("{}: Not found in {}"
+                            .format(subid, rawfolder))
+            continue
         scan = BidsSession()
         scan.in_path = subject
-        scan.subject = os.path.basename(subject)
+        scan.subject = subid
         plugins.RunPlugin("SubjectEP", scan)
         if participants and old_sub:
             if scan.subject in old_sub["participant_id"].values:
@@ -272,7 +280,7 @@ def bidscoiner(force: bool = False,
                                  .format(module, session))
                     continue
                 logger.info('Parsing: {} (subject {}/{})'
-                            .format(mod_dir, n, len(subjects)))
+                            .format(mod_dir, n, n_subjects))
                 for run in tools.lsdirs(mod_dir):
                     cls = Modules.selector.select(run, module)
                     if cls is None:
@@ -287,45 +295,16 @@ def bidscoiner(force: bool = False,
                     plugins.RunPlugin("SequenceEP", recording)
                     coin(recording, bidsmap, dry_run)
 
-    # Synchronizing subject list
-    new_sub_file = os.path.join(tmpDir, "participants.tsv")
-    old_sub_file = os.path.join(bidsfolder, "participants.tsv")
-    if os.path.isfile(new_sub_file):
-        new_sub = pd.read_csv(new_sub_file, sep="\t", header=0,
-                              na_values="n/a")
-        new_sub = new_sub.groupby("participant_id").ffill().drop_duplicates()
-        duplicates = new_sub.duplicated(keep=False)
-        if duplicates.any():
-            logger.error("One or several subjects have conflicting values."
-                         "See {} for details"
-                         .format(new_sub_file))
-            raise ValueError("Conflicting values in subject descriptions")
-    if old_sub is not None:
-        if set(new_sub.columns) != set(old_sub.columns):
-            logger.error("Subject table header mismach, "
-                         "see {} and {} for details."
-                         .format(new_sub_file, old_sub_file))
-            raise ValueError("Mismaching header in subject descriptions")
-        new_sub = new_sub.append(old_sub)
-        new_sub = new_sub.groupby("participant_id")\
-            .ffill().drop_duplicates()
-        duplicates = new_sub.duplicated()
-        if duplicates.any():
-            logger.error("One or several subjects have conflicting values."
-                         "See {} and {} for details"
-                         .format(new_sub_file, old_sub_file))
-            raise ValueError("Conflicting values in subject descriptions")
-
     plugins.RunPlugin("FinaliseEP")
 
     if not dry_run:
-        new_sub.to_csv(old_sub_file,
-                       sep='\t', na_rep="n/a",
-                       index=False, header=True)
+        df_res.to_csv(old_sub_file,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
         json_file = tools.change_ext(old_sub_file, "json")
         if not os.path.isfile(json_file):
-            shutil.copyfile(tools.change_ext(new_sub_file, "json"), json_file)
-    shutil.rmtree(tmpDir)
+            shutil.copyfile(os.path.join(rawfolder, "participants.json"),
+                            json_file)
 
 
 # Shell usage
