@@ -40,6 +40,7 @@ def sortsession(outfolder: str,
     recording.index = -1
     while recording.loadNextFile():
         plugins.RunPlugin("RecordingEP", recording)
+        recording.getBidsSession().registerFields(True)
         serie = os.path.join(
                 outfolder, 
                 "{}/{}".format(recording.Module(),
@@ -74,6 +75,7 @@ def sortsessions(source: str, destination:str,
     else:
         folders = [source]
 
+    BidsSession.loadSubjectFields()
     for f in folders:
         scan = BidsSession()
         scan.in_path = f
@@ -139,6 +141,7 @@ def sortsessions(source: str, destination:str,
                                             scan.getPath(True))
                     sortsession(out_path, recording)
             plugins.RunPlugin("SessionEndEP", scan)
+    BidsSession.exportParticipants(destination)
 
     plugins.RunPlugin("FinaliseEP")
 

@@ -1,10 +1,22 @@
+import os
+import logging 
+
 from tools import tools
+from bidsMeta import BIDSfieldLibrary
+
+
+logger = logging.getLogger(__name__)
 
 
 class BidsSession(object):
     __slots__ = ["__subject", "__session", 
                  "in_path",
-                 "__sub_locked", "__ses_locked"]
+                 "__sub_locked", "__ses_locked",
+                 "sub_values"
+                 ]
+
+    __sub_columns = None
+    __sub_values = dict()
 
     def __init__(self):
         self.__subject = ""
@@ -13,6 +25,10 @@ class BidsSession(object):
 
         self.__sub_locked = False
         self.__ses_locked = False
+
+        if self.__sub_columns is None:
+            raise ValueError("Participants tsv not initialized")
+        self.sub_values = self.__sub_columns.GetTemplate()
 
     @property
     def subject(self) -> str:
@@ -129,3 +145,88 @@ class BidsSession(object):
             return False
         else:
             return True
+
+    @classmethod
+    def loadSubjectFields(cls, filename: str=None) -> None:
+        """
+        Loads the tsv fields for subject.tsv file
+
+        Parameters
+        ----------
+        filename: str
+            path to the template json file, if None,
+            the default is loaded
+        """
+        if cls.__sub_columns is not None:
+            raise ValueError("Redefinition of participants template")
+        if filename is None:
+            cls.__sub_columns = BIDSfieldLibrary()
+            cls.__sub_columns.AddField(
+                    name="participant_id",
+                    longName="Participant Id",
+                    description="Unique label associated with a participant"
+                    )
+        else:
+            cls.__sub_columns.LoadDefinitions(filename)
+
+    def registerFields(self, conflicting: bool=False) -> None:
+        """
+        Register current values of participants fields
+
+        Parameters
+        ----------
+        conflicting: bool
+            if True, allow conflicting entries
+        """
+        self.sub_values["participant_id"] = self.subject
+        if self.subject in self.__sub_values:
+            last_values = self.__sub_values[self.subject][-1]
+            conflict = False
+            for key in self.sub_values:
+                old_val = last_values[key]
+                new_val = self.sub_values[key]
+                if new_val is None:
+                    self.sub_values[key] = old_val
+                elif old_val != new_val:
+                    conflict = True
+            if conflict:
+                if conflicting:
+                    logger.warning("{}/{}: participants contains "
+                                   "conflicting values")
+                    self.__sub_values.append(self.sub_values)
+                else:
+                    logger.critical("{}/{}: {} conflicts with {}"
+                                    .format(self.subject, self.session,
+                                            last_values, self.sub_values)
+                                    )
+                    raise ValueError("Conflicting participant values")
+            else:
+                self.__sub_values[self.subject][-1] = self.sub_values
+        else:
+            self.__sub_values[self.subject] = [self.sub_values]
+        self.sub_values = self.__sub_columns.GetTemplate()
+
+    @classmethod
+    def exportParticipants(cls, output:str) -> None:
+        """
+        Export current participants list to given location
+
+        Parameters
+        ----------
+        output: str
+            path to destination folder
+        """
+        fname = os.path.join(output, "participants.tsv")
+        if os.path.isfile(fname):
+            f = open(fname, "a")
+        else:
+            f = open(fname, "w")
+            f.write(cls.__sub_columns.GetHeader())
+            f.write("\n")
+        for sub in sorted(cls.__sub_values):
+            for vals in cls.__sub_values[sub]:
+                f.write(cls.__sub_columns.GetLine(vals))
+                f.write("\n")
+        f.close()
+        cls.__sub_columns.DumpDefinitions(os.path.join(output, 
+                                                       "participants.json"))
