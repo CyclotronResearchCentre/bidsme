@@ -232,7 +232,7 @@ def bidscoiner(force: bool = False,
                                old_sub["participant_id"]) 
                                ].index,
                         inplace=True).reset_index(inplace=True)
-        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplucates()
+        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()
         df_dupl = df_res.duplicated("participant_id")
         if df_dupl.any():
             logger.critical("Joined participant list contains one or "
