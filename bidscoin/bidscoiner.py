@@ -294,6 +294,10 @@ def bidscoiner(force: bool = False,
                     recording.setBidsSession(scan)
                     plugins.RunPlugin("SequenceEP", recording)
                     coin(recording, bidsmap, dry_run)
+            # End of session
+            plugins.RunPlugin("SessionEndEP", scan)
+        # End of subject
+        plugins.RunPlugin("SubjectEndEP", scan)
 
     plugins.RunPlugin("FinaliseEP")
 

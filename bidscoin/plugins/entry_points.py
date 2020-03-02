@@ -9,5 +9,6 @@ entry_points = {
         "FileEP": exceptions.FileEPError,
         "SequenceEndEP": exceptions.SequenceEndEPError,
         "SessionEndEP": exceptions.SessionEndEPError,
+        "SubjectEndEP": exceptions.SubjectEndEPError,
         "FinaliseEP": exceptions.FinaliseEPError
         }

@@ -77,6 +77,9 @@ def sortsessions(source: str, destination:str,
         folders = [source]
 
     BidsSession.loadSubjectFields(part_template)
+    ####################
+    ## Subject loop
+    ####################
     for f in folders:
         scan = BidsSession()
         scan.in_path = f
@@ -90,6 +93,9 @@ def sortsessions(source: str, destination:str,
         else:
             sfolders = [f]
 
+        ####################
+        ## Session loop
+        ####################
         for s in sfolders:
             scan.in_path = s
             if sessions:
@@ -141,7 +147,10 @@ def sortsessions(source: str, destination:str,
                     out_path = os.path.join(destination, 
                                             scan.getPath(True))
                     sortsession(out_path, recording)
+            # End of session
             plugins.RunPlugin("SessionEndEP", scan)
+        # End of subject
+        plugins.RunPlugin("SubjectEndEP", scan)
     BidsSession.exportParticipants(destination)
 
     plugins.RunPlugin("FinaliseEP")

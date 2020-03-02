@@ -30,7 +30,7 @@ class InitEPError(PluginError):
     """
     Raises if an error happens during the plugin initialisation
     """
-    base = 110
+    base = 100
     code = 0
 
 
@@ -38,7 +38,7 @@ class SubjectEPError(PluginError):
     """
     Raises if an error happens during the Subject adjustement
     """
-    base = 120
+    base = 110
     code = 0
 
 
@@ -46,7 +46,7 @@ class SessionEPError(PluginError):
     """
     Raises if an error happens during the Session adjustement
     """
-    base = 130
+    base = 120
     code = 0
 
 
@@ -54,7 +54,7 @@ class SequenceEPError(PluginError):
     """
     Raises if an error happens during the Sequence adjustement
     """
-    base = 140
+    base = 130
     code = 0
 
 
@@ -62,7 +62,7 @@ class RecordingEPError(PluginError):
     """
     Raises if an error happens during the Recording adjustement
     """
-    base = 150
+    base = 140
     code = 0
 
 
@@ -70,7 +70,7 @@ class FileEPError(PluginError):
     """
     Raises if an error happens during the post-copy file adjustement
     """
-    base = 160
+    base = 150
     code = 0
 
 
@@ -78,13 +78,19 @@ class SequenceEndEPError(PluginError):
     """
     Raises if an error happens during the post-sequence adjustement
     """
-    base = 170
+    base = 160
     code = 0
 
 
 class SessionEndEPError(PluginError):
     """
     Raises if an error happens during the post-session adjustement
+    """
+    base = 170
+
+class SubjectEndEPError(PluginError):
+    """
+    Raises if an error happens during the post-subject adjustement
     """
     base = 180
 

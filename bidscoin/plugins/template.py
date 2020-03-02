@@ -69,7 +69,7 @@ def InitEP(source: str, destination: str,
     Raises
     ------
     Error.InitEPerror
-        code 110
+        code 100
     """
     global rawfolder
     global bidsfolder
@@ -89,13 +89,14 @@ def SubjectEP(scan: BidsSession) -> int:
     external data for given subject.
 
     The default (folder-defined) subject name can be modified 
-    by modifying 'subject' field in the passed dictionary.
-    The sub- prefix is optional for the modifyed subject 
+    by modifying 'subject' attribute in the passed BidsSession.
+    The sub- prefix is optional for the modifyed subject, and 
+    will be added afterwards.
 
     Parameters
     ----------
-    scan: dict
-        must contain fields 'subject' and 'session'
+    scan: BisdSession
+        contains session-related information
 
     Returns
     -------
@@ -123,8 +124,7 @@ def SessionEP(scan: BidsSession) -> int:
 
     Parameters
     ----------
-    scan: dict
-        must contain fields 'subject' and 'session'
+    scan: BisdSession
 
     Returns
     -------
@@ -252,13 +252,41 @@ def SequenceEndEP(path: str, recording: object) -> int:
     """
     return 0
 
-def SessionEnd(scan: BidsSession) -> int:
+def SessionEndEP(scan: BidsSession) -> int:
     """
     This function is called after processing last recording 
     of the session and meant to complete session by any 
     additional information.
+
+    Parameters
+    ----------
+    scan: BisdSession
+
+    Raises
+    ------
+    Error.SessionEndEPerror
+        code 180
     """
     return 0
+
+
+def SubjectEndEP(scan: BidsSession) -> int:
+    """
+    This function is called after processing last session 
+    of the subject and meant to perform global subject
+    actions, for ex. checking for missing session
+
+    Parameters
+    ----------
+    scan: BisdSession
+
+    Raises
+    ------
+    Error.SubjectEndEPerror
+        code 180
+    """
+    return 0
+
 
 def FinaliseEP() -> int:
     """
@@ -276,7 +304,7 @@ def FinaliseEP() -> int:
 
     Raises
     ------
-    Error.SequenceEndEPerror
-        code 180
+    Error.FinaliseError
+        code 190
     """
     return 0
