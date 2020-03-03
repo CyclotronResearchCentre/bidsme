@@ -37,5 +37,7 @@ config = {
             "no_session": False,
             # dictionary for folders with data and corresponding data type
             # for. ex. {"nii": "MRI"}
-            "rec_folders":{}
+            "rec_folders":{},
+            # Path to template json file defining subject tsv columns
+            "part_template": ~
             }
