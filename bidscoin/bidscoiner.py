@@ -342,12 +342,6 @@ if __name__ == "__main__":
     parser.add_argument('bidsfolder',
                         help='The destination / output folder with '
                         'the bids data')
-    parser.add_argument('-p', '--participant_label',
-                        help='Space seperated list of selected sub-# '
-                        'names / folders to be processed (the sub- '
-                        'prefix can be removed). Otherwise all subjects '
-                        'in the sourcefolder will be selected',
-                        nargs='+')
     parser.add_argument('-s', '--skip_participants',
                         help='If this flag is given those subjects '
                         'that are in particpants.tsv will not be '
@@ -364,7 +358,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--dry_run",
                         help="Run bidscoiner without writing anything "
                         "on the disk. Useful to detect errors without "
-                        "putting dataset at risk. Default: False",
+                        "putting dataset at risk.",
                         action="store_true")
     parser.add_argument('-v', '--version',
                         help='Show the BIDS and BIDScoin version',

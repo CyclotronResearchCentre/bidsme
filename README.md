@@ -1,320 +1,436 @@
 # BIDScoin
 
-<img name="bidscoin-logo" src="./docs/bidscoin_logo.png" alt="A BIDS converter toolkit" height="325" align="right">
+[//]: # (<img name="bidscoin-logo" src="./docs/bidscoin_logo.png" alt="A BIDS converter toolkit" height="325" align="right">)
 
-[![PyPI version](https://badge.fury.io/py/bidscoin.svg)](https://badge.fury.io/py/bidscoin)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bidscoin.svg)
 
-- [The BIDScoin workflow](#the-bidscoin-workflow)
-  * [Required source data structure](#required-source-data-structure)
-  * [Coining your source data to BIDS](#coining-your-source-data-to-bids)
-    + [Step 1a: Running the bidsmapper](#step-1a-running-the-bidsmapper)
-    + [Step 1b: Running the bidseditor](#step-1b-running-the-bidseditor)
-    + [Step 2: Running the bidscoiner](#step-2-running-the-bidscoiner)
-  * [Finishing up](#finishing-up)
-- [Plug-in functions](#options-and-plug-in-functions)
-- [BIDScoin functionality / TODO](#bidscoin-functionality--todo)
-- [BIDScoin tutorial](#bidscoin-tutorial)
+- [The BIDScoin workflow](#workflow)
+  * [Data preparation](#wf_prep)
+  * [Data bidsification](#wf_bids)
+  * [Bidsmap configuration](#wf_map)
+  * [Plugin configuration](#wf_plug)
+- [Examples](#examples)
+  * [Dataset 1](#ex1)
+- [Supported formats](#formats)
+  * [MRI](#mri)
+    + [Nifti\_SPM12](#Nifti_SPM12)
+  * [EEG](#eeg)
+    + [BrainVision](#BV)
+- [Plug-in functions](#plugins)
+- [Implementing additional formats](#new_formats)
+- [Bidsmap file structure](#bidsmap)
 
-BIDScoin is a user friendly [open-source](https://github.com/Donders-Institute/bidscoin) python toolkit that converts ("coins") source-level (raw) neuroimaging data-sets to [nifti](https://nifti.nimh.nih.gov/) / [json](https://www.json.org/) / [tsv](https://en.wikipedia.org/wiki/Tab-separated_values) data-sets that are organized following the Brain Imaging Data Structure, a.k.a. [BIDS](http://bids.neuroimaging.io) standard. Rather then depending on complex or ambiguous programmatic logic for the identification of imaging modalities, BIDScoin uses a direct mapping approach to identify and convert the raw source data into BIDS data. The information sources that can be used to map the source data to BIDS are:
 
- 1. Information in MRI header files (DICOM, PAR/REC or .7 format; e.g. SeriesDescription)
- 2. Information from nifti headers (e.g. image dimensionality)
- 3. Information in the file structure (file- and/or directory names, e.g. number of files)
+BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin) python toolkit that converts ("bidsifies") source-level (raw) neuroimaging data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable). 
+Rather then depending on complex or ambiguous programmatic logic for the identification of imaging modalities, BIDScoin uses a direct mapping approach to identify and convert the raw source data into BIDS data. 
+The information sources that can be used to map the source data to BIDS are retrieved dynamically from
+source data header files (DICOM, BrainVision, nifti etc...) and file source data-set file structure 
+(file- and/or directory names, e.g. number of files).
 
-> NB: Currently, the DICOM support (option 1) has been fully implemented, but the support for option 2 and 3 is planned for [future](#bidscoin-functionality--todo) releases.
+The retrieved information can be modified/adjusted by a set of plugins, described [here](#plugins).
+Plugins can also be used to complete the bidsified dataset, for example by parcing log files. 
 
-The mapping information is stored as key-value pairs in the human readable and widely supported [YAML](http://yaml.org/) files. The nifti- and json-files are generated with [dcm2niix](https://github.com/rordenlab/dcm2niix). In addition, users can provide custom written [plug-in functions](#options-and-plug-in-functions), e.g. for using additional sources of information or e.g. for parsing of Presentation logfiles.
+> NB: BIDScoin support variaty of formats listed in [supported formats](#formats).
+Additional formats can be implemented following instructions [here](#new_formats) 
 
-Because all the mapping information can be edited with a graphical user interface, BIDScoin requires no programming knowledge in order to use it.
+The mapping information is stored as key-value pairs in the human readable and 
+widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
-For information on the BIDScoin installation and requirements, see the [installation guide](./docs/installation.md).
- 
+<a name="workflow">
 ## The BIDScoin workflow
 
-### Required source data structure
-BIDScoin will take your (raw) source data as well as a YAML file with the key-value mapping (dictionary) information as input, and returns a BIDS folder as output. The source data input folder should be organised according to a `/sub-identifier/[ses-identifier]/seriesfolder/dicomfile` structure. This data organization is how users receive their data from the (Siemens) scanners at the [DCCN](https://www.ru.nl/donders/) (NB: the `ses-identifier` sub-folder is optional and can be left out).
+The BIDScoin workfolw is composed in two steps:
 
-- If your data is not already organized in this way, you can use the handy [dicomsort.py](./bidscoin/dicomsort.py) command-line utility to move your unordered or DICOMDIR ordered DICOM-files into a `seriesfolder` organization with the DICOM series-folders being named [SeriesNumber]-[SeriesDescription]. Series folders contain a single data type and are typically acquired in a single run.
- 
-- Another command-line utility that can be helpful in organizing your source data is [rawmapper.py](./bidscoin/rawmapper.py). This utility can show you the overview (map) of all the values of DICOM-fields of interest in your data-set and, optionally, use these fields to rename your source data sub-folders (this can be handy e.g. if you manually entered subject-identifiers as [Additional info] at the scanner console and you want to use these to rename your subject folders).
- 
-> If these utilities do not satisfy your needs, then have a look at this [reorganize_dicom_files](https://github.com/robertoostenveld/bids-tools/blob/master/doc/reorganize_dicom_files.md) tool.
+  1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into 
+stadard bids-like structure
+  2. [Data bidsification](#wf_bids), in which prepeared data is bidsified.
 
-### Coining your source data to BIDS
-Having an organized source data folder, the actual data-set conversion to BIDS is performed by the [(1a)](#step-1a-running-the-bidsmapper) the `bidsmapper.py`, [(1b)](#step-1b-running-the-bidseditor) the `bidseditor.py` and [(2)](#step-2-running-the-bidscoiner) the `bidscoiner.py` command-line tools. The `bidsmapper` makes a map of the different kind of datatypes in your source dataset, with the `bidseditor` you can edit this map, and the `bidscoiner` does the actual work to convert the source data into BIDS. By default (but see the `-i` option of the bidsmapper below), step 1a automatically launches step 1b, so in it's simplest form, all you need to do to convert your raw source data into BIDS is to run two simple commands, e.g.:
-   ```
-   bidsmapper.py sourcefolder bidsfolder
-   bidscoiner.py sourcefolder bidsfolder
-   ```
+This organisation allow to user intervene before the bidsification in case of presence of errors,
+or to complete the data manually if it could not be completed numerically.
 
-#### Step 1a: Running the bidsmapper
+<a name="wf_prep">
+### Data preparation 
 
-    usage: bidsmapper.py [-h] [-b BIDSMAP] [-t TEMPLATE] [-n SUBPREFIX]
-                         [-m SESPREFIX] [-i {0,1,2}] [-v]
-                         sourcefolder bidsfolder
-    
-    Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin that maps the information
-    from all raw source data to the BIDS labels. You can check and edit the bidsmap file with
-    the bidseditor (but also with any text-editor) before passing it to the bidscoiner
-    N.B.: Institute users may want to use a site-customized template bidsmap (see the
-    --template option). The bidsmap_dccn template from the Donders Institute can serve as
-    an example (or may even mostly work for other institutes out of the box).
-    
-    positional arguments:
-      sourcefolder          The source folder containing the raw data in
-                            sub-#/ses-#/run format (or specify --subprefix and
-                            --sesprefix for different prefixes)
-      bidsfolder            The destination folder with the (future) bids data and
-                            the bidsfolder/code/bidscoin/bidsmap.yaml output file
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -b BIDSMAP, --bidsmap BIDSMAP
-                            The bidsmap YAML-file with the study heuristics. If
-                            the bidsmap filename is relative (i.e. no "/" in the
-                            name) then it is assumed to be located in
-                            bidsfolder/code/bidscoin. Default: bidsmap.yaml
-      -t TEMPLATE, --template TEMPLATE
-                            The bidsmap template with the default heuristics (this
-                            could be provided by your institute). If the bidsmap
-                            filename is relative (i.e. no "/" in the name) then it
-                            is assumed to be located in bidsfolder/code/bidscoin.
-                            Default: bidsmap_template.yaml
-      -n SUBPREFIX, --subprefix SUBPREFIX
-                            The prefix common for all the source subject-folders.
-                            Default: 'sub-'
-      -m SESPREFIX, --sesprefix SESPREFIX
-                            The prefix common for all the source session-folders.
-                            Default: 'ses-'
-      -i {0,1,2}, --interactive {0,1,2}
-                            {0}: The sourcefolder is scanned for different kinds
-                            of scans without any user interaction. {1}: The
-                            sourcefolder is scanned for different kinds of scans
-                            and, when finished, the resulting bidsmap is opened
-                            using the bidseditor. {2}: As {1}, except that already
-                            during scanning the user is asked for help if a new
-                            and unknown run is encountered. This option is most
-                            useful when re-running the bidsmapper (e.g. when the
-                            scan protocol was changed since last running the
-                            bidsmapper). Default: 1
-      -v, --version         Show the BIDS and BIDScoin version
-    
-    examples:
-      bidsmapper.py /project/foo/raw /project/foo/bids
-      bidsmapper.py /project/foo/raw /project/foo/bids -t bidsmap_dccn
+In order to be bidsified, dataset should be put into a form:
+```
+sub-<subId>/ses-<sesId>/<DataType>/<seriesNo>-<seriesId>/<datafiles>
+```
+where `subId` and `sesId` are the subject and session label, as defined by BIDS standard. 
+`DataType` is an unique label identifying the modality of data, e.g. `EEG` or `MRI`.
+`seriesNo` and `seriesId` are the unique identification of given recording serie, 
+which can be defined as a set of recording sharing the same recording parameters 
+(e.g. set of 2D slices for same fMRI scan).
 
-The bidsmapper will scan your `sourcefolder` to look for different runs (scan-types) to create a mapping for each run to a bids output name (a.k.a. the 'bidsmap'). By default (but see the `-i` option above), when finished the bidsmapper will automatically launch [step 1b](#step-1b-running-the-bidseditor), as described in the next section (but step 1b can also always be run separately by directly running the bidseditor).
+A generic data-set can be organized into prepeared datase using `coinsort` tool:
+```
+usage: coinsort.py [-h] [-i SUBJECTID] [-j SESSIONID] [-r RECFOLDER]
+                   [-t RECTYPE] [--no-session] [--no-subject] [-p PLUGIN]
+                   [-o OptName=OptValue [OptName=OptValue ...]]
+                   source destination
 
-> Tip: use the `-t bidsmap_dccn` option and see if it works for you. If not, consider opening it with a text editor and adapt it to your needs.
+Sorts and data files into local sub-direcories
+destination/sub-xxx/ses-xxx/zzz-seriename/<data-file>
 
-#### Step 1b: Running the bidseditor
+Plugins allow to modify subjects and session names
+and preform various operations on data files.
 
-    usage: bidseditor.py [-h] [-s SOURCEFOLDER] [-b BIDSMAP] [-t TEMPLATE]
-                         [-n SUBPREFIX] [-m SESPREFIX]
-                         bidsfolder
-    
-    This tool launches a graphical user interface for editing the bidsmap.yaml file
-    that is e.g. produced by the bidsmapper or by this bidseditor itself. The user can
-    fill in or change the BIDS labels for entries that are unidentified or sub-optimal,
-    such that meaningful BIDS output names will be generated from these labels. The saved
-    bidsmap.yaml output file can be used for converting the source data to BIDS using
-    the bidscoiner.
-    
-    positional arguments:
-      bidsfolder            The destination folder with the (future) bids data
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -s SOURCEFOLDER, --sourcefolder SOURCEFOLDER
-                            The source folder containing the raw data. If empty,
-                            it is derived from the bidsmap provenance information
-      -b BIDSMAP, --bidsmap BIDSMAP
-                            The bidsmap YAML-file with the study heuristics. If
-                            the bidsmap filename is relative (i.e. no "/" in the
-                            name) then it is assumed to be located in
-                            bidsfolder/code/bidscoin. Default: bidsmap.yaml
-      -t TEMPLATE, --template TEMPLATE
-                            The bidsmap template with the default heuristics (this
-                            could be provided by your institute). If the bidsmap
-                            filename is relative (i.e. no "/" in the name) then it
-                            is assumed to be located in bidsfolder/code/bidscoin.
-                            Default: bidsmap_template.yaml
-      -n SUBPREFIX, --subprefix SUBPREFIX
-                            The prefix common for all the source subject-folders.
-                            Default: 'sub-'
-      -m SESPREFIX, --sesprefix SESPREFIX
-                            The prefix common for all the source session-folders.
-                            Default: 'ses-'
-    
-    examples:
-      bidseditor.py /project/foo/bids
-      bidseditor.py /project/foo/bids -t bidsmap_dccn.yaml
-      bidseditor.py /project/foo/bids -b my/custom/bidsmap.yaml
-    
-    Here are a few tips & tricks:
-    -----------------------------
-    
-    DICOM Attributes
-      An (DICOM) attribute label can also be a list, in which case the BIDS labels / mapping
-      are applies if a (DICOM) attribute value is in this list. If the attribute value is
-      empty it is not used to identify the run. Wildcards can also be given, either as a single
-      '*', or enclosed by '*'. Examples:
-           SequenceName: '*'
-           SequenceName: '*epfid*'
-           SequenceName: ['epfid2d1rs', 'fm2d2r']
-           SequenceName: ['*epfid*', 'fm2d2r']
-       NB: Editing the DICOM attributes is normally not necessary and adviced against
-    
-    Dynamic BIDS labels
-      The BIDS labels can be static, in which case the label is just a normal string, or dynamic,
-      when the string is enclosed with pointy brackets like `<attribute name>` or
-      `<<argument1><argument2>>`. In case of single pointy brackets the label will be replaced
-      during bidsmapper, bidseditor and bidscoiner runtime by the value of the (DICOM) attribute
-      with that name. In case of double pointy brackets, the label will be updated for each
-      subject/session during bidscoiner runtime. For instance, then the `run` label `<<1>>` in
-      the bids name will be replaced with `1` or increased to `2` if a file with runindex `1`
-      already exists in that directory.
-    
-    Fieldmaps: suffix
-      Select 'magnitude1' if you have 'magnitude1' and 'magnitude2' data in one series-folder
-      (this is what Siemens does) -- the bidscoiner will automatically pick up the 'magnitude2'
-      data during runtime. The same holds for 'phase1' and 'phase2' data. See the BIDS
-      specification for more details on fieldmap suffixes
-    
-    Fieldmaps: IntendedFor
-      You can use the `IntendedFor` field to indicate for which runs (DICOM series) a fieldmap
-      was intended. The dynamic label of the `IntendedFor` field can be a list of string patterns
-      that is used to include all runs in a session that have that string pattern in their BIDS
-      file name. Example: use `<<task>>` to include all functional runs or `<<Stop*Go><Reward>>`
-      to include "Stop1Go"-, "Stop2Go"- and "Reward"-runs.
-      NB: The fieldmap might not be used at all if this field is left empty!
-    
-    Manual editing / inspection of the bidsmap
-      You can of course also directly edit or inspect the `bidsmap.yaml` file yourself with any
-      text editor. For instance to merge a set of runs that by adding a wildcard to a DICOM
-      attribute in one run item and then remove the other runs in the set. See ./docs/bidsmap.md
-      and ./heuristics/bidsmap_dccn.yaml for more information.
+positional arguments:
+  source                The name of the root folder containing the recording
+                        file source/[sub/][ses/]<type>
+  destination           The name of the folder where sotred files will be
+                        placed
 
-As shown below, the main window of the bidseditor opens with the `BIDS map` tab that contains a list of `input samples` that uniquely represents all the different files that are present in the source folder, together with the associated `BIDS output name`. The path in the `BIDS output name` is shown in red if the modality is not part of the BIDS standard, striked-out gray when the runs will be ignored in the conversion to BIDS, otherwise it is colored green. Double clicking the sample (DICOM) filename opens an inspection window with the full header information (double clicking sample filenames works throughout the GUI).
+optional arguments:
+  -h, --help            show this help message and exit
+  -i SUBJECTID, --subjectid SUBJECTID
+                        The prefix string for recursive searching in
+                        niisource/subject subfolders (e.g. "sub-") (default: )
+  -j SESSIONID, --sessionid SESSIONID
+                        The prefix string for recursive searching in
+                        niisource/subject/session subfolders (e.g. "ses-")
+                        (default: )
+  -r RECFOLDER, --recfolder RECFOLDER
+                        Comma-separated list of folders with all recording
+                        files files (default: )
+  -t RECTYPE, --rectype RECTYPE
+                        Comma-separated list of types associated with
+                        recfolder folders. Must have same dimentions.
+                        (default: )
+  --no-session          Dataset do not contains session folders (default:
+                        False)
+  --no-subject          Dataset do not contains subject folders (default:
+                        False)
+  -p PLUGIN, --plugin PLUGIN
+                        Path to a plugin file (default: )
+  -o OptName=OptValue [OptName=OptValue ...]
+                        Options passed to plugin in form -o OptName=OptValue,
+                        several options can be passed (default: {})
 
-<a name="bidseditor-main">![Bidseditor main window](./docs/bidseditor_main.png)</a>
+examples:
+  python3 coinsort.py source renamed -r nii -t MRI
+```
 
-The user can click the `Edit` button for each list item to open a new edit window, as show below. In this interface, the right BIDS `Modality` (drop down menu) and the `suffix` label (drop down menu) can set correctly, after which the associated BIDS `Labels` can be edited (double click black items). As a result, the new BIDS `Output name` is then shown in the bottom text field. This is how the BIDS output data will look like and, if this looks all fine, the user can store this mapping to the bidsmap and return to the main window by clicking the `OK` button.
+`coinsort` expects to have source dataset organized following
+```
+[<subjectId>/][<sesId>/][datafolders/]<datafiles>
+```
+in particular, the subject Id and session Id are extracted from the 2 top-level 
+folders in source dataset. 
+The Id are taking as it, with removal of all non alphanumerical characters.
+For example, if subject folder is called `s0123-control`, the subject Id will be 
+`sub-s0123control`.
+If the folders name contain a prefix, that you don't want to be part of Id, 
+you can set it with option `-i` and `-j` for subject and session.
+For example with option `-i s`, the subject folder `s0123-control` will 
+result in subject Id `sub-0123control`.
 
-<a name="bidseditor-edit">![Bidseditor edit window](./docs/bidseditor_edit.png)</a>
+If in the original dataset data is not organized in `subject/session` folders,
+one should use options `--no-subject` and `--no-session`.
+The session Id will be set to an empty string, and subject Id will be retrieved
+from data files.
 
-Finally, if all BIDS output names in the main window are fine, the user can click on the `Save` button and proceed with running the bidscoiner tool.
+If one need to rename subjects and/or sessions, it can be done with plug-in functions
+`SubjectEP` and `SessionEP` or by renaming directly folders in the prepeared dataset.
 
-#### Step 2: Running the bidscoiner
+`coinsort` do not modify/convert/rename data files, only copies them.
+If an actual modification of data is needed (e.g. anonymisation, or convertion),
+either in plugin functions `FileEP`, `SequenceEndEP` or manually in prepeared
+dataset. 
+As long datafiles remains in the correct folders and data format is supported 
+by BIDScoin, bidsification should perform normally.
 
-    usage: bidscoiner.py [-h] [-p PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]] [-f]
-                         [-s] [-b BIDSMAP] [-n SUBPREFIX] [-m SESPREFIX] [-v]
-                         sourcefolder bidsfolder
-    
-    Converts ("coins") datasets in the sourcefolder to nifti / json / tsv datasets in the
-    bidsfolder according to the BIDS standard. Check and edit the bidsmap.yaml file to
-    your needs using the bidseditor.py tool before running this function. You can run
-    bidscoiner.py after all data is collected, or run / re-run it whenever new data has
-    been added to the source folder (presuming the scan protocol hasn't changed). If you
-    delete a (subject/) session folder from the bidsfolder, it will be re-created from the
-    sourcefolder the next time you run the bidscoiner.
-    
-    Provenance information, warnings and error messages are stored in the
-    bidsfolder/code/bidscoin/bidscoiner.log file.
-    
-    positional arguments:
-      sourcefolder          The source folder containing the raw data in
-                            sub-#/[ses-#]/run format (or specify --subprefix and
-                            --sesprefix for different prefixes)
-      bidsfolder            The destination / output folder with the bids data
-    
-    optional arguments:
-      -h, --help            show this help message and exit
-      -p PARTICIPANT_LABEL [PARTICIPANT_LABEL ...], --participant_label PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]
-                            Space seperated list of selected sub-# names / folders
-                            to be processed (the sub- prefix can be removed).
-                            Otherwise all subjects in the sourcefolder will be
-                            selected
-      -f, --force           If this flag is given subjects will be processed,
-                            regardless of existing folders in the bidsfolder.
-                            Otherwise existing folders will be skipped
-      -s, --skip_participants
-                            If this flag is given those subjects that are in
-                            particpants.tsv will not be processed (also when the
-                            --force flag is given). Otherwise the participants.tsv
-                            table is ignored
-      -b BIDSMAP, --bidsmap BIDSMAP
-                            The bidsmap YAML-file with the study heuristics. If
-                            the bidsmap filename is relative (i.e. no "/" in the
-                            name) then it is assumed to be located in
-                            bidsfolder/code/bidscoin. Default: bidsmap.yaml
-      -n SUBPREFIX, --subprefix SUBPREFIX
-                            The prefix common for all the source subject-folders.
-                            Default: 'sub-'
-      -m SESPREFIX, --sesprefix SESPREFIX
-                            The prefix common for all the source session-folders.
-                            Default: 'ses-'
-      -v, --version         Show the BIDS and BIDScoin version
-    
-    examples:
-      bidscoiner.py /project/foo/raw /project/foo/bids
-      bidscoiner.py -f /project/foo/raw /project/foo/bids -p sub-009 sub-030
+`coinsort` supports multimodal dataset.
+Actually, for each data-file, `coinsort` try to determine corresponding format.
+In order to help `coinsort`, and elimiate possible mis-identification, 
+an option `-t RECTYPE` can be used, with provided comma-separated list of
+supported data types.
+The option `-r RECFOLDER` provides the list of folders where corresponding
+data files are searched.
+For example with option `-t MRI,EEG -r nii,eeg`, `coinsort` will look for MRI 
+recordings in `<subjectId>/<sessionId>/nii` and for EEG recordings in
+`<subjectId>/<sessionId>/eeg`.
+If data do not have a separate folders, then an empty string `""` or 
+current directory `.` can be used.
 
-### Finishing up
+The recording directories can be nested and contain wildecards (using Unix-style 
+patterns, see [glob](https://docs.python.org/3/library/glob.html) for details).
+For example with `-r data/nii` data will be searched in 
+`<subjectId>/<sessionId>/data/nii`.
 
-After a successful run of `bidscoiner.py`, the work to convert your data in a fully compliant BIDS dataset is unfortunately not yet fully over and, depending on the complexity of your data-set, additional tools may need to be run and meta-data may need to be entered manually (not everything can be automated). For instance, you should update the content of the `dataset_description.json` and `README` files in your bids folder and you may need to provide e.g. additional `*_scans.tsv`,`*_sessions.tsv` or `participants.json` files (see the [BIDS specification](http://bids.neuroimaging.io/bids_spec.pdf) for more information). Moreover, if you have behavioural log-files you will find that BIDScoin does not (yet) [support](#bidscoin-functionality--todo) converting these into BIDS compliant `*_events.tsv/json` files (advanced users are encouraged to use the `bidscoiner.py` [plug-in](#options-and-plug-in-functions) possibility and write their own log-file parser).
+> If wildcard characters are used, then full `RECFOLDER` must be protected
+by single quote `'`, to avoid expansion by shell:
+`-r '*/nii'`. In this case MRI data will be searched in all folders having
+*nii* subfolder. 
 
-If all of the above work is done, you can (and should) run the web-based [bidsvalidator](https://bids-standard.github.io/bids-validator/) to check for inconsistencies or missing files in your bids data-set (NB: the bidsvalidator also exists as a [command-line tool](https://github.com/bids-standard/bids-validator)).
+A working example of source dataset and `coinsort` configuration can be found 
+[there](https://github.com/nbeliy/bidscoin_example).
 
-> NB: The provenance of the produced BIDS data-sets is stored in the `bids/code/bidscoin/bidscoiner.log` file. This file is also very useful for debugging / tracking down bidsmapping issues.
+> NB: The logs for standard output and separetly errors and warnings are stored
+in destination folder in `log` directory. 
 
-## Options and plug-in functions
-BIDScoin provides the possibility for researchers to write custom python functions that will be executed at bidsmapper.py and bidscoiner.py runtime. To use this functionality, enter the name of the module (default location is the plugins-folder; otherwise the full path must be provided) in the bidsmap dictionary file to import the plugin functions. The functions in the module should be named `bidsmapper_plugin` for bidsmapper.py and `bidscoiner_plugin` for bidscoiner.py. See [README.py](./bidscoin/plugins/README.py) for more details and placeholder code.
+<a name="wf_bids">
+### Data bidsification
 
-## BIDScoin functionality / TODO
-- [x] DICOM source data
-- [ ] PAR / REC source data
-- [ ] P7 source data
-- [ ] Nifti source data
-- [x] Fieldmaps
-- [x] Multi-echo data
-- [x] Multi-coil data
-- [x] PET data
-- [ ] Stimulus / behavioural logfiles
+Considering that the data is [prepeared](#wf_prep) together with 
+[bidsmap](#wf_map) and [plugins](#wf_plug),
+the bidsification is performed by `bidscoiner` tool:
+```
+usage: bidscoiner.py [-h] [-p PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]] [-s]
+                     [-b BIDSMAP] [-d] [-v]
+                     [-o OptName=OptValue [OptName=OptValue ...]]
+                     sourcefolder bidsfolder
 
-> Are you a python programmer with an interest in BIDS who knows all about GE and / or Philips data? Are you experienced with parsing stimulus presentation log-files? Or do you have ideas to improve the this toolkit or its documentation? Have you come across bugs? Then you are highly encouraged to provide feedback or contribute to this project on [https://github.com/Donders-Institute/bidscoin](https://github.com/Donders-Institute/bidscoin).
+Converts ("coins") datasets in the sourcefolder to datasets
+in the bidsfolder according to the BIDS standard, based on
+bidsmap.yaml file created by bidsmapper. 
+You can run bidscoiner.py after all data is collected, 
+or run / re-run it whenever new data has been added
+to the source folder (presuming the scan protocol hasn't changed).
+If you delete a (subject/) session folder from the bidsfolder,
+it will be re-created from the sourcefolder the next time you run
+the bidscoiner.
 
-## BIDScoin tutorial
-This tutorial is specific for researchers from the DCCN and makes use of data-sets stored on its central file-system. However, it should not be difficult to use (at least part of) this tutorial for other data-sets as well.
+Provenance information, warnings and error messages are stored in the
+bidsfolder/code/bidscoin/bidscoiner.log file.
 
-1. **Preparation.** Activate the bidscoin environment and create a tutorial playground folder in your home directory by executing these bash commands (see also `module help bidscoin`):  
-   ```
-   module add bidscoin  
-   source activate /opt/bidscoin  
-   cp -r /opt/bidscoin/tutorial ~
-   ```
-   The new `tutorial` folder contains a `raw` source-data folder and a `bids_ref` reference BIDS folder, i.e. the end product of this tutorial.
-   
-   Let's begin with inspecting this new raw data collection: 
-   - Are the DICOM files for all the sub-*/ses-* folders organised in series-subfolders (e.g. sub-001/ses-01/003-T1MPRAGE/0001.dcm etc)? Use `dicomsort.py` if not
-   - Use the `rawmapper.py` command to print out the DICOM values of the "EchoTime", "Sex" and "AcquisitionDate" of the fMRI series in the `raw` folder
+positional arguments:
+  sourcefolder          The source folder containing the raw data in
+                        sub-#/[ses-#]/run format (or specify --subprefix and
+                        --sesprefix for different prefixes)
+  bidsfolder            The destination / output folder with the bids data
 
-2. **BIDS mapping.** Scan all folders in the raw data collection for unknown data by running the [bidsmapper](#step-1a-running-the-bidsmapper) bash command:  
-   ```
-   bidsmapper.py raw bids
-   ```
-   - Rename the "task_label" of the functional scans into something more readable, e.g. "Reward" and "Stop"
-   - Add a search pattern to the IntendedFor field such that it will select your fMRI runs (see the [bidseditor](#step-1b-running-the-bidseditor) `fieldmap` section for more details)
-   - When all done, (re)open the `bidsmap.yaml` file and change the options such that you will get non-zipped nifti data (i.e. `*.nii `instead of `*.nii.gz`) in your BIDS data collection. You can use a text editor or, much better, run the [bidseditor](#step-1b-running-the-bidseditor) command line tool.
+optional arguments:
+  -h, --help            show this help message and exit
+  -s, --skip_participants
+                        If this flag is given those subjects that are in
+                        particpants.tsv will not be processed (also when the
+                        --force flag is given). Otherwise the participants.tsv
+                        table is ignored
+  -b BIDSMAP, --bidsmap BIDSMAP
+                        The bidsmap YAML-file with the study heuristics. If
+                        the bidsmap filename is relative (i.e. no "/" in the
+                        name) then it is assumed to be located in
+                        bidsfolder/code/bidscoin. Default: bidsmap.yaml
+  -d, --dry_run         Run bidscoiner without writing anything on the disk.
+                        Useful to detect errors without putting dataset at
+                        risk. Default: False
+  -v, --version         Show the BIDS and BIDScoin version
+  -o OptName=OptValue [OptName=OptValue ...]
+                        Options passed to plugin in form -o OptName=OptValue,
+                        several options can be passed
 
-3. **BIDS coining.** Convert your raw data collection into a BIDS collection by running the [bidscoiner](#step-2-running-the-bidscoiner) commandline tool (note that the input is the same as for the bidsmapper):
-   ```
-   bidscoiner.py raw bids
-   ```
-   - Check your `bids/code/bidscoin/bidscoiner.log` and `bids/code/bidscoin/bidscoiner.errors` files for any errors or warnings
-   - Compare the results in your `bids/sub-*` subject folders with the  in `bids_ref` reference result. Are the file and foldernames the same? Also check the json sidecar files of the fieldmaps. Do they have the right "EchoTime" and "IntendedFor" fields?
-   - What happens if you re-run the `bidscoiner.py` command? Are the same subjects processed again? Re-run "sub-001".
-   - Inspect the `bids/participants.tsv` file and decide if it is ok.
-   - Update the `dataset_description.json` and `README` files in your `bids` folder
-   - As a final step, run the [bids-validator](https://github.com/bids-standard/bids-validator) on your `~/bids_tutorial` folder. Are you completely ready now to share this dataset?
+examples:
+  bidscoiner.py /project/foo/raw /project/foo/bids
+  bidscoiner.py -f /project/foo/raw /project/foo/bids -p sub-009 sub-030
+```
+
+It will run over data-files in prepeared dataset, determine the correct modalities
+and BIDS entities, extract the meta-data needed for sidecar json files, and 
+create BIDS dataset in destination folder.
+
+If an option `-d` is given, `bidscoiner` will run in "dry" mode, simulating
+the bidsification without actually creating and or editing any file at 
+destination. 
+This option is usefull to run before bidsification, in order to detect 
+possible problems without compromizing dataset.
+
+If an option `-s` is given, the participants existing in `participants.tsv`
+in destination dataset are skipped.
+
+The subjects and session Id are retrieved from folder structure, but still
+can be modified in the plugins. It can be usefull if one plan perform a random 
+permutation on the subjects, for additional layer of anonymisation. 
+
+> NB: The log files with messages and, separately the errors are stored in
+destination directory in `source/bidscoin/log` sub-directory.
+
+<a name="wf_map">
+### Bidsmap configuration
+
+Bidsmap is the central piece of BIDScoin. 
+It tells how to identify any data file, and what modality and bids labels 
+to attribute.
+
+It is a configuration file written in [YAML](http://yaml.org/) format, which is a 
+compromize between human readability and machine parcing.
+
+By default this file, once created is stored within bidsified dataset in 
+`code/bidscoin/bidsmap.yaml`.
+
+The structure of a valid bidsmap is described in the section [Bidsmap file structure](#bidsmap).
+
+The first step of creating a bidsmap is to prepare a reference dataset,
+which is a subset of full dataset, containing only one or two subjects.
+It is important to these subjects being complete (i.e. no missing scans)
+and without errors made in protocol (no duplicated scans, scans in good order etc...).
+This reference dataset will serve as a model for bidsmap.
+
+Once the reference dataset is ready, the bidsmap is created by running the tool
+`bidsmapper`:
+```
+usage: bidsmapper.py [-h] [-b BIDSMAP] [-t TEMPLATE] [-p PLUGIN]
+                     [-o OptName=OptValue [OptName=OptValue ...]] [-v]
+                     sourcefolder bidsfolder
+
+Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
+that maps the information from all raw source data to the BIDS labels.
+Created map can be edited/adjusted manually
+
+positional arguments:
+  sourcefolder          The source folder containing the raw data in
+                        sub-#/ses-#/run format (or specify --subprefix and
+                        --sesprefix for different prefixes)
+  bidsfolder            The destination folder with the (future) bids data and
+                        the bidsfolder/code/bidscoin/bidsmap.yaml output file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -b BIDSMAP, --bidsmap BIDSMAP
+                        The bidsmap YAML-file with the study heuristics. If
+                        the bidsmap filename is relative (i.e. no "/" in the
+                        name) then it is assumed to be located in
+                        bidsfolder/code/bidscoin. Default: bidsmap.yaml
+  -t TEMPLATE, --template TEMPLATE
+                        The bidsmap template with the default heuristics (this
+                        could be provided by your institute). If the bidsmap
+                        filename is relative (i.e. no "/" in the name) then it
+                        is assumed to be located in bidscoin/heuristics/.
+                        Default: bidsmap_template.yaml
+  -p PLUGIN, --plugin PLUGIN
+                        Path to plugin file intended to be used with
+                        bidsification. This needed only for creation of new
+                        file
+  -o OptName=OptValue [OptName=OptValue ...]
+                        Options passed to plugin in form -o OptName=OptValue,
+                        several options can be passed
+  -v, --version         Show the BIDS and BIDScoin version
+
+examples:
+  bidsmapper.py /project/foo/raw /project/foo/bids
+  bidsmapper.py /project/foo/raw /project/foo/bids -t bidsmap_dccn
+```
+At first pass tool will scan reference dataset and try to guess 
+correct parameters for bidsification. If he can't find correct
+parameters or couldn't identify the run, a corresponding warning
+or error will be shown on stdout (and reported in the log file).
+These warnings and errors should be corrected before re-run of
+`bidsmapper`. 
+The final goal is to achieve state than `bidsmapper` will no more produce
+any warnings and errors.
+
+> NB:If bidsifigation requiers plugins, it is important to run `bidsmapper` 
+with the same plugin.
+
+Using [example 1](#ex1), the first pass of `bidsmapper` will produce around 500
+warning, but they are repetetive. 
+
+> 1WARNING MRI/001-localizer/0: No run found in bidsmap. Looking into template`
+
+It means that give sample (first file - index `0`, of sequence `001-localizer`, 
+of type `MRI`) wasn't identified in the bidsmap. `bidsmapper` will try to look 
+in the template map to identify the sample. If sample is identified, then
+`bidsmapper` will complete the bidsmap by information found in the template.
+If sample is not identified in the template, a corresponding error will show
+and samples attributes will be stored in `code/bidsmap/unknown.yaml`.
+It is up to user to manually integrate this sample into bidsmap (and eventually
+complete the template).
+
+> `WARNING 002-cmrr_mbep2d_bold_mb2_invertpe/0: Placehoder found`
+
+This warning tells that given sample is identified, but bids parameters
+contains placeholder. To correct this warning it is enought to find
+an corresponding entry in `bidsmap` and replaced placeholders by needed
+values. 
+The easiest way is to search for line `002-cmrr_mbep2d_bold_mb2_invertpe`:
+```
+- provenance: /home/beliy/Works/bidscoin_example/example1/renamed/sub-001/ses-HCL/MRI/002-cmrr_mbep2d_bold_mb2_invertpe/f1513-0002-00001-000001-01.nii
+        example: func/sub-001_ses-HCL_task-placeholder_acq-nBack_dir-PA_run-1_echo-1_bold
+        template: true
+        checked: false
+        suffix: bold
+        attributes:
+          ProtocolName: cmrr_mbep2d_bold_mb2_invertpe
+          ImageType: ORIGINAL\\PRIMARY\\M\\MB\\ND\\MOSAIC
+        bids: !!omap
+          - dir: PA
+          - task: <<placeholder>>
+....
+```
+and replace `task: <<placeholder>>` by `task: nBack`.
+
+> NB: If the run is edited, it is a good practice to change `template: true`
+to `template: false`. It will mark that this run is no more automatically
+generated from template.
+
+> `WARNING func/0: also checks run: func/1`
+This warning indicates that first run of `func` modality and second one
+cheks the same scan. At first run it is normal, as samples are identified 
+from template, and some overlaps are expected. If this warning remains in
+subsequent passes, then the attributes of mentioned runs must be moved apart.
+
+> `WARNING 012-t1_mpr_sag_p2_iso/0: Can't find 'ContrastBolusIngredient' attribute from '<ContrastBolusIngredient>'`
+This warning means that `bidsmapper` can't extract given attribute from 
+a scan. To correct the warning, cited attribute must be set manually, for ex.
+in :
+```
+json: !!omap
+          - ContrastBolusIngredient: <ContrastBolusIngredient>
+```
+change `<ContrastBolusIngredient>` to a used value (if contrast element is used),
+or an empty string (otherwise).
+
+> `WARNING 014-al_B1mapping/9: Naming schema not BIDS`
+This warning appears when specified BIDS schema do not follows the standard. 
+To correct this warning it will be enought to put bids section in bidsmap
+into conform form ti the BIDS specifications. 
+Alternitavly, if the deviation from the standard is intentional (e.g. 
+given data type is not officialy supported by BIDS), the warning can be silenced 
+by setting `checked` to `true`. 
+
+Bidsmap contain several automatically filled fields that are to simplify the map 
+adjustements:
+- provenance: contains the path to the first data file matched to this run. 
+This field is updated at each run of `bidsmapper`, but only if `checked` is 
+false 
+- example: this field shows an generated bids name for the file in `provenance`
+- template: indicates if run was generated from template map. This value is 
+not updated, and should be set to `false` at first manual edit
+- checked: indicates if operator checked the run and is satisfied with the
+results. In order to bidsify dataset, all runs must be checked.
+
+Finally `bidscoiner` can be run of reference dataset, to assure that there 
+no conflicts in definitions and the bidsified dataset is correct.
+
+<a name="wf_plug">
+### Plugin configuration
+
+<a name="examples">
+## Examples
+
+<a name="ex1">
+### Dataset 1
+
+<a name="formats">
+## Supported formats
+
+<a name="mri">
+### MRI
+
+<a name="Nifti_SPM12">
+#### Nifti\_SPM12
+
+
+<a name="eeg">
+### EEG
+
+<a name="BV">
+#### BrainVision
+
+<a name="plugins">
+## Plug-in functions
+
+<a name="new_formats">
+## Implementing additional formats
+
+<a name="bidsmap">
+## Bidsmap file structure
