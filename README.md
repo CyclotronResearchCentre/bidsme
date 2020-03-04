@@ -36,8 +36,7 @@ Additional formats can be implemented following instructions [here](#new_formats
 The mapping information is stored as key-value pairs in the human readable and 
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
-<a name="workflow">
-## The BIDScoin workflow
+## <a name="workflow"> </a>The BIDScoin workflow
 
 The BIDScoin workfolw is composed in two steps:
 
@@ -48,8 +47,7 @@ stadard bids-like structure
 This organisation allow to user intervene before the bidsification in case of presence of errors,
 or to complete the data manually if it could not be completed numerically.
 
-<a name="wf_prep">
-### Data preparation 
+### <a name="wf_prep"></a>Data preparation 
 
 In order to be bidsified, dataset should be put into a form:
 ```
@@ -62,7 +60,7 @@ which can be defined as a set of recording sharing the same recording parameters
 (e.g. set of 2D slices for same fMRI scan).
 
 A generic data-set can be organized into prepeared datase using `coinsort` tool:
-```
+```bash
 usage: coinsort.py [-h] [-i SUBJECTID] [-j SESSIONID] [-r RECFOLDER]
                    [-t RECTYPE] [--no-session] [--no-subject] [-p PLUGIN]
                    [-o OptName=OptValue [OptName=OptValue ...]]
@@ -168,8 +166,7 @@ A working example of source dataset and `coinsort` configuration can be found
 > NB: The logs for standard output and separetly errors and warnings are stored
 in destination folder in `log` directory. 
 
-<a name="wf_bids">
-### Data bidsification
+### <a name="wf_bids"></a>Data bidsification
 
 Considering that the data is [prepeared](#wf_prep) together with 
 [bidsmap](#wf_map) and [plugins](#wf_plug),
@@ -244,8 +241,8 @@ permutation on the subjects, for additional layer of anonymisation.
 > NB: The log files with messages and, separately the errors are stored in
 destination directory in `source/bidscoin/log` sub-directory.
 
-<a name="wf_map">
-### Bidsmap configuration
+
+### <a name="wf_map"></a>Bidsmap configuration
 
 Bidsmap is the central piece of BIDScoin. 
 It tells how to identify any data file, and what modality and bids labels 
@@ -401,36 +398,101 @@ results. In order to bidsify dataset, all runs must be checked.
 Finally `bidscoiner` can be run of reference dataset, to assure that there 
 no conflicts in definitions and the bidsified dataset is correct.
 
-<a name="wf_plug">
-### Plugin configuration
-
-<a name="examples">
-## Examples
-
-<a name="ex1">
-### Dataset 1
-
-<a name="formats">
-## Supported formats
-
-<a name="mri">
-### MRI
-
-<a name="Nifti_SPM12">
-#### Nifti\_SPM12
 
 
-<a name="eeg">
-### EEG
+### <a name="wf_plug"></a>Plugin configuration
+Plugins in BIDScoin are implemented as a functions (entry point) that are called at 
+specific time during the execution of main program. All of the programs `coinsort`, 
+`bidsmapping` and `bidscoiner` are support the plugin.
 
-<a name="BV">
-#### BrainVision
+All functions must be defined in the same python file, but it is possible include additional
+files using the usual `import` instruction. The list of accepted functions is given in table below.
 
-<a name="plugins">
-## Plug-in functions
+| Function | Entry point | Used for |
+| ----------- | -------------- | ------------|
+| `InitEP`  | At the start of programm | Initialisation of plugin, setting global parameters |
+| `SubjectEP` | After entering subject folder | Adjustement of subject Id |
+| `SessionEP` | After entering session folder | Adjustement of session Id |
+| `SequenceEP` | After loading first data file in sequence | Global sequence actions |
+| `RecordingEP`| After loading a new data file in sequence | Adjustement of recording parameters |
+| `FileEP`| After copiyng a data file to its dInitEP(source: str, destination: str,estination | Any post-copy adjustement |
+| `SequenceEndEP`| After processing last file in the sequence | Any post-sequence treatments |
+| `SessionEndEP`| After processing all sequences in session | Any post-session treatments |
+| `SubjectEndEP`| After processing last subject | Any post-subject treatments |
+| `FinaliseEP`| At the end of program | Any actions needed to finalise dataset |
 
-<a name="new_formats">
-## Implementing additional formats
+Any of defined functions must accept a determined set of parameters, except `InitEP`, which
+acept additionaly a set of optional named parameters, needed to setup any given plugin.
 
-<a name="bidsmap">
-## Bidsmap file structure
+Each function is expected to return an ineger return code in range `[0-9]`, with `0` meaning 
+succesful execution, and non-zero return code indicates an error. In the latter case, the execution of
+programm will be stopped and plugin-related error will be raised.
+Any exception occured within plugin function will also interupt the execution.
+The returned `None` value is interpreted as succesfull execution.
+
+#### <a name="plug_init"></a> `InitEP(source: str, destination: str, dry: bool, **kwargs) -> int:`
+The `InitEP` function is called imidiatly after start of main programm. 
+As name indicates, it initialise the plugin, store the global variables and parameters.
+
+It accepts 3 mandatory parameters:
+ - **source: str**: a path to the source directory, from where data files are processed.
+ - **destination: str**: a path to destination directory, where processed data will be stored
+ - **dry: bool**: a swithc to indicate if it is a dry-run (i.e. a test run where nothing is written to disk)
+
+> **Warning**: `dry` parameter must be alwas stored as global parameter, 
+and **any** file and folder modification parts in the plugins **must** be protected 
+by check if `dry` is `False`:
+```python
+if not dry:
+	do stuff
+	....
+```
+ 
+ The custom additional parameters can be recieved via `**kwargs`. These parameters are communicated 
+ to the programm via `-o` option:
+ ```
+ -o par1=val1 -o par2=val2
+ ```
+ These parameters will be parced into dictionary and feeded to `InitEP`:
+ ```
+ {
+ 	"par1": "val1",
+ 	"par2": "val2"
+ }
+ ```, 
+ or from within a `bidsmap.yaml` file, in the  `Option/PlugIns/options` section, directly as a dictionary. 
+
+The `source`, `destination` and `dry` values must be stored as global parameters, so they can
+be used in other plugins:
+
+```python
+global source_path
+source_path = source
+```
+
+Outside the definition and storage of global parameters, `InitEP` can be used for loading
+and parcing external files. For example, in [Example1](#ex1), the `Appariement.xlsx`
+exel file, containing the list of subjects is parced. 
+The parced excel file is used later to identify sessions and fill the `participant.tsv` file.
+
+#### <a name="plug_init"></a> `SubjectEP(scan: BidsSession) -> int:ool, **kwargs) -> int:`
+
+## <a name="examples"></a>Examples
+
+### <a name="ex1"></a>Dataset 1
+
+## <a name="formats"></a>Supported formats
+
+### <a name="mri"></a>MRI
+
+#### <a name="Nifti_SPM12"></a>Nifti\_SPM12
+
+### <a name="eeg"></a>EEG
+
+#### <a name="BV"></a>BrainVision
+
+## <a name="plugins"></a>Plug-in functions
+
+## <a name="new_formats"></a>Implementing additional formats
+
+## <a name="bidsmap"></a>Bidsmap file structure
