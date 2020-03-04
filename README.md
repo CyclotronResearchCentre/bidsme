@@ -21,31 +21,22 @@
 - [Bidsmap file structure](#bidsmap)
 
 
-BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin) python toolkit that converts ("bidsifies") source-level (raw) neuroimaging data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable). 
-Rather then depending on complex or ambiguous programmatic logic for the identification of imaging modalities, BIDScoin uses a direct mapping approach to identify and convert the raw source data into BIDS data. 
-The information sources that can be used to map the source data to BIDS are retrieved dynamically from
-source data header files (DICOM, BrainVision, nifti etc...) and file source data-set file structure 
-(file- and/or directory names, e.g. number of files).
+BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin) python toolkit that converts ("bidsifies") source-level (raw) neuroimaging data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable). Rather then depending on complex or ambiguous programmatic logic for the identification of imaging modalities, BIDScoin uses a direct mapping approach to identify and convert the raw source data into BIDS data. The information sources that can be used to map the source data to BIDS are retrieved dynamically from source data header files (DICOM, BrainVision, nifti etc...) and file source data-set file structure (file- and/or directory names, e.g. number of files).
 
-The retrieved information can be modified/adjusted by a set of plugins, described [here](#plugins).
-Plugins can also be used to complete the bidsified dataset, for example by parcing log files. 
+The retrieved information can be modified/adjusted by a set of plugins, described [here](#plugins). Plugins can also be used to complete the bidsified dataset, for example by parcing log files. 
 
-> NB: BIDScoin support variaty of formats listed in [supported formats](#formats).
-Additional formats can be implemented following instructions [here](#new_formats) 
+> NB: BIDScoin support variaty of formats listed in [supported formats](#formats). Additional formats can be implemented following instructions [here](#new_formats) 
 
-The mapping information is stored as key-value pairs in the human readable and 
-widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
+The mapping information is stored as key-value pairs in the human readable and widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
 ## <a name="workflow"> </a>The BIDScoin workflow
 
 The BIDScoin workfolw is composed in two steps:
 
-  1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into 
-stadard bids-like structure
+  1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into stadard bids-like structure
   2. [Data bidsification](#wf_bids), in which prepeared data is bidsified.
 
-This organisation allow to user intervene before the bidsification in case of presence of errors,
-or to complete the data manually if it could not be completed numerically.
+This organisation allow to user intervene before the bidsification in case of presence of errors, or to complete the data manually if it could not be completed numerically.
 
 ### <a name="wf_prep"></a>Data preparation 
 
@@ -406,7 +397,8 @@ specific time during the execution of main program. All of the programs `coinsor
 `bidsmapping` and `bidscoiner` are support the plugin.
 
 All functions must be defined in the same python file, but it is possible include additional
-files using the usual `import` instruction. The list of accepted functions is given in table below.
+files using the usual `import` instruction. The list of accepted functions is given in table below. 
+Details on each of these functions can be found in [Plugins](#plugins) section
 
 | Function | Entry point | Used for |
 | ----------- | -------------- | ------------|
@@ -429,6 +421,30 @@ succesful execution, and non-zero return code indicates an error. In the latter 
 programm will be stopped and plugin-related error will be raised.
 Any exception occured within plugin function will also interupt the execution.
 The returned `None` value is interpreted as succesfull execution.
+
+> NB: Even if all scripts supports the same list of entry points, some of them 
+are more adapted for data preparation and other for bidsification.
+From practice, it is more convinient to perform all subject and session
+determination, data retrieval and additional files treatment during
+preparation, and bidisification is concentrated on just renaming and 
+copying files. This way, there an opportunity of checking, correcting 
+and/or completting data manually. 
+
+## <a name="examples"></a>Examples
+
+### <a name="ex1"></a>Dataset 1
+
+## <a name="formats"></a>Supported formats
+
+### <a name="mri"></a>MRI
+
+#### <a name="Nifti_SPM12"></a>Nifti\_SPM12
+
+### <a name="eeg"></a>EEG
+
+#### <a name="BV"></a>BrainVision
+
+## <a name="plugins"></a>Plug-in functions
 
 #### <a name="plug_init"></a> `InitEP(source: str, destination: str, dry: bool, **kwargs) -> int:`
 The `InitEP` function is called imidiatly after start of main programm. 
@@ -475,23 +491,127 @@ and parcing external files. For example, in [Example1](#ex1), the `Appariement.x
 exel file, containing the list of subjects is parced. 
 The parced excel file is used later to identify sessions and fill the `participant.tsv` file.
 
-#### <a name="plug_init"></a> `SubjectEP(scan: BidsSession) -> int:ool, **kwargs) -> int:`
+If `--part-template` option is not used in `coinsort`, then the template
+ json file for `participants.tsv` can be done there, using 
+ `BidsSession.loadSubjectFields(cls, filename: str=None)` class
+ function. 
+ 
+> In order to maintain consistency between subjects, template json
+file can be loaded only once. Subsequent loading will raise an exception.
 
-## <a name="examples"></a>Examples
+#### <a name="plug_sub"></a> `SubjectEP(scan: BidsSession) -> int`
+The `SubjectEP` function is called after entering the subject's folder. 
+The main action of this function is redefinition of subject Id and filling
+meta-data associated with given subject.
+The passed parameter `scan` ia s `BidsSession` mutable object,
+with proprieties:
+- **subject**: containing current subject Id
+- **session**: containing current session Id
+- **in_path**: containing current path
+- **sub_values**: containing a dictionaru of current subject
+data destined for `participants.tsv`
 
-### <a name="ex1"></a>Dataset 1
+In order to change subject, it will suffice to change the `subject`
+property of BidsSession:
+```python
+scan.subject = scan.subject + "patient"
+```
 
-## <a name="formats"></a>Supported formats
+It is not nesessary to add `ses-` to the subject name, it will be added
+automatically, together with removal of all non alphanumerical charachters.
+So subject Id is garanteed to be bids-compatible.
 
-### <a name="mri"></a>MRI
+`sub_values` is a dictionary with `participants.tsv` columns as keys and `None` as values.
+Filling values will populate the corresponding line in `participants.tsv`.
 
-#### <a name="Nifti_SPM12"></a>Nifti\_SPM12
+> The columns are normally defined by template json file during 
+preparation step, but they can be loaded from within plugin
+during `InitEP` execution.
 
-### <a name="eeg"></a>EEG
+#### <a name="plug_ses"></a> `SessionEP(scan: BidsSession) -> int`
+`SessionEP` is executed immideatly after entering session folder, and 
+mean to modify current session Id.
+It accepts the same `BidsSession` object as `SubjectId`, with not yet bidsified
+names.
 
-#### <a name="BV"></a>BrainVision
+> Immediatly after execution of `SessionEP`, the `subject` and `session` 
+properties of `scan` are bidsified and locked. No changes will be accepted,
+any attempt will raise an exception. Howether it can be unlocked at your 
+risk and peril by calling `scan.unlock_subject()` and 
+`scan.unlock_session()`. It can broke the preparation/bidsification!
 
-## <a name="plugins"></a>Plug-in functions
+#### <a name="plug_seq"></a> `SequenceEP(recording: object) -> int`
+`SequenceEP` is executed at the start of each sequence.
+It can be used to perform global sequence check and actions checking validity.
+
+Passed parameter is an actual recording with loaded first file (in alphabetical 
+order).
+The current subject and session can be accessed via `recording.subId()`
+and `recording.sesId()`, but other BIDS attributes are not yet defined.
+
+In the [Example1](#ex1), during bidsification step, this plugin is used
+to determine the destination of fieldmaps:
+```python
+if recid == "gre_field_mapping":
+	if recording.sesId() in ("ses-HCL", "ses-LCL"):
+		Intended = "HCL/LCL"
+	elif recording.sesId() == "ses-STROOP":
+		Intended = "STROOP"
+```
+The global intended variable used later in plugin to correctly fill
+`IntendedFor` json file.
+
+#### <a name="plug_rec"></a> `RecordingEP(recording: object) -> int`
+`RecordingEP` is executed immidiatly after loading a new file in each of 
+recordings. It is used for locally adapting the attributes of recording.
+
+For example, in [Example 1](#ex_1), sorting plugin executes:
+```python
+if Intended != "":
+	recording.setAttribute("SeriesDescription", Intended)
+```,
+replacing the `SeriesDescription` by global variable `Intended`, defines
+during `SequenceEP`.
+
+> The changed attribute can be restored to it original value by executing
+`recording.unsetAttribute("SeriesDescription")`
+
+#### <a name="plug_recEnd"></a> `FileEP(path: str, recording: object) -> int`
+`FileEP` is called after the copy of recording file to its destination
+(either during preparation or bidsification).
+
+Outside the `recording` object, it accepts the `path` parameter containing
+the path to copied file.
+
+The utility of this plugin is data file manipulation, for example 
+the convertion into another format, or anonymisation. 
+Working only on the copy of original file do not compromise the source dataset.
+
+#### <a name="plug_seqEnd"></a> `SequenceEndEP(path: str, recording: object) -> int`
+The `SequenceEndEP` is called after the treatment of all files in the sequence, 
+and can be used to perform various checks and/or sequence files manipulation,
+for example compressing files or packing 3D MRI images into 4D one.
+
+Sa in `FileEP` function, `path` parameter contains the path to the directory
+where last file of given sequence is copied. The `recording` object also
+have last file in sequence loaded.
+
+#### <a name="plug_sesEnd"></a> `SessionEndEP(scan: BidsSession) -> int`
+`SessionEndEP` is executed after treating the last sequence of recording.
+As there no loaded recordings, it takes `BidsSession` as parameter. 
+The mean goal of this function is check of compliteness of session,
+and retrieving metadata of session, for example parcing various 
+behevirial data.
+
+#### <a name="plug_subEnd"></a> `SubjectEndEP(scan: BidsSession) -> int`
+`SubjectEndEP` is executed after treating the last session of a given
+subject. 
+It can be used for checking if all sessions are present, and for 
+retrieval of phenotype data for given subject.
+
+#### <a name="plug_End"></a> `FinaliseEP() -> int`
+`FinaliseEP` is called in the end of programm and can be used
+for consolidation and final checks of destination dataset.
 
 ## <a name="new_formats"></a>Implementing additional formats
 
