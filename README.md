@@ -21,13 +21,25 @@
 - [Bidsmap file structure](#bidsmap)
 
 
-BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin) python toolkit that converts ("bidsifies") source-level (raw) neuroimaging data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable). Rather then depending on complex or ambiguous programmatic logic for the identification of imaging modalities, BIDScoin uses a direct mapping approach to identify and convert the raw source data into BIDS data. The information sources that can be used to map the source data to BIDS are retrieved dynamically from source data header files (DICOM, BrainVision, nifti etc...) and file source data-set file structure (file- and/or directory names, e.g. number of files).
+BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin)
+python toolkit that converts ("bidsifies") source-level (raw) neuroimaging 
+data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable).
+Rather then depending on complex or ambiguous programmatic logic for the 
+identification of imaging modalities, BIDScoin uses a direct mapping approach to 
+identify and convert the raw source data into BIDS data. The information sources 
+that can be used to map the source data to BIDS are retrieved dynamically from 
+source data header files (DICOM, BrainVision, nifti etc...) and file source data-set 
+file structure (file- and/or directory names, e.g. number of files).
 
-The retrieved information can be modified/adjusted by a set of plugins, described [here](#plugins). Plugins can also be used to complete the bidsified dataset, for example by parcing log files. 
+The retrieved information can be modified/adjusted by a set of plugins, 
+described [here](#plugins). Plugins can also be used to complete the bidsified 
+dataset, for example by parcing log files. 
 
-> NB: BIDScoin support variaty of formats listed in [supported formats](#formats). Additional formats can be implemented following instructions [here](#new_formats) 
+> NB: BIDScoin support variaty of formats listed in [supported formats](#formats). 
+Additional formats can be implemented following instructions [here](#new_formats).
 
-The mapping information is stored as key-value pairs in the human readable and widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
+The mapping information is stored as key-value pairs in the human readable and 
+widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
 ## <a name="workflow"> </a>The BIDScoin workflow
 
@@ -36,7 +48,8 @@ The BIDScoin workfolw is composed in two steps:
   1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into stadard bids-like structure
   2. [Data bidsification](#wf_bids), in which prepeared data is bidsified.
 
-This organisation allow to user intervene before the bidsification in case of presence of errors, or to complete the data manually if it could not be completed numerically.
+This organisation allow to user intervene before the bidsification in case of 
+presence of errors, or to complete the data manually if it could not be completed numerically.
 
 ### <a name="wf_prep"></a>Data preparation 
 
@@ -436,9 +449,71 @@ and/or completting data manually.
 
 ## <a name="formats"></a>Supported formats
 
+BIDScoin was designed for supporting different types of data (MRI, PET, EEG...)
+and various data-files format. This is achieved using object-oriented approach.
+
+Each data-type is vewed as sub-module of `Modules` and inherits from base class
+`baseModule`, which defines the majority of logic needed for bidsification.
+
+The sub-modules main classes (e.g. `Modules/MRI/MRI.py`) defines the bids-related 
+information defines for this particular data-type, like the list of needed metadata for
+json sidecar file or list of modalities and entities.
+
+Finally for each data-type, several file-formats are treated by a separate class, that 
+inherits from corresponding data-type class (e.g. `Modules/MRI/Nifti_SPM12.py`).
+This class defines how extract needed meta-data from a particular file, how identify
+a file, and similar file-related operations.	
+
 ### <a name="mri"></a>MRI
+`MRI` data-type integrated all MRI images. The corresponding BIDS formatting can be
+found [there](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html).
+
+It defines the following modalities:
+- **anat** for [anatomical images](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#anatomy-imaging-data)
+- **func** for [functional images](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#task-including-resting-state-imaging-data)
+- **dwi** for [diffusion images](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#diffusion-imaging-data)
+- **fmap** for [fieldmaps](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#fieldmap-data)
 
 #### <a name="Nifti_SPM12"></a>Nifti\_SPM12
+`Nifti_SPM12` data-format is a DICOM files converted to Nifti format by 
+[hMRI toolbox](https://www.sciencedirect.com/science/article/pii/S1053811919300291) for 
+[SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/). 
+Essentially it consists by a nifti image data and a json file with DICOM header dumped into it.
+
+All recording attributes are retrieved from `acqpar[0]` dictionary within json file,
+requesting directly the name of corresponding field: `getField("SeriesNumber") -> 4`
+In case of nested dictionaries, for ex. `"[CSAImageHeaderInfo"]["RealDwellTime"]`,
+a field separator `/` sould be used: 
+```
+getField("CSAImageHeaderInfo/RealDwellTime") -> 2700
+```
+In case of lists, individual elements are retrieved by passing the index:
+```
+getField("AcquisitionMatrix[3]") -> 72
+```
+
+The additional fields, that are not stored directly in json file, are calculated:
+- **DwellTime** is retrieved from private field with tags `(0019,1018)` and converted from 
+micro-seconds to seconds. 
+- **NumberOfMeasurements** are retrieved from `lRepetitions` field and incremented by one.
+- **PhaseEncodingDirection** are retrieved from `PhaseEncodingDirectionPositive`, and transformed 
+to `1`(positive) or `-1`(negative)
+- **B1mapNominalFAValues** are rereconstructed from `adFree` and `alFree`. The exact reconstruction 
+alghorytm is sequence dependent. 
+- **B1mapMixingTime** are reconstructed from `adFree` and `alFree`. The exact reconstruction 
+alghorytm is sequence dependent. 
+- **RFSpoilingPhaseIncrement** are reconstructed from `adFree` and `alFree`. The exact reconstruction 
+alghorytm is sequence dependent.
+- **MTState** is retrieved from `[CSASeriesHeaderInfo"]["MrPhoenixProtocol"]["sPrepPulses"]` and set either 
+to `On` of `Off`
+
+> **Warning** These fields are garanteed to be in the Siemens DICOM files, in case different origin, their
+implementation must be either patched up or performed in plugins.
+
+> **Warning** `B1mapNominalFAValues`, `B1mapMixingTime` and `RFSpoilingPhaseIncrement` are sequence
+dependent. It is unclear to me if sequences names are standard or not. If outcome of these values produces
+incorrect output, the correction must be either patched or corrected in plugin.
+
 
 ### <a name="eeg"></a>EEG
 
