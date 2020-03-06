@@ -43,7 +43,7 @@ def mergeCLI(args, stage) -> None:
             logger.critical("Lenght of rec folders mismatch lenght of given types")
             raise ValueError("Rec folders mismatch list of types")
         if folders[0]:
-            config["preparation"]["rec_folders"] = {key, val 
+            config["preparation"]["rec_folders"] = {key: val 
                                                     for key, val 
                                                     in zip(folders, types)}
         if args.no-session:

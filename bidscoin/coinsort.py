@@ -7,15 +7,16 @@ Plugins allow to modify subjects and session names
 and preform various operations on data files.
 """
 import os
+import sys
 import logging
 import time
 import traceback
-import argparse
 import textwrap
 import glob
 
 from tools import info
 from tools import config
+from tools import cli
 import tools.tools as tools
 import plugins 
 import exceptions
@@ -149,70 +150,8 @@ def sortsessions(source: str, destination:str,
 
 
 if __name__ == "__main__":
-    # Parse the input arguments and run the sortsessions(args)
-    class appPluginOpt(argparse.Action):
-        def __call__(self, parser, args, values, option_string=None):
-            if getattr(args, self.dest) is None:
-                setattr(args, self.dest, dict())
-            for v in values:
-                key, value = v.split("=", maxsplit=1)
-                getattr(args, self.dest)[key] = value
 
-    class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, 
-                          argparse.RawDescriptionHelpFormatter):
-        pass
-
-    parser = argparse.ArgumentParser(formatter_class=CustomFormatter,
-                                     description=textwrap.dedent(__doc__),
-                                     epilog='examples:\n')
-    parser.add_argument('source',
-                        help='The name of the root folder containing ' 
-                        'the recording file source/[sub/][ses/]<type>'),
-    parser.add_argument('destination',
-                        help='The name of the folder where sotred ' 
-                        'files will be placed'),
-    parser.add_argument('--part-template',
-                        help='Path to the template used for participants.tsv')
-    parser.add_argument('-i','--subjectid', 
-                        help='The prefix string for recursive searching '
-                        'in niisource/subject subfolders (e.g. "sub-")',
-                        default=''),
-    parser.add_argument('-j','--sessionid', 
-                        help='The prefix string for recursive searching '
-                        'in niisource/subject/session '
-                        'subfolders (e.g. "ses-")',
-                        default=''),
-    parser.add_argument('-r', '--recfolder',
-                        help='Comma-separated list of folders with all '
-                        'recording files files',
-                        default='')
-    parser.add_argument('-t', '--rectype',
-                        help='Comma-separated list of types associated '
-                        'with recfolder folders. Must have same dimentions.',
-                        default='')
-    parser.add_argument('--no-session',
-                        help='Dataset do not contains session folders',
-                        action='store_true')
-    parser.add_argument('--no-subject',
-                        help='Dataset do not contains subject folders',
-                        action='store_true')
-    parser.add_argument('-p', '--plugin',
-                        help="Path to a plugin file",
-                        default="")
-    parser.add_argument('-o',
-                        metavar="OptName=OptValue",
-                        dest="plugin_opt",
-                        help="Options passed to plugin in form "
-                        "-o OptName=OptValue, several options can be passed",
-                        action=appPluginOpt,
-                        default={},
-                        nargs="+"
-                        )
-    parser.add_argument('-c', '--configuration',
-                        help="Path to the configuration file",
-                        default="")
-
-    args = parser.parse_args()
+    args = cli.parseArgs(sys.argv[1:])
     # checking paths
     if not os.path.isdir(args.source):
         logger.critical("Source directory {} don't exists"
@@ -229,7 +168,7 @@ if __name__ == "__main__":
     config.mergeCLI(args,"sorting")
     config.validateConfig()
 
-        code = 0
+    code = 0
     logger.info("")
     logger.info('-------------- START coinsort --------------')
     logger.info('bidscoin ver {}'.format(info.version()))
