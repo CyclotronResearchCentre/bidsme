@@ -644,8 +644,8 @@ For example, in [Example 1](#ex_1), sorting plugin executes:
 ```python
 if Intended != "":
 	recording.setAttribute("SeriesDescription", Intended)
-```,
-replacing the `SeriesDescription` by global variable `Intended`, defines
+```
+, replacing the `SeriesDescription` by global variable `Intended`, defines
 during `SequenceEP`.
 
 > The changed attribute can be restored to it original value by executing
