@@ -38,7 +38,7 @@ class __CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
     pass
 
 
-def parseArgs(argv: list) -> argparse.ArgumentParser:
+def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
     """
     Parses command-line arguments and returns resulting
     argparse.ArgumentParser object
@@ -105,6 +105,8 @@ def parseArgs(argv: list) -> argparse.ArgumentParser:
                 add_help=False
                 )
             }
+
+    prog = parser.prog
     ###################
     # Loadng cfg file
     ###################
@@ -136,7 +138,7 @@ def parseArgs(argv: list) -> argparse.ArgumentParser:
             action="help"
             )
     args = parser.parse_args(args[1], args[0])
-    return args
+    return prog, args
 
 
 def loadConfig(filename: str) -> None:
@@ -180,8 +182,8 @@ def setSubParser(parser, cmd):
             "-o",
             metavar="Name=Value",
             dest="plugin_opt",
-            help="Options passed to plugin in form "
-            "-o OptName=OptValue, several options can be passed",
+            help="Options passed to plugin"
+            ", several options can be passed",
             action=__appPluginOpt,
             default={},
             nargs="+"

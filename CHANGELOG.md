@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
 - `coinsort` now supports wildecards (\*) in recfolders, the parameter must be protected
 by single quote to avoid bash expantion 
+- Incorporated configuration file
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
@@ -14,6 +15,7 @@ by single quote to avoid bash expantion
 - subject and session info are managed via BidsSession class
 - `participants.tsv` file now created at prepearing stage, with warning
 if field values are conflicting
+- Main code is `bidscoin.py` with cli command `prepare`, `bidsify` and `map`
 
 ## [dev2.1.0] - 2020-02-19
 

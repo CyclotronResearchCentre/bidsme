@@ -20,8 +20,8 @@ class BidsSession(object):
     __sub_values = dict()
 
     def __init__(self):
-        self.__subject = ""
-        self.__session = ""
+        self.__subject = None
+        self.__session = None
         self.in_path = None
 
         self.__sub_locked = False

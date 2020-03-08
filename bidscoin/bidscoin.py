@@ -6,6 +6,9 @@ import time
 import traceback
 
 import exceptions
+
+from prepare import prepare
+
 from tools import config
 from tools import info 
 
@@ -14,17 +17,14 @@ from tools import info
 if __name__ == "__main__":
 
 
-    args = config.parseArgs(sys.argv[1:])
-    print(args)
+    prog, args = config.parseArgs(sys.argv[1:])
 
     logger = logging.getLogger()
     logger.name = os.path.splitext(os.path.basename(__file__))[0]
     info.setup_logging(logger, 'INFO')
-    info.addFileLogger(logger, 
-                       os.path.join(args.destination,
-                                    "code", 
-                                    sys.argv[0],
-                                    args.cmd))
+    log_dir = os.path.join(args.destination, "code",
+                           prog, args.cmd)
+    info.addFileLogger(logger, log_dir)
 
     # checking paths
     if not os.path.isdir(args.source):
@@ -40,12 +40,27 @@ if __name__ == "__main__":
     logger.info("")
     logger.info("-------------- START bidscoin --------------")
     logger.info("{}".format(time.asctime()))
-    logger.info("programm version: ".format(info.version()))
-    logger.info("bids version: ".format(info.bidsversion()))
+    logger.info("programm version: {}".format(info.version()))
+    logger.info("bids version: {}".format(info.bidsversion()))
 
     try:
         if args.cmd == "prepare":
-            pass
+            prepare(source=args.source,
+                    destination=args.destination,
+                    plugin_file=args.plugin,
+                    plugin_opt=args.plugin_opt,
+                    sub_list=args.participants,
+                    sub_skip_tsv=args.skip_in_tsv,
+                    sub_skip_dir=args.skip_existing,
+                    ses_skip_dir=args.skip_existing_sessions,
+                    part_template=args.part_template,
+                    sub_prefix=args.sub_prefix,
+                    ses_prefix=args.ses_prefix,
+                    sub_no_dir=args.no_subject,
+                    ses_no_dir=args.no_session,
+                    data_dirs=args.recfolder,
+                    dry_run=args.dry_run
+                    )
         elif args.cmd == "bidsify":
             pass
         elif args.cmd == "map":

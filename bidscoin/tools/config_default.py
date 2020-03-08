@@ -17,19 +17,19 @@ config = {
             # plugin for preparation stage
             "prepare":{
                 # path to the file
-                "path": None,
+                "path": "",
                 # dictionary of named options passed to plugin
-                "options": None
+                "options": {}
                 },
             # plugin for bidsification
             "bidsify":{
-                "path": None,
-                "options": None
+                "path": "",
+                "options": {}
                 },
             # plugin for mapping, if not set, one for bidsification is used
             "map":{
-                "path": None,
-                "options": None
+                "path": "",
+                "options": {}
                 }
             },
         # configuration for preparation stage
