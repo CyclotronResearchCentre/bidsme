@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 by single quote to avoid bash expantion 
 - Incorporated configuration file
 - logging options `level`, `quiet`, and `formatting` for log output control
+- save option for saving/updating locally configuration file
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard

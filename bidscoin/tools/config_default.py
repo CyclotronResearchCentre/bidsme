@@ -22,19 +22,19 @@ config = {
         # list of plugins to use
         "plugins": {
             # plugin for preparation stage
-            "prepare":{
+            "prepare": {
                 # path to the file
                 "path": "",
                 # dictionary of named options passed to plugin
                 "options": {}
                 },
             # plugin for bidsification
-            "bidsify":{
+            "bidsify": {
                 "path": "",
                 "options": {}
                 },
             # plugin for mapping, if not set, one for bidsification is used
-            "map":{
+            "map": {
                 "path": "",
                 "options": {}
                 }
@@ -50,7 +50,7 @@ config = {
             "no_session": False,
             # dictionary for folders with data and corresponding data type
             # for. ex. {"nii": "MRI"}
-            "rec_folders":{},
+            "rec_folders": {},
             # Path to template json file defining subject tsv columns
             "part_template": None
             }

@@ -1,3 +1,4 @@
+import os
 import argparse
 import sys
 
@@ -64,7 +65,7 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
             help="Path to the configuration file"
             )
     parser.add_argument(
-            '--conf_save',
+            '--conf-save',
             help="Save/update configuration file with given options",
             action="store_true"
             )
@@ -116,7 +117,7 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
         sys.exit(2)
     # loading configuration proper
     if args[0].configuration is not None:
-        loadConfig(args[0].configuration)
+        loadConfig(args[0].configuration, update=args[0].conf_save)
 
     cmd = args[0].cmd
     parser = sub_parsers[cmd]
@@ -138,10 +139,14 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
             )
 
     args = parser.parse_args(args[1], args[0])
+
+    if args.conf_save:
+        saveConfig(args)
+
     return prog, args
 
 
-def loadConfig(filename: str) -> None:
+def loadConfig(filename: str, update: bool = False) -> None:
     """
     Loads config yaml file from given path
     and merges it with config_defaults
@@ -150,7 +155,12 @@ def loadConfig(filename: str) -> None:
     ----------
     filename: str
         path to config file
+    update: bool
+        if set to True, will not throw error if not existing
     """
+    if update and not os.path.isfile(filename):
+        return
+
     with open(filename, "r") as f:
         yaml_map = yaml.load(f)
     for key, val in config.items():
@@ -158,6 +168,36 @@ def loadConfig(filename: str) -> None:
             for key2 in val:
                 if key2 in yaml_map[key]:
                     val[key2] = yaml_map[key][key2]
+
+def saveConfig(args: argparse.Namespace) -> None:
+    config["logging"]["quiet"] = args.quiet
+    config["logging"]["level"] = args.level
+    config["logging"]["format"] = args.formatter
+
+    config["plugins"][args.cmd]["plugin"] = args.plugin
+    config["plugins"][args.cmd]["options"] = args.plugin_opt
+
+    config["selection"]["skip_tsv"] = args.skip_in_tsv
+    config["selection"]["skip_existing"] = args.skip_existing
+    config["selection"]["skip_session"] = args.skip_existing_sessions
+
+    if args.cmd == "prepare":
+        config[args.cmd]["part_template"] = args.part_template
+        config[args.cmd]["sub_prefix"] = args.sub_prefix
+        config[args.cmd]["ses_prefix"] = args.ses_prefix
+        config[args.cmd]["no_subject"] = args.no_subject
+        config[args.cmd]["no_session"] = args.no_session
+        config[args.cmd]["rec_folders"] = args.recfolder
+
+    elif args.cmd == "bidsify":
+        config["maps"]["map"] = args.bidsmap
+    elif args.cmd == "map":
+        config["maps"]["map"] = args.bidsmap
+        config["maps"]["template"] = args.template
+
+    if args.configuration:
+        with open(args.configuration, "w") as f:
+            yaml.dump(config, f)
 
 
 def setSubParser(parser, cmd):
