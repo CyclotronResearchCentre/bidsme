@@ -12,6 +12,13 @@ config = {
             "skip_existing": False,
             "skip_session": False
             },
+        # Configuration realted to logging
+        "logging": {
+            # silence stdout output
+            "quiet": False,
+            "level": "INFO",
+            "format": '%(name)s(%(lineno)d) - %(levelname)s %(message)s'
+            },
         # list of plugins to use
         "plugins": {
             # plugin for preparation stage

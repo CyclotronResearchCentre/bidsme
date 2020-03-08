@@ -59,15 +59,14 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
             description=__generalDescription,
             )
     parser.add_argument(
-            "--dry-run",
-            help="Run in dry mode, i.e. without writting anything "
-            "on the disk",
-            action="store_true"
-            )
-    parser.add_argument(
             '-c', '--configuration',
             metavar="conf.yaml",
             help="Path to the configuration file"
+            )
+    parser.add_argument(
+            '--conf_save',
+            help="Save/update configuration file with given options",
+            action="store_true"
             )
     parser.add_argument(
             '-v', '--version',
@@ -128,15 +127,16 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
         setBidsify(parser)
     elif cmd == "map":
         setMap(parser)
-
     gr_help = parser.add_argument_group(
-            title="Help",
+            title="help",
             )
+
     gr_help.add_argument(
             "-h", "--help",
             help="show this help message and exit",
-            action="help"
+            action="help",
             )
+
     args = parser.parse_args(args[1], args[0])
     return prog, args
 
@@ -168,6 +168,27 @@ def setSubParser(parser, cmd):
     parser.add_argument(
             "destination",
             help="Path to the destination dataset"
+            )
+
+    gr_log = parser.add_argument_group(
+            "logging options"
+            )
+    gr_log.add_argument(
+            "-q", "--quiet",
+            help="Silence stdout logging output",
+            action="store_true",
+            default=config["logging"]["quiet"]
+            )
+    gr_log.add_argument(
+            "--level",
+            help="Set logging level",
+            choices=["DEBUG", "INFO", "WARNING", "ERROR", "DEBUG"],
+            default=config["logging"]["level"]
+            )
+    gr_log.add_argument(
+            "--formatter",
+            help="Logging formatting string",
+            default=config["logging"]["format"]
             )
 
     gr_plugin = parser.add_argument_group(
@@ -215,6 +236,13 @@ def setSubParser(parser, cmd):
     gr_selection.add_argument(
             "--skip-existing-sessions",
             help="Skip sessions that exists in destination dataset.",
+            action="store_true"
+            )
+
+    parser.add_argument(
+            "--dry-run",
+            help="Run in dry mode, i.e. without writting anything "
+            "on the disk",
             action="store_true"
             )
 

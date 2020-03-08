@@ -1,16 +1,17 @@
 import os
 import logging
 
+
 class CallCounted:
     """Decorator to determine number of calls for a method"""
 
-    def __init__(self,method):
-        self.method=method
-        self.counter=0
+    def __init__(self, method):
+        self.method = method
+        self.counter = 0
 
-    def __call__(self,*args,**kwargs):
-        self.counter+=1
-        return self.method(*args,**kwargs)
+    def __call__(self, *args, **kwargs):
+        self.counter += 1
+        return self.method(*args, **kwargs)
 
 
 def bidsversion() -> str:
@@ -20,7 +21,7 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__)), 
+    with open(os.path.join(os.path.dirname(__file__),
                            '../../../bidsversion.txt')) as fid:
         version = fid.read().strip()
 
@@ -41,9 +42,13 @@ def version() -> str:
     return str(version)
 
 
-def setup_logging(logger: logging.Logger, 
-                  log_dir: str, 
-                  level: str='INFO') -> None:
+def setup_logging(
+        logger: logging.Logger,
+        log_dir: str,
+        level: str = 'INFO',
+        formatter: str = '%(name)s(%(lineno)d) - %(levelname)s %(message)s',
+        quiet: bool = False
+                  ) -> None:
     """
     Setup the logging
 
@@ -82,7 +87,7 @@ def setup_logging(logger: logging.Logger,
         errorhandler.set_name('errorhandler')
         logger.addHandler(errorhandler)
 
-    # Set & add the streamhandler and 
+    # Set & add the streamhandler and
     # add some color to those boring terminal logs! :-)
     coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
 

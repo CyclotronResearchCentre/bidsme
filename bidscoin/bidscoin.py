@@ -21,7 +21,10 @@ if __name__ == "__main__":
 
     logger = logging.getLogger()
     logger.name = os.path.splitext(os.path.basename(__file__))[0]
-    info.setup_logging(logger, 'INFO')
+    info.setup_logging(logger, 
+                       args.level, 
+                       args.formatter, 
+                       args.quiet)
     log_dir = os.path.join(args.destination, "code",
                            prog, args.cmd)
     info.addFileLogger(logger, log_dir)
