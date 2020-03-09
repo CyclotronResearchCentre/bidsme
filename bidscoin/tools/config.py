@@ -106,7 +106,7 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
                 )
             }
 
-    prog = parser.prog
+    prog = os.path.splitext(parser.prog)[0]
     ###################
     # Loadng cfg file
     ###################
@@ -174,7 +174,7 @@ def saveConfig(args: argparse.Namespace) -> None:
     config["logging"]["level"] = args.level
     config["logging"]["format"] = args.formatter
 
-    config["plugins"][args.cmd]["plugin"] = args.plugin
+    config["plugins"][args.cmd]["path"] = args.plugin
     config["plugins"][args.cmd]["options"] = args.plugin_opt
 
     config["selection"]["skip_tsv"] = args.skip_in_tsv

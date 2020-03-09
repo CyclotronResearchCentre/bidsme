@@ -22,14 +22,19 @@ logger = logging.getLogger(__name__)
 
 
 def sortsession(outfolder: str,
-                recording: object) -> None:
+                recording: object,
+                dry_run: bool) -> None:
+
+    plugins.RunPlugin("SequenceEP", recording)
 
     logger.info("Processing: sub '{}', ses '{}' ({} files)"
                 .format(recording.subId(),
                         recording.sesId(),
                         len(recording.files)))
 
-    os.makedirs(outfolder, exist_ok=True)
+    if not dry_run:
+        os.makedirs(outfolder, exist_ok=True)
+
     recording.index = -1
     while recording.loadNextFile():
         plugins.RunPlugin("RecordingEP", recording)
@@ -38,10 +43,10 @@ def sortsession(outfolder: str,
                 outfolder,
                 "{}/{}".format(recording.Module(),
                                recording.recIdentity(index=False)))
-        if not os.path.isdir(serie):
-            os.makedirs(serie)
-        outfile = recording.copyRawFile(serie)
-        plugins.RunPlugin("FileEP", outfile, recording)
+        if not dry_run:
+            os.makedirs(serie, exist_ok=True)
+            outfile = recording.copyRawFile(serie)
+            plugins.RunPlugin("FileEP", outfile, recording)
     plugins.RunPlugin("SequenceEndEP", outfolder, recording)
 
 
@@ -174,7 +179,7 @@ def prepare(source: str, destination: str,
     plugins.ImportPlugins(plugin_file)
     plugins.InitPlugin(source=source,
                        destination=destination,
-                       dry=False,
+                       dry=dry_run,
                        **plugin_opt)
 
     BidsSession.loadSubjectFields(part_template)
@@ -277,11 +282,10 @@ def prepare(source: str, destination: str,
                         logger.warning("unable to load data in folder {}"
                                        .format(rec_dir))
                     recording.setBidsSession(scan)
-                    plugins.RunPlugin("SequenceEP", recording)
                     scan = recording.getBidsSession()
                     out_path = os.path.join(destination,
                                             scan.getPath(True))
-                    sortsession(out_path, recording)
+                    sortsession(out_path, recording, dry_run)
             plugins.RunPlugin("SessionEndEP", scan)
     BidsSession.exportParticipants(destination)
 

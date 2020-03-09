@@ -8,6 +8,8 @@ import traceback
 import exceptions
 
 from prepare import prepare
+from bidsify import bidsify
+from mapper import mapper
 
 from tools import config
 from tools import info 
@@ -65,9 +67,30 @@ if __name__ == "__main__":
                     dry_run=args.dry_run
                     )
         elif args.cmd == "bidsify":
-            pass
+            bidsify(source=args.source,
+                    destination=args.destination,
+                    plugin_file=args.plugin, 
+                    plugin_opt=args.plugin_opt,
+                    sub_list=args.participants,
+                    sub_skip_tsv=args.skip_in_tsv,
+                    sub_skip_dir=args.skip_existing,
+                    ses_skip_dir=args.skip_existing_sessions,
+                    bidsmapfile=args.bidsmap,
+                    dry_run=args.dry_run
+                    )
         elif args.cmd == "map":
-            pass
+            mapper(source=args.source,
+                   destination=args.destination,
+                   plugin_file=args.plugin, 
+                   plugin_opt=args.plugin_opt,
+                   sub_list=args.participants,
+                   sub_skip_tsv=args.skip_in_tsv,
+                   sub_skip_dir=args.skip_existing,
+                   ses_skip_dir=args.skip_existing_sessions,
+                   bidsmapfile=args.bidsmap,
+                   map_template=args.template,
+                   dry_run=args.dry_run
+                   )
         else:
             raise ValueError("Invalid command")
     except Exception as err:
