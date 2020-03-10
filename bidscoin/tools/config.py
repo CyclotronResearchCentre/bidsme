@@ -3,6 +3,7 @@ import argparse
 import sys
 
 from tools import info
+from tools import paths
 from tools.yaml import yaml
 from tools.config_default import config
 
@@ -117,7 +118,8 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
         sys.exit(2)
     # loading configuration proper
     if args[0].configuration is not None:
-        loadConfig(args[0].configuration, update=args[0].conf_save)
+        args[0].configuration = loadConfig(args[0].configuration, 
+                                           update=args[0].conf_save)
 
     cmd = args[0].cmd
     parser = sub_parsers[cmd]
@@ -146,10 +148,13 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
     return prog, args
 
 
-def loadConfig(filename: str, update: bool = False) -> None:
+def loadConfig(filename: str, update: bool = False) -> str:
     """
     Loads config yaml file from given path
     and merges it with config_defaults
+
+    configuration file is looked consecutively in local and
+    standard configuration directory
 
     Parameters
     ----------
@@ -157,17 +162,33 @@ def loadConfig(filename: str, update: bool = False) -> None:
         path to config file
     update: bool
         if set to True, will not throw error if not existing
+
+    Returns
+    -------
+    str:
+        path to loaded config file
     """
-    if update and not os.path.isfile(filename):
+    fname = paths.findFile(filename,
+                           paths.local,
+                           paths.config)
+    if update and not fname:
         return
 
-    with open(filename, "r") as f:
+    if not fname:
+        if update:
+            return filename
+        else:
+            raise FileNotFoundError(filename)
+
+    with open(fname, "r") as f:
         yaml_map = yaml.load(f)
     for key, val in config.items():
         if key in yaml_map:
             for key2 in val:
                 if key2 in yaml_map[key]:
                     val[key2] = yaml_map[key][key2]
+    return fname
+
 
 def saveConfig(args: argparse.Namespace) -> None:
     config["logging"]["quiet"] = args.quiet

@@ -9,6 +9,7 @@ import os
 import logging
 import pandas
 
+from tools import paths
 import tools.tools as tools
 from tools.yaml import yaml
 import bidsmap
@@ -146,10 +147,24 @@ def mapper(source: str, destination: str,
 
     # Get the heuristics for filling the new bidsmap
     logger.info("loading template bidsmap {}".format(map_template))
-    template = bidsmap.Bidsmap(map_template)
-
-    bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
+    fname = paths.findFile(map_template,
+                           paths.local,
+                           paths.config,
+                           paths.heuristics)
+    if not fname:
+        logger.warning("Unable to find template map {}"
+                       .format(map_template))
+    template = bidsmap.Bidsmap(fname)
+    fname = paths.findFile(bidsmapfile,
+                           paths.local,
+                           paths.config,
+                           bidscodefolder)
+    if not fname:
+        bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
+    else:
+        bidsmapfile = fname
     logger.info("loading working bidsmap {}".format(bidsmapfile))
+
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
     if plugin_file:

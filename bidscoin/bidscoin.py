@@ -13,6 +13,7 @@ from mapper import mapper
 
 from tools import config
 from tools import info 
+from tools import paths
 
 
 
@@ -47,6 +48,12 @@ if __name__ == "__main__":
     logger.info("{}".format(time.asctime()))
     logger.info("programm version: {}".format(info.version()))
     logger.info("bids version: {}".format(info.bidsversion()))
+
+    logger.debug("User: {}".format(paths.user))
+    logger.debug("Application: {}".format(paths.app))
+    logger.debug("Local dir: {}".format(paths.local))
+    logger.debug("Instal dir: {}".format(paths.installation))
+    logger.debug("Conf dir: {}".format(paths.config))
 
     try:
         if args.cmd == "prepare":

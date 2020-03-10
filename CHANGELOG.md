@@ -9,6 +9,7 @@ by single quote to avoid bash expantion
 - Incorporated configuration file
 - logging options `level`, `quiet`, and `formatting` for log output control
 - save option for saving/updating locally configuration file
+- Search for map and config file in standard locations
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
