@@ -46,42 +46,43 @@ widely supported [YAML](http://yaml.org/) files, generated from a template yaml-
 All interactions with bidscoin occures from command-line interface, by a master script `bidscoin.py`.
 
 This script accepts a small set of parameters and one of the command 
-- **prepare** to [prepare dataset](#wf_prep)
-- **bidsify** to [bidsify dataset](#wf_bids)
-- **map** to [create bidsmap](#wf_map)
+
+- `prepare` to [prepare dataset](#wf_prep)
+- `bidsify` to [bidsify dataset](#wf_bids)
+- `map` to [create bidsmap](#wf_map)
 
 Outside the standard `-h`, `-v` options that shows help and version, `bidscoin` accepts 
 `-c, --configuration` options which takes a path to configuration file. 
-This file is searched in (in order)current directory, user-standard directory and 
+This file is searched in (in order) current directory, user-standard directory and 
 bids code directory (when availible).
 
 The `--conf-save` switch saves the current configuration (affected by command-line
-options) in the given location. It is usefull to run this option onse to update configuration.
+options) in the given location. It is usefull to run this option once to update configuration.
 
 > N.B. both `-c` and `--conf-save` must be given **before** the command.
 
 The individual commands accepts common and individual arguments. 
 In what follows only common arguments are described, and individual ones are 
 described in corresponding sections.
-<a name="gen_cli"></a>
-- Logging options, corresponds to *logging* section of configuration file:
-    *  **q**, **quiet** supress the standard output, usefull for running in the script
-    * **level** sets the message verbosity of the log output, from very verbose *DEBUG*
+
+- <a name="gen_cli"></a>Logging options, corresponds to *logging* section of configuration file:
+    *  `-q`, `--quiet` supress the standard output, usefull for running in the script
+    * `--level` sets the message verbosity of the log output, from very verbose *DEBUG*
     to showing only critical message *CRITICAL*
-    * **formatter** sets the log line format message 
+    * `--formatter` sets the log line format message 
 - Plug-in options, corresponds to *plugins* section of configuration file. Affects only
 relevant command: 
-    * **plugin** sets the path to plugin file
-    * **-o Name=Value** sets the options passed to plugin
+    * `--plugin` sets the path to plugin file
+    * `-o Name=Value` sets the options passed to plugin
 - Subject and session selection, corresponds to *selection* section of configuration file
-    * **participants** space separated list of participants to process. Listed participants
+    * `--participants` space separated list of participants to process. Listed participants
     are concidered after the bidsification, with `sub-` prefix
-    * **skip-in-tsv** switch that scips participants that already present in destination
-    * **skip-existing** switch that skips participants with corresponding folders existing
+    * `--skip-in-tsv` switch that scips participants that already present in destination
+    * `--skip-existing` switch that skips participants with corresponding folders existing
     in destination
-    * **skip-existing-sessions** same as above but for sessions
+    * `--skip-existing-sessions` same as above but for sessions
 - General options, nonexisting in configuration file:
-    * **dry-run**, run in the simulation mode, without writting anything outside the
+    * `--dry-run`, run in the simulation mode, without writting anything outside the
     logs
 
 The full list of commands parameters can be seen using `-h` option:
@@ -115,21 +116,27 @@ which can be defined as a set of recording sharing the same recording parameters
 A generic data-set can be organized into prepeared datase using `prepare` command.
 In addition of parameters cited [above](#gen_cli),
 some additional parameters are defined:
-- **part-template** with path to the sidecar json file (template) for future `participant.tsv`
-file. It is expected to follow the [BIDS-defined structure](https://bids-specification.readthedocs.io/en/stable/02-common-principles.html#tabular-files). It should include **all** needed column descriptions, including the mandatory 
-`participant_id`
-- **sub-prefix** sets the subject prefix in original dataset and can include path. For example if in original dataset 
-subject folders are stored in `participants` folder (`participants/001`, `participants/002` etc.. ), then setting `sub-prefix`
-to `participants/` (note the slash) will make `prepare` search for subjects in correct folder. The paths can contain
-wildecar charachter `*` in case if different participants are stored in different folders (e.g. `patients/001` and 
-`control/002`). Both can be reached by  `--sub-prefix '*/'`. If used, widecard characters must be protected by single 
-quote in order to avoid shell expension. The non-path part of prefix is removed from subject id. For this reason widecard 
-is forbidden outside the path.
-- **ses-prefix** sets the session prefix in the same manner as `sub-prefix` above
-- **no-subject** and **no-session** are mandatory to indicate if the original dataset subjects and respectively
-sessions are not stored in dedicated folders. 
-- **recfolder folder=type** options indicates in what folders the actual data is stored, and what is the type of data.
-For example `nii=MRI` tells that the `nii` subfolders contains MRI data. The wildecard is allowed in the folder name.
+
+- `--part-template` with path to the sidecar json file (template) for future `participant.tsv` file. 
+	It is expected to follow the [BIDS-defined structure](https://bids-specification.readthedocs.io/en/stable/02-common-principles.html#tabular-files). 
+	It should include **all** needed column descriptions, including the mandatory `participant_id`
+- `--sub-prefix` sets the subject prefix in original dataset and can include path. 
+	For example if in original dataset subject folders are stored in `participants` folder 
+	(`participants/001`, `participants/002` etc.. ), then setting `sub-prefix` to `participants/` 
+	(note the slash) will make `prepare` search for subjects in correct folder. 
+	The paths can contain wildecar charachter `*` in case if different participants 
+	are stored in different folders (e.g. `patients/001` and `control/002`). Both can be 
+	reached by  `--sub-prefix '*/'`. 
+	If used, widecard characters must be protected by single quote in order to avoid shell expension. 
+	The non-path part of prefix is removed from subject id. 
+	For this reason widecard is forbidden outside the path.
+- `--ses-prefix` sets the session prefix in the same manner as `sub-prefix` above
+- `--no-subject` and `--no-session` are mandatory to indicate if the original dataset subjects and respectively
+	sessions are not stored in dedicated folders. 
+- `--recfolder folder=type` options indicates in what folders the actual data is stored, 
+	and what is the type of data.
+	For example `nii=MRI` tells that the `nii` subfolders contains MRI data. 
+	The wildecard is allowed in the folder name.
 
 `prepare` iteratively scans the original dataset and determine the subjects and sessions Id from 
 folder names. Subject Id is taken from the name of top-most folder, and session from its sub-folder
@@ -161,7 +168,7 @@ sub-<subId>/ses-<sesId>/<DataType>/<Sequence>/data
 ```
 
 The `sub-<subId>` and `ses-<sesId>` will be the bidsified version of subjects and sessions Id.
-Note that if original dataset don't have sessions, the folder `sub-` will bresent, with and empty 
+Note that if original dataset don't have sessions, the folder `sub-` will be present, with and empty 
 `<sesId>`.
 
 `<DataType>` folder will correspond to one of `bidscoin` defined data types and will contain 

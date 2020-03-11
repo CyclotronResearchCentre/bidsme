@@ -19,8 +19,17 @@ from tools import paths
 
 if __name__ == "__main__":
 
-
     prog, args = config.parseArgs(sys.argv[1:])
+
+    # checking paths
+    if not os.path.isdir(args.source):
+        raise NotADirectoryError("Source directory {} don't exists"
+                                 .format(args.source))
+    if not os.path.isdir(args.destination):
+        raise NotADirectoryError("Destination directory {} don't exists"
+                                 .format(args.destination))
+
+    code = 0
 
     logger = logging.getLogger()
     logger.name = os.path.splitext(os.path.basename(__file__))[0]
@@ -32,17 +41,6 @@ if __name__ == "__main__":
                            prog, args.cmd)
     info.addFileLogger(logger, log_dir)
 
-    # checking paths
-    if not os.path.isdir(args.source):
-        logger.critical("Source directory {} don't exists"
-                        .format(args.source))
-        raise NotADirectoryError(args.source)
-    if not os.path.isdir(args.destination):
-        logger.critical("Destination directory {} don't exists"
-                        .format(args.destination))
-        raise NotADirectoryError(args.destination)
-
-    code = 0
     logger.info("")
     logger.info("-------------- START bidscoin --------------")
     logger.info("{}".format(time.asctime()))

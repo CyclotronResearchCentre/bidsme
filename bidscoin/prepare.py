@@ -287,6 +287,7 @@ def prepare(source: str, destination: str,
                                             scan.getPath(True))
                     sortsession(out_path, recording, dry_run)
             plugins.RunPlugin("SessionEndEP", scan)
-    BidsSession.exportParticipants(destination)
+    if not dry_run:
+        BidsSession.exportParticipants(destination)
 
     plugins.RunPlugin("FinaliseEP")
