@@ -7,14 +7,16 @@ Plugins allow to modify subjects and session names
 and preform various operations on data files.
 """
 import os
+import sys
 import logging
 import time
 import traceback
-import argparse
 import textwrap
 import glob
 
 from tools import info
+from tools import config
+from tools import cli
 import tools.tools as tools
 import plugins 
 import exceptions
@@ -219,8 +221,7 @@ if __name__ == "__main__":
                         nargs="+"
                         )
 
-    args = parser.parse_args()
-
+    args = cli.parseArgs(sys.argv[1:])
     # checking paths
     if not os.path.isdir(args.source):
         logger.critical("Source directory {} don't exists"
@@ -230,13 +231,12 @@ if __name__ == "__main__":
         logger.critical("Destination directory {} don't exists"
                         .format(args.destination))
         raise NotADirectoryError(args.destination)
-    if args.part_template is not None and \
-            not os.path.isfile(args.part_template):
-        logger.critical("Participants.tsv template not found at {}"
-                        .format(args.part_template))
-        raise FileNotFoundError(args.part_template)
-
     info.addFileLogger(logger, os.path.join(args.destination, "log"))
+
+    if args.configuration:
+        config.loadConfig(args.configuration)
+    config.mergeCLI(args,"sorting")
+    config.validateConfig()
 
     code = 0
     logger.info("")

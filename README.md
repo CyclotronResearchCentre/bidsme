@@ -5,17 +5,17 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bidscoin.svg)
 
 - [The BIDScoin workflow](#workflow)
-  * [Data preparation](#wf_prep)
-  * [Data bidsification](#wf_bids)
-  * [Bidsmap configuration](#wf_map)
-  * [Plugin configuration](#wf_plug)
+    * [Data preparation](#wf_prep)
+    * [Data bidsification](#wf_bids)
+    * [Bidsmap configuration](#wf_map)
+    * [Plugin configuration](#wf_plug)
 - [Examples](#examples)
-  * [Dataset 1](#ex1)
+    * [Dataset 1](#ex1)
 - [Supported formats](#formats)
-  * [MRI](#mri)
-    + [Nifti\_SPM12](#Nifti_SPM12)
-  * [EEG](#eeg)
-    + [BrainVision](#BV)
+    * [MRI](#mri)
+        + [Nifti\_SPM12](#Nifti_SPM12)
+    * [EEG](#eeg)
+        + [BrainVision](#BV)
 - [Plug-in functions](#plugins)
 - [Implementing additional formats](#new_formats)
 - [Bidsmap file structure](#bidsmap)
@@ -41,6 +41,56 @@ Additional formats can be implemented following instructions [here](#new_formats
 The mapping information is stored as key-value pairs in the human readable and 
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
+## <a name="intrface"></a> The BIDScoin interface
+
+All interactions with bidscoin occures from command-line interface, by a master script `bidscoin.py`.
+
+This script accepts a small set of parameters and one of the command 
+
+- `prepare` to [prepare dataset](#wf_prep)
+- `bidsify` to [bidsify dataset](#wf_bids)
+- `map` to [create bidsmap](#wf_map)
+
+Outside the standard `-h`, `-v` options that shows help and version, `bidscoin` accepts 
+`-c, --configuration` options which takes a path to configuration file. 
+This file is searched in (in order) current directory, user-standard directory and 
+bids code directory (when availible).
+
+The `--conf-save` switch saves the current configuration (affected by command-line
+options) in the given location. It is usefull to run this option once to update configuration.
+
+> N.B. both `-c` and `--conf-save` must be given **before** the command.
+
+The individual commands accepts common and individual arguments. 
+In what follows only common arguments are described, and individual ones are 
+described in corresponding sections.
+
+- <a name="gen_cli"></a>Logging options, corresponds to *logging* section of configuration file:
+    *  `-q`, `--quiet` supress the standard output, usefull for running in the script
+    * `--level` sets the message verbosity of the log output, from very verbose *DEBUG*
+    to showing only critical message *CRITICAL*
+    * `--formatter` sets the log line format message 
+- Plug-in options, corresponds to *plugins* section of configuration file. Affects only
+relevant command: 
+    * `--plugin` sets the path to plugin file
+    * `-o Name=Value` sets the options passed to plugin
+- Subject and session selection, corresponds to *selection* section of configuration file
+    * `--participants` space separated list of participants to process. Listed participants
+    are concidered after the bidsification, with `sub-` prefix
+    * `--skip-in-tsv` switch that scips participants that already present in destination
+    * `--skip-existing` switch that skips participants with corresponding folders existing
+    in destination
+    * `--skip-existing-sessions` same as above but for sessions
+- General options, nonexisting in configuration file:
+    * `--dry-run`, run in the simulation mode, without writting anything outside the
+    logs
+
+The full list of commands parameters can be seen using `-h` option:
+`bidscoin.py [command] -h`.
+If a configuration file is set, then the shown default values corresponds to configuration file
+parameters.
+ 
+
 ## <a name="workflow"> </a>The BIDScoin workflow
 
 The BIDScoin workfolw is composed in two steps:
@@ -63,67 +113,40 @@ where `subId` and `sesId` are the subject and session label, as defined by BIDS 
 which can be defined as a set of recording sharing the same recording parameters 
 (e.g. set of 2D slices for same fMRI scan).
 
-A generic data-set can be organized into prepeared datase using `coinsort` tool:
-```bash
-usage: coinsort.py [-h] [-i SUBJECTID] [-j SESSIONID] [-r RECFOLDER]
-                   [-t RECTYPE] [--no-session] [--no-subject] [-p PLUGIN]
-                   [-o OptName=OptValue [OptName=OptValue ...]]
-                   source destination
+A generic data-set can be organized into prepeared datase using `prepare` command.
+In addition of parameters cited [above](#gen_cli),
+some additional parameters are defined:
 
-Sorts and data files into local sub-direcories
-destination/sub-xxx/ses-xxx/zzz-seriename/<data-file>
+- `--part-template` with path to the sidecar json file (template) for future `participant.tsv` file. 
+	It is expected to follow the [BIDS-defined structure](https://bids-specification.readthedocs.io/en/stable/02-common-principles.html#tabular-files). 
+	It should include **all** needed column descriptions, including the mandatory `participant_id`
+- `--sub-prefix` sets the subject prefix in original dataset and can include path. 
+	For example if in original dataset subject folders are stored in `participants` folder 
+	(`participants/001`, `participants/002` etc.. ), then setting `sub-prefix` to `participants/` 
+	(note the slash) will make `prepare` search for subjects in correct folder. 
+	The paths can contain wildecar charachter `*` in case if different participants 
+	are stored in different folders (e.g. `patients/001` and `control/002`). Both can be 
+	reached by  `--sub-prefix '*/'`. 
+	If used, widecard characters must be protected by single quote in order to avoid shell expension. 
+	The non-path part of prefix is removed from subject id. 
+	For this reason widecard is forbidden outside the path.
+- `--ses-prefix` sets the session prefix in the same manner as `sub-prefix` above
+- `--no-subject` and `--no-session` are mandatory to indicate if the original dataset subjects and respectively
+	sessions are not stored in dedicated folders. 
+- `--recfolder folder=type` options indicates in what folders the actual data is stored, 
+	and what is the type of data.
+	For example `nii=MRI` tells that the `nii` subfolders contains MRI data. 
+	The wildecard is allowed in the folder name.
 
-Plugins allow to modify subjects and session names
-and preform various operations on data files.
+`prepare` iteratively scans the original dataset and determine the subjects and sessions Id from 
+folder names. Subject Id is taken from the name of top-most folder, and session from its sub-folder
+(modulo the the `prefix` parameters). 
 
-positional arguments:
-  source                The name of the root folder containing the recording
-                        file source/[sub/][ses/]<type>
-  destination           The name of the folder where sotred files will be
-                        placed
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -i SUBJECTID, --subjectid SUBJECTID
-                        The prefix string for recursive searching in
-                        niisource/subject subfolders (e.g. "sub-") (default: )
-  -j SESSIONID, --sessionid SESSIONID
-                        The prefix string for recursive searching in
-                        niisource/subject/session subfolders (e.g. "ses-")
-                        (default: )
-  -r RECFOLDER, --recfolder RECFOLDER
-                        Comma-separated list of folders with all recording
-                        files files (default: )
-  -t RECTYPE, --rectype RECTYPE
-                        Comma-separated list of types associated with
-                        recfolder folders. Must have same dimentions.
-                        (default: )
-  --no-session          Dataset do not contains session folders (default:
-                        False)
-  --no-subject          Dataset do not contains subject folders (default:
-                        False)
-  -p PLUGIN, --plugin PLUGIN
-                        Path to a plugin file (default: )
-  -o OptName=OptValue [OptName=OptValue ...]
-                        Options passed to plugin in form -o OptName=OptValue,
-                        several options can be passed (default: {})
-
-examples:
-  python3 coinsort.py source renamed -r nii -t MRI
-```
-
-`coinsort` expects to have source dataset organized following
-```
-[<subjectId>/][<sesId>/][datafolders/]<datafiles>
-```
-in particular, the subject Id and session Id are extracted from the 2 top-level 
-folders in source dataset. 
 The Id are taking as it, with removal of all non alphanumerical characters.
 For example, if subject folder is called `s0123-control`, the subject Id will be 
 `sub-s0123control`.
 If the folders name contain a prefix, that you don't want to be part of Id, 
-you can set it with option `-i` and `-j` for subject and session.
-For example with option `-i s`, the subject folder `s0123-control` will 
+For example with option `--sub-prefix s`, the subject folder `s0123-control` will 
 result in subject Id `sub-0123control`.
 
 If in the original dataset data is not organized in `subject/session` folders,
@@ -131,44 +154,47 @@ one should use options `--no-subject` and `--no-session`.
 The session Id will be set to an empty string, and subject Id will be retrieved
 from data files.
 
+> N.B. Even with subject and session folders present, there is a possibility to determine them directly from
+data files. In order to do this  in corresponding [plugin](#wf_plugin) the `session.subject` must be set 
+to `None`, making it undefined. But undefined subjects and sessions make subject selection unavailible.
+
 If one need to rename subjects and/or sessions, it can be done with plug-in functions
 `SubjectEP` and `SessionEP` or by renaming directly folders in the prepeared dataset.
 
-`coinsort` do not modify/convert/rename data files, only copies them.
+Once the data-files are identified, they are placed into prepared dataset, which follows 
+loosely the basic BIDS structure:
+```
+sub-<subId>/ses-<sesId>/<DataType>/<Sequence>/data
+```
+
+The `sub-<subId>` and `ses-<sesId>` will be the bidsified version of subjects and sessions Id.
+Note that if original dataset don't have sessions, the folder `sub-` will be present, with and empty 
+`<sesId>`.
+
+`<DataType>` folder will correspond to one of `bidscoin` defined data types and will contain 
+all data files identified as being of this type.
+
+`<Sequence>` folders will group all data files corresponding to the same recording (for ex. 
+different scanned volumes for the same MRI acquisition), it will be named as `<seqNo>-<secId>`
+which will uniquely identify the sequence.
+
+`prepare` do not modify/convert/rename data files, only copies them.
 If an actual modification of data is needed (e.g. anonymisation, or convertion),
 either in plugin functions `FileEP`, `SequenceEndEP` or manually in prepeared
 dataset. 
 As long datafiles remains in the correct folders and data format is supported 
 by BIDScoin, bidsification should perform normally.
 
-`coinsort` supports multimodal dataset.
-Actually, for each data-file, `coinsort` try to determine corresponding format.
-In order to help `coinsort`, and elimiate possible mis-identification, 
-an option `-t RECTYPE` can be used, with provided comma-separated list of
-supported data types.
-The option `-r RECFOLDER` provides the list of folders where corresponding
-data files are searched.
-For example with option `-t MRI,EEG -r nii,eeg`, `coinsort` will look for MRI 
-recordings in `<subjectId>/<sessionId>/nii` and for EEG recordings in
-`<subjectId>/<sessionId>/eeg`.
-If data do not have a separate folders, then an empty string `""` or 
-current directory `.` can be used.
+This structure has been choosen to be as rigid possible, in order to mak it easier 
+to treat numerically, but still human-readable.
+It naturally  supports multimodal dataset.
 
-The recording directories can be nested and contain wildecards (using Unix-style 
-patterns, see [glob](https://docs.python.org/3/library/glob.html) for details).
-For example with `-r data/nii` data will be searched in 
-`<subjectId>/<sessionId>/data/nii`.
 
-> If wildcard characters are used, then full `RECFOLDER` must be protected
-by single quote `'`, to avoid expansion by shell:
-`-r '*/nii'`. In this case MRI data will be searched in all folders having
-*nii* subfolder. 
-
-A working example of source dataset and `coinsort` configuration can be found 
+A working example of source dataset and `prepare` configuration can be found 
 [there](https://github.com/nbeliy/bidscoin_example).
 
 > NB: The logs for standard output and separetly errors and warnings are stored
-in destination folder in `log` directory. 
+in destination folder in `code/bidscoin/prepare/log` directory. 
 
 ### <a name="wf_bids"></a>Data bidsification
 
@@ -325,7 +351,7 @@ with the same plugin.
 Using [example 1](#ex1), the first pass of `bidsmapper` will produce around 500
 warning, but they are repetetive. 
 
-> 1WARNING MRI/001-localizer/0: No run found in bidsmap. Looking into template`
+> WARNING MRI/001-localizer/0: No run found in bidsmap. Looking into template`
 
 It means that give sample (first file - index `0`, of sequence `001-localizer`, 
 of type `MRI`) wasn't identified in the bidsmap. `bidsmapper` will try to look 

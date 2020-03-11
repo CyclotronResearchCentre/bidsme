@@ -2,7 +2,9 @@ import os
 import re
 import glob
 import logging
-import subprocess
+
+import pandas
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -64,27 +66,6 @@ def match_value(val, regexp, force_str=False):
         return re.fullmatch(regexp, val) is not None
     return val == regexp
 
-def run_command(command: str) -> bool:
-    """
-    Runs a command in a shell using subprocess.run(command, ..)
-
-    :param command: the command that is executed
-    :return:        True if the were no errors, False otherwise
-    """
-
-    logger.info(f"Running: {command}")
-    # TODO: investigate shell=False and capture_output=True for python 3.7
-    process = subprocess.run(command, shell=True,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
-    logger.info(f"Output:\n{process.stdout.decode('utf-8')}")
-
-    if process.stderr.decode('utf-8') or process.returncode != 0:
-        logger.error("Failed to run {} (errorcode {})"
-                     .format(command, process.returncode))
-        return False
-
-    return True
 
 def change_ext(filename, new_ext):
     pos = filename.rfind('.')
@@ -121,3 +102,80 @@ def check_type(name: str, cls: type, val: object) -> object:
     else:
         raise TypeError("{}: {} expected, {} recieved"
                         .format(name, cls, type(val)))
+
+
+def checkTsvDefinitions(df: pandas.DataFrame, definitions: str) -> bool:
+    """
+    Checks if sidecar json file with tsv fields definitions
+    contains same columns as dataframe
+
+    Parameters
+    ----------
+    df: pandas.DataFrame
+        dataframe to check
+    definitions: str
+        path to json sidecar file
+
+    Returns
+    -------
+    bool
+        True if columns in sidecar describe columns in dataframe
+    """
+    base = os.path.basename(definitions)
+    base = os.path.splitext(base)[0]
+    with open(definitions, "r") as f:
+        df_definitions = json.load(f)
+    if len(df_definitions) != len(df.columns):
+        logger.error("{}.tsv contains {} columns, while "
+                     "sidecar contain {} definitions"
+                     .format(base,
+                             len(df.columns),
+                             len(df_definitions)))
+        return False
+    for col in df.columns:
+        if col not in df_definitions:
+            logger.error("{}.tsv contains undefined "
+                         "column '{}'"
+                         .format(base, col))
+            return False
+    return True
+
+
+def skipEntity(entity: str, 
+               ent_list: list = [], 
+               ent_serie: pandas.Series = None,
+               ent_path: str = "") -> bool:
+    """
+    Checks if given entity (i.e. sub Id or ses Id) 
+    are found in given list, serie or folder and so
+    should be skipped
+
+    Parameters
+    ----------
+    entity: str
+        name of entity to check, including prefix,
+        e.g. sub-001, empty ("" or None) are always 
+        skipped
+    ent_list: list
+        list of authorised names
+    ent_serie: pandas.Series
+        serie of blacklisted names
+    ent_path: str
+        path to the directorie containing sub-directories
+        of blacklisted names
+    """
+    if not entity:
+        return True
+    if ent_list:
+        if entity not in ent_list:
+            logger.debug("{} not in list".format(entity))
+            return True
+    if ent_serie is not None:
+        if entity in ent_serie.values:
+            logger.debug("{} in tsv".format(entity))
+            return True
+    if ent_path:
+        if os.path.isdir(os.path.join(ent_path, entity)):
+            logger.debug("{} dir exists".format(entity))
+            return True
+    return False

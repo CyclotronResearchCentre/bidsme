@@ -836,6 +836,11 @@ class baseModule(object):
         ----------
         bidsfolder: str
             path to root of output bids folder
+
+        Returns
+        -------
+        str:
+            path to copied data file
         """
         if not self._bidsSession.isValid():
             raise ValueError("{}: Recording have invalid bids session"
@@ -893,6 +898,7 @@ class baseModule(object):
                     self.rec_BIDSvalues))
                 f.write('\n')
             self.rec_BIDSfields.DumpDefinitions(scans_json)
+        return os.path.join(outdir, bidsname + ext)
 
     def setLabels(self, run: Run=None):
         """

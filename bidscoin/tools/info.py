@@ -10,13 +10,13 @@ formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
 class CallCounted:
     """Decorator to determine number of calls for a method"""
 
-    def __init__(self,method):
+    def __init__(self, method):
         self.method = method
         self.counter = 0
 
-    def __call__(self,*args,**kwargs):
+    def __call__(self, *args, **kwargs):
         self.counter += 1
-        return self.method(*args,**kwargs)
+        return self.method(*args, **kwargs)
 
 
 class MsgCounterHandler(logging.Handler):
@@ -40,7 +40,7 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__), 
+    with open(os.path.join(os.path.dirname(__file__),
                            "../..",
                            'bidsversion.txt')) as fid:
         version = fid.read().strip()
@@ -63,8 +63,10 @@ def version() -> str:
     return str(version)
 
 
-def setup_logging(logger: logging.Logger, 
-                  level: str = 'INFO') -> None:
+def setup_logging(logger: logging.Logger,
+                  level: str = 'INFO',
+                  fmt: str = fmt,
+                  quiet: bool = False) -> None:
     """
     Setup the logging
 
@@ -81,9 +83,13 @@ def setup_logging(logger: logging.Logger,
 
     logger.addHandler(counthandler)
 
-    # Set & add the streamhandler and 
+    global formatter
+    formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
+
+    # Set & add the streamhandler and
     # add some color to those boring terminal logs! :-)
-    coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
+    if not quiet:
+        coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
 
 
 def addFileLogger(logger, log_dir):
@@ -110,7 +116,7 @@ def addFileLogger(logger, log_dir):
 def reporterrors(logger):
     errors = 0
     for handler in logger.handlers:
-        if isinstance(handler,MsgCounterHandler):
+        if isinstance(handler, MsgCounterHandler):
             logger.info("{}:{}"
                         .format(handler.name, handler.level2count))
             errors = handler.level2count.get('ERROR', 0)

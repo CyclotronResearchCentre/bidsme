@@ -111,7 +111,7 @@ def InitPlugin(**cfi_params):
     return RunPlugin("InitEP", **cfi_params)
 
 
-def RunPlugin(entry, *args, **kwargs):
+def RunPlugin(entry, *args, **kwargs) -> int:
     """
     Executes a given function from plugin, recovers the exit code of plugin
     and transforms it into corresponding exception.
@@ -129,10 +129,15 @@ def RunPlugin(entry, *args, **kwargs):
     ------
     TypeError :
         if some of parameters are of incorrect type
+
+    Returns
+    -------
+    int:
+        plugin exit code, can be 0 or < 0. Positive
+        exit codes will raise an exception
     """
     if entry not in active_plugins:
-        return
-    result = 0
+        return 0
     try:
         if kwargs:
             result = active_plugins[entry](*args, **kwargs)
@@ -143,8 +148,12 @@ def RunPlugin(entry, *args, **kwargs):
     except Exception as e:
         raise entry_points[entry]("{}: {}".format(type(e).__name__, e))\
                 .with_traceback(sys.exc_info()[2]) 
-    if result is not None and result != 0:
+    if result is None:
+        result = 0
+
+    if result > 0:
         e = entry_points[entry]("Plugin {} returned code {}"
                                 .format(entry, result))
         e.code = result
         raise e
+    return result

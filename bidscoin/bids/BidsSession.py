@@ -20,8 +20,8 @@ class BidsSession(object):
     __sub_values = dict()
 
     def __init__(self):
-        self.__subject = ""
-        self.__session = ""
+        self.__subject = None
+        self.__session = None
         self.in_path = None
 
         self.__sub_locked = False
@@ -130,11 +130,29 @@ class BidsSession(object):
         i.e. both are locked and defined (i.e. not None),
         and subject Id not an empty string
         """
-        if not self.isLocked():
+        return self.isSubValid() and self.isSesValid()
+
+    def isSubValid(self) -> bool:
+        """
+        Checks if subject ID is valid, i.e. is locked,
+        not None and not empty
+        """
+        if not self.__sub_locked:
             return False
-        if self.__subject is None or self.__session is None:
+        if self.__subject is None:
             return False
         if self.__subject == "":
+            return False
+        return True
+
+    def isSesValid(self) -> bool:
+        """
+        Checks if session ID is valid, i.e. is locked,
+        not None
+        """
+        if not self.__ses_locked:
+            return False
+        if self.__session is None:
             return False
         return True
 
@@ -148,7 +166,7 @@ class BidsSession(object):
             return True
 
     @classmethod
-    def loadSubjectFields(cls, filename: str=None) -> None:
+    def loadSubjectFields(cls, filename: str="") -> None:
         """
         Loads the tsv fields for subject.tsv file
 
@@ -161,7 +179,7 @@ class BidsSession(object):
         if cls.__sub_columns is not None:
             raise ValueError("Redefinition of participants template")
         cls.__sub_columns = BIDSfieldLibrary()
-        if filename is None:
+        if not filename:
             cls.__sub_columns.AddField(
                     name="participant_id",
                     longName="Participant Id",
