@@ -19,6 +19,7 @@ by single quote to avoid bash expantion
 - `participants.tsv` file now created at prepearing stage, with warning
 if field values are conflicting
 - Main code is `bidscoin.py` with cli command `prepare`, `bidsify` and `map`
+- Plugins exit code `< 0` do not throw exception  
 
 ## [dev2.1.0] - 2020-02-19
 
