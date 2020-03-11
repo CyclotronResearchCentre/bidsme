@@ -204,7 +204,9 @@ def prepare(source: str, destination: str,
         if not sub_no_dir:
             scan.subject = os.path.basename(sub_dir)
             scan.subject = scan.subject[len(sub_prefix):]
-        plugins.RunPlugin("SubjectEP", scan)
+        if plugins.RunPlugin("SubjectEP", scan) < 0:
+            logger.warning("Subject {} discarded by {}"
+                           .format(scan.subject, "SubjectEP"))
         scan.lock_subject()
 
         if scan.subject is not None:
