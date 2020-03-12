@@ -172,13 +172,10 @@ def loadConfig(filename: str, update: bool = False) -> str:
                            paths.local,
                            paths.config)
     if update and not fname:
-        return
+        return filename
 
     if not fname:
-        if update:
-            return filename
-        else:
-            raise FileNotFoundError(filename)
+        raise FileNotFoundError(filename)
 
     with open(fname, "r") as f:
         yaml_map = yaml.load(f)
