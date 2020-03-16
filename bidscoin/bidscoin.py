@@ -8,6 +8,7 @@ import traceback
 import exceptions
 
 from prepare import prepare
+from process import process
 from bidsify import bidsify
 from mapper import mapper
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
                     dry_run=args.dry_run
                     )
         elif args.cmd == "process":
-            bidsify(source=args.source,
+            process(source=args.source,
                     destination=args.destination,
                     plugin_file=args.plugin, 
                     plugin_opt=args.plugin_opt,

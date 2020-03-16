@@ -11,6 +11,8 @@ by single quote to avoid bash expantion
 - logging options `level`, `quiet`, and `formatting` for log output control
 - save option for saving/updating locally configuration file
 - Search for map and config file in standard locations
+- New command `process` that is similar to `bidsify` except do not writes on bids folder,
+used for checks and processing data (via plugins)
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
