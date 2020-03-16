@@ -91,10 +91,17 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
                 formatter_class=__CustomFormatter,
                 add_help=False
                 ),
+            "process": subparsers.add_parser(
+                name="process",
+                description="Processing of dataset",
+                help="Processing of prepared dataset",
+                formatter_class=__CustomFormatter,
+                add_help=False
+                ),
             "bidsify": subparsers.add_parser(
                 name="bidsify",
                 description="Bidsification of dataset",
-                help="Bidsification of dataset",
+                help="Bidsification of prepared dataset",
                 formatter_class=__CustomFormatter,
                 add_help=False
                 ),
@@ -127,6 +134,8 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
     if cmd == "prepare":
         setPrepare(parser)
     elif cmd == "bidsify":
+        setBidsify(parser)
+    elif cmd == "process":
         setBidsify(parser)
     elif cmd == "map":
         setMap(parser)

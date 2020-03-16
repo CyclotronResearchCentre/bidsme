@@ -71,6 +71,18 @@ if __name__ == "__main__":
                     data_dirs=args.recfolder,
                     dry_run=args.dry_run
                     )
+        elif args.cmd == "process":
+            bidsify(source=args.source,
+                    destination=args.destination,
+                    plugin_file=args.plugin, 
+                    plugin_opt=args.plugin_opt,
+                    sub_list=args.participants,
+                    sub_skip_tsv=args.skip_in_tsv,
+                    sub_skip_dir=args.skip_existing,
+                    ses_skip_dir=args.skip_existing_sessions,
+                    bidsmapfile=args.bidsmap,
+                    dry_run=args.dry_run
+                    )
         elif args.cmd == "bidsify":
             bidsify(source=args.source,
                     destination=args.destination,
