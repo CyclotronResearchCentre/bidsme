@@ -82,7 +82,7 @@ def coin(destination: str,
     plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
-def prepare(source: str, destination: str,
+def process(source: str, destination: str,
             plugin_file: str = "",
             plugin_opt: dict = {},
             sub_list: list = [],
@@ -313,10 +313,11 @@ def prepare(source: str, destination: str,
                                  .format(module, ses_dir))
                     continue
                 for run in tools.lsdirs(mod_dir):
+                    scan.in_path = run
                     cls = Modules.selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
-                                     .format(mod_dir))
+                                     .format(run))
                         continue
                     recording = cls(rec_path=run)
                     if not recording or len(recording.files) == 0:

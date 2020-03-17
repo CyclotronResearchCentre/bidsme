@@ -12,7 +12,8 @@ by single quote to avoid bash expantion
 - save option for saving/updating locally configuration file
 - Search for map and config file in standard locations
 - New `process` step intended to run before bidsification and performing
-tests and cleanups
+tests and cleanups. Additional data processings (QC, convertions) can be performed
+in plug-ins
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
