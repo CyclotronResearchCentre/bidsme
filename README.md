@@ -200,76 +200,30 @@ in destination folder in `code/bidscoin/prepare/log` directory.
 
 Considering that the data is [prepeared](#wf_prep) together with 
 [bidsmap](#wf_map) and [plugins](#wf_plug),
-the bidsification is performed by `bidscoiner` tool:
+the bidsification is performed by `bidsify` command:
 ```
-usage: bidscoiner.py [-h] [-p PARTICIPANT_LABEL [PARTICIPANT_LABEL ...]] [-s]
-                     [-b BIDSMAP] [-d] [-v]
-                     [-o OptName=OptValue [OptName=OptValue ...]]
-                     sourcefolder bidsfolder
-
-Converts ("coins") datasets in the sourcefolder to datasets
-in the bidsfolder according to the BIDS standard, based on
-bidsmap.yaml file created by bidsmapper. 
-You can run bidscoiner.py after all data is collected, 
-or run / re-run it whenever new data has been added
-to the source folder (presuming the scan protocol hasn't changed).
-If you delete a (subject/) session folder from the bidsfolder,
-it will be re-created from the sourcefolder the next time you run
-the bidscoiner.
-
-Provenance information, warnings and error messages are stored in the
-bidsfolder/code/bidscoin/bidscoiner.log file.
-
-positional arguments:
-  sourcefolder          The source folder containing the raw data in
-                        sub-#/[ses-#]/run format (or specify --subprefix and
-                        --sesprefix for different prefixes)
-  bidsfolder            The destination / output folder with the bids data
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -s, --skip_participants
-                        If this flag is given those subjects that are in
-                        particpants.tsv will not be processed (also when the
-                        --force flag is given). Otherwise the participants.tsv
-                        table is ignored
-  -b BIDSMAP, --bidsmap BIDSMAP
-                        The bidsmap YAML-file with the study heuristics. If
-                        the bidsmap filename is relative (i.e. no "/" in the
-                        name) then it is assumed to be located in
-                        bidsfolder/code/bidscoin. Default: bidsmap.yaml
-  -d, --dry_run         Run bidscoiner without writing anything on the disk.
-                        Useful to detect errors without putting dataset at
-                        risk. Default: False
-  -v, --version         Show the BIDS and BIDScoin version
-  -o OptName=OptValue [OptName=OptValue ...]
-                        Options passed to plugin in form -o OptName=OptValue,
-                        several options can be passed
-
-examples:
-  bidscoiner.py /project/foo/raw /project/foo/bids
-  bidscoiner.py -f /project/foo/raw /project/foo/bids -p sub-009 sub-030
+bidscoin.py bidsify prepared bidsified
 ```
 
 It will run over data-files in prepeared dataset, determine the correct modalities
 and BIDS entities, extract the meta-data needed for sidecar json files, and 
 create BIDS dataset in destination folder.
 
-If an option `-d` is given, `bidscoiner` will run in "dry" mode, simulating
-the bidsification without actually creating and or editing any file at 
-destination. 
-This option is usefull to run before bidsification, in order to detect 
-possible problems without compromizing dataset.
+Outside options cited [above](#gen_cli), `bidsify` accepts one parameter:
 
-If an option `-s` is given, the participants existing in `participants.tsv`
-in destination dataset are skipped.
+- `-b, --bidsmap` with path to the bidsmap file used to identify data files.
+If ommited, the `bidsmap.yaml` will be used. Bidsmap will be searched first 
+in local path, then in `bidsified/code/bidscoin/`.
+
+> N.B. It is advisable to first run bidsification in ["dry mode"](#gen_cli), using
+switch `--dry-run`, then if there no errors detected run bidsification in normal mode.
 
 The subjects and session Id are retrieved from folder structure, but still
 can be modified in the plugins. It can be usefull if one plan perform a random 
 permutation on the subjects, for additional layer of anonymisation. 
 
 > NB: The log files with messages and, separately the errors are stored in
-destination directory in `source/bidscoin/log` sub-directory.
+destination directory in `source/bidscoin/bidsify/log` sub-directory.
 
 
 ### <a name="wf_map"></a>Bidsmap configuration
@@ -292,50 +246,21 @@ It is important to these subjects being complete (i.e. no missing scans)
 and without errors made in protocol (no duplicated scans, scans in good order etc...).
 This reference dataset will serve as a model for bidsmap.
 
-Once the reference dataset is ready, the bidsmap is created by running the tool
-`bidsmapper`:
+Once the reference dataset is ready, the bidsmap is created by command `map`:
 ```
-usage: bidsmapper.py [-h] [-b BIDSMAP] [-t TEMPLATE] [-p PLUGIN]
-                     [-o OptName=OptValue [OptName=OptValue ...]] [-v]
-                     sourcefolder bidsfolder
-
-Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
-that maps the information from all raw source data to the BIDS labels.
-Created map can be edited/adjusted manually
-
-positional arguments:
-  sourcefolder          The source folder containing the raw data in
-                        sub-#/ses-#/run format (or specify --subprefix and
-                        --sesprefix for different prefixes)
-  bidsfolder            The destination folder with the (future) bids data and
-                        the bidsfolder/code/bidscoin/bidsmap.yaml output file
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -b BIDSMAP, --bidsmap BIDSMAP
-                        The bidsmap YAML-file with the study heuristics. If
-                        the bidsmap filename is relative (i.e. no "/" in the
-                        name) then it is assumed to be located in
-                        bidsfolder/code/bidscoin. Default: bidsmap.yaml
-  -t TEMPLATE, --template TEMPLATE
-                        The bidsmap template with the default heuristics (this
-                        could be provided by your institute). If the bidsmap
-                        filename is relative (i.e. no "/" in the name) then it
-                        is assumed to be located in bidscoin/heuristics/.
-                        Default: bidsmap_template.yaml
-  -p PLUGIN, --plugin PLUGIN
-                        Path to plugin file intended to be used with
-                        bidsification. This needed only for creation of new
-                        file
-  -o OptName=OptValue [OptName=OptValue ...]
-                        Options passed to plugin in form -o OptName=OptValue,
-                        several options can be passed
-  -v, --version         Show the BIDS and BIDScoin version
-
-examples:
-  bidsmapper.py /project/foo/raw /project/foo/bids
-  bidsmapper.py /project/foo/raw /project/foo/bids -t bidsmap_dccn
+bidscoin.py map prepeared/ bidsified/
 ```
+
+The `map` command accepts two additional parameters:
+
+- `-b, --bidsmap` (default: `bidsmap.yaml`), with path to the bidsmap file.
+As in `bidsify` command given file will be searched first locally, then in 
+`bidsified/code/bidscoin/` directory. 
+- `-t, --template` (default: `bidsmap-template.yaml`), with path to template map.
+This file will be searched in order in local directory, default configuration directory 
+(`$HOME/$XDG_CONFIG/bidscoin/` on \*NIX, `\User\AppData\bidscoin\` on Windows),
+and in the `bidscoin` installation directory.
+
 At first pass tool will scan reference dataset and try to guess 
 correct parameters for bidsification. If he can't find correct
 parameters or couldn't identify the run, a corresponding warning
