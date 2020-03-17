@@ -234,7 +234,7 @@ def bidsify(source: str, destination: str,
     df_res = df_sub
     if old_sub is not None:
         if not old_sub.columns.equals(df_sub.columns):
-            logger.critical("Participant.tsv has differenrt columns "
+            logger.critical("Participant.tsv has different columns "
                             "from destination dataset")
             raise Exception("Participants column mismatch")
         df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()

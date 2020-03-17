@@ -78,7 +78,7 @@ def coin(destination: str,
             e = "{}/{}.json exists at destination"\
                 .format(bidsmodality, bidsname)
             logger.error(e)
-            raise FileExistsError(e)
+        plugins.RunPlugin("FileEP", None, recording)
     plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
@@ -89,7 +89,7 @@ def prepare(source: str, destination: str,
             sub_skip_tsv: bool = False,
             sub_skip_dir: bool = False,
             ses_skip_dir: bool = False,
-            bidsmapfile : str = "bidsmap.yaml",
+            bidsmapfile: str = "bidsmap.yaml",
             dry_run: bool = False
             ) -> None:
     """
@@ -134,7 +134,7 @@ def prepare(source: str, destination: str,
         Can conflict with ses_no_dir
     bidsmapfile: str
         The name of bidsmap file, will be searched for
-        in destination/code/bidsmap directory, unless 
+        in destination/code/bidsmap directory, unless
         path is absolute
     dry_run: bool
         if set to True, no disk writing operations
@@ -192,7 +192,7 @@ def prepare(source: str, destination: str,
     if nunchecked != 0:
         logger.critical("Map contains {} unchecked runs"
                         .format(nunchecked))
-        raise ValueError("Unchecked runs present")
+        raise Exception("Unchecked runs present")
 
     # Load and initialize plugin
     if plugin_file:
@@ -214,7 +214,7 @@ def prepare(source: str, destination: str,
     new_sub_file = os.path.join(source, "participants.tsv")
     df_sub = pandas.read_csv(new_sub_file,
                              sep="\t", header=0,
-                             na_values="n/a")
+                             na_values="n/a").drop_duplicates()
     df_dupl = df_sub.duplicated("participant_id")
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
@@ -274,7 +274,7 @@ def prepare(source: str, destination: str,
             continue
 
         if tools.skipEntity(scan.subject, sub_list,
-                            old_sub if sub_skip_tsv else None, 
+                            old_sub if sub_skip_tsv else None,
                             destination if sub_skip_dir else ""):
             logger.info("Skipping subject '{}'"
                         .format(scan.subject))
@@ -327,3 +327,12 @@ def prepare(source: str, destination: str,
                     coin(destination, recording, bidsmap, dry_run)
 
     plugins.RunPlugin("FinaliseEP")
+
+    if not dry_run:
+        df_res.to_csv(new_sub_file,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
+        json_file = tools.change_ext(new_sub_file, "json")
+        if not os.path.isfile(json_file):
+            shutil.copyfile(os.path.join(source, "participants.json"),
+                            json_file)
