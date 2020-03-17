@@ -292,4 +292,22 @@ def prepare(source: str, destination: str,
     if not dry_run:
         BidsSession.exportParticipants(destination)
 
+        # checking up and cleaning the participants
+        new_sub_file = os.path.join(source, "participants.tsv")
+        df_sub = pandas.read_csv(new_sub_file,
+                                 sep="\t", header=0,
+                                 na_values="n/a").drop_duplicates()
+        df_dupl = df_sub.duplicated("participant_id")
+        if df_dupl.any():
+            logger.error("Participant list contains one or several duplicated "
+                         "entries: {}"
+                         .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                         )
+
+        new_sub_json = os.path.join(source, "participants.json")
+        tools.checkTsvDefinitions(df_sub, new_sub_json)
+        df_sub.to_csv(new_sub_file,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
+
     plugins.RunPlugin("FinaliseEP")
