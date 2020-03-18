@@ -36,7 +36,11 @@ def coin(destination: str,
     :param sesprefix:   The prefix common for all source session-folders
     :return:            Nothing
     """
-    plugins.RunPlugin("SequenceEP", recording)
+    if plugins.RunPlugin("SequenceEP", recording) < 0:
+        logger.warning("Sequence {} discarded by {}"
+                       .format(recording.recIdentity(False), 
+                               "SequenceEP"))
+        return
 
     logger.info("Processing: sub '{}', ses '{}', {} ({} files)"
                 .format(recording.subId(),
@@ -48,7 +52,11 @@ def coin(destination: str,
 
     recording.index = -1
     while recording.loadNextFile():
-        plugins.RunPlugin("RecordingEP", recording)
+        if plugins.RunPlugin("RecordingEP", recording) < 0:
+            logger.warning("Recording {} discarded by {}"
+                           .format(recording.recIdentity(), 
+                                   "RecordingEP"))
+            continue
         out_path = os.path.join(destination,
                                 recording.getBidsPrefix("/"))
         # checking in the current map
@@ -263,7 +271,10 @@ def bidsify(source: str, destination: str,
         scan = BidsSession()
         scan.in_path = sub_dir
         scan.subject = sub_id
-        plugins.RunPlugin("SubjectEP", scan)
+        if plugins.RunPlugin("SubjectEP", scan) < 0:
+            logger.warning("Subject {} discarded by {}"
+                           .format(scan.subject, "SubjectEP"))
+            continue
         scan.lock_subject()
         if not scan.isSubValid():
             logger.error("{}: Subject id '{}' is not valid"
@@ -292,7 +303,10 @@ def bidsify(source: str, destination: str,
                                 ses_dir))
             scan.unlock_session()
             scan.session = os.path.basename(ses_dir)
-            plugins.RunPlugin("SessionEP", scan)
+            if plugins.RunPlugin("SessionEP", scan) < 0:
+                logger.warning("Session {} discarded by {}"
+                               .format(scan.session, "SessionEP"))
+                continue
             scan.lock()
 
             if ses_skip_dir and tools.skipEntity(scan.session,
