@@ -323,6 +323,15 @@ def mapper(source: str, destination: str,
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)
 
+    ntotal, ntemplate, nunchecked = bidsmap_new.countRuns()
+    logger.info("Map contains {} runs".format(ntotal))
+    if ntemplate != 0:
+        logger.warning("Map contains {} template runs"
+                    .format(ntemplate))
+    if nunchecked != 0:
+        logger.warning("Map contains {} unchecked runs"
+                    .format(nunchecked))
+
     # Scanning unknowing and exporting them to yaml file
     d = dict()
     for mod in bidsmap_unk:
