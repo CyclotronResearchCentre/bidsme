@@ -1,31 +1,45 @@
 #!/usr/bin/env python
 """
-Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
-that maps the information from all raw source data to the BIDS labels.
-Created map can be edited/adjusted manually
+Process bidsified dataset before the bidsification.
+Can be used to produce derivatives, convertion
+anonymisation with adventage of recording identification
+by bidsmap.yaml
+
+Essentually it is identical to bidsification but without
+bidsification itself.
 """
 
 import os
-import logging
+import shutil
 import pandas
+import logging
 
-from tools import paths
-import tools.tools as tools
-from tools.yaml import yaml
-import bidsmap
+from tools import tools
 import plugins
 
 import Modules
+from bidsmap import Bidsmap
 from bids.BidsSession import BidsSession
 
 logger = logging.getLogger(__name__)
 
 
-def createmap(recording: Modules.baseModule,
-              bidsmap,
-              template,
-              bidsmap_unk) -> None:
+def coin(destination: str,
+         recording: Modules.baseModule,
+         bidsmap: Bidsmap,
+         dry_run: bool) -> None:
+    """
+    Converts the session dicom-files into BIDS-valid nifti-files
+    in the corresponding bidsfolder and extracts personals
+    (e.g. Age, Sex) from the dicom header
 
+    :param session:     The full-path name of the subject/session source folder
+    :param bidsmap:     The full mapping heuristics from the bidsmap YAML-file
+    :param personals:   The dictionary with the personal information
+    :param subprefix:   The prefix common for all source subject-folders
+    :param sesprefix:   The prefix common for all source session-folders
+    :return:            Nothing
+    """
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
                        .format(recording.recIdentity(False), 
@@ -38,6 +52,8 @@ def createmap(recording: Modules.baseModule,
                         recording.recIdentity(),
                         len(recording.files)))
 
+    recording.sub_BIDSvalues["participant_id"] = recording.subId()
+
     recording.index = -1
     while recording.loadNextFile():
         if plugins.RunPlugin("RecordingEP", recording) < 0:
@@ -45,46 +61,54 @@ def createmap(recording: Modules.baseModule,
                            .format(recording.recIdentity(), 
                                    "RecordingEP"))
             continue
+
+        out_path = os.path.join(destination,
+                                recording.getBidsPrefix("/"))
         # checking in the current map
         modality, r_index, r_obj = bidsmap.match_run(recording)
         if not modality:
-            logger.warning("{}/{}: No run found in bidsmap. "
-                           "Looking into template"
-                           .format(recording.Module(),
-                                   recording.recIdentity()))
-            # checking in the template map
-            modality, r_index, r_obj = template.match_run(recording, fix=True)
-            if not modality:
-                logger.error("{}/{}: No compatible run found"
-                             .format(recording.Module(),
-                                     recording.recIdentity()))
-                bidsmap_unk[recording.Module()][recording.Type()].append({
-                    "provenance":recording.currentFile(),
-                    "attributes":recording.attributes})
-                continue
-            r_obj.template = True
-            modality, r_index, run = bidsmap.add_run(
-                    r_obj,
-                    recording.Module(),
-                    recording.Type()
-                    )
-            plugins.RunPlugin("SequenceEndEP", None, recording)
+            e = "{}: No compatible run found"\
+                .format(recording.recIdentity())
+            logger.error(e)
+            raise ValueError(e)
+        if modality == Modules.ignoremodality:
+            logger.info('{}: ignored modality'
+                        .format(recording.recIdentity()))
+            continue
+        recording.setLabels(r_obj)
+        recording.generateMeta()
+
+        bidsname = recording.getBidsname()
+        bidsmodality = os.path.join(out_path, recording.Modality())
+
+        # Check if file already exists
+        if os.path.isfile(os.path.join(bidsmodality,
+                                       bidsname + '.json')):
+            e = "{}/{}.json exists at destination"\
+                .format(bidsmodality, bidsname)
+            logger.error(e)
+        plugins.RunPlugin("FileEP", None, recording)
+    plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
-def mapper(source: str, destination: str,
-           plugin_file: str = "",
-           plugin_opt: dict = {},
-           sub_list: list = [],
-           sub_skip_tsv: bool = False,
-           sub_skip_dir: bool = False,
-           ses_skip_dir: bool = False,
-           bidsmapfile: str = "bidsmap.yaml",
-           map_template: str = "bidsmap_template.yaml", 
-           dry_run: bool = False
-           ) -> None:
+def process(source: str, destination: str,
+            plugin_file: str = "",
+            plugin_opt: dict = {},
+            sub_list: list = [],
+            sub_skip_tsv: bool = False,
+            sub_skip_dir: bool = False,
+            ses_skip_dir: bool = False,
+            bidsmapfile: str = "bidsmap.yaml",
+            dry_run: bool = False
+            ) -> None:
     """
-    Generates bidsmap.yaml from prepeared dataset and 
-    map template.
+    Process bidsified dataset before the bidsification.
+    Can be used to produce derivatives, convertion
+    anonymisation with adventage of recording identification
+    by bidsmap.yaml
+
+    Essentually it is identical to bidsification but without
+    bidsification itself.
 
     Only subjects in source/participants.tsv are treated,
     this list can be narrowed using sub_list, sub_skip_tsv
@@ -119,22 +143,19 @@ def mapper(source: str, destination: str,
         Can conflict with ses_no_dir
     bidsmapfile: str
         The name of bidsmap file, will be searched for
-        in destination/code/bidsmap directory, unless 
+        in destination/code/bidsmap directory, unless
         path is absolute
-    map_template: str
-        The name of template map. The file is searched 
-        in heuristics folder
     dry_run: bool
         if set to True, no disk writing operations
         will be performed
     """
 
-    logger.info("------------ Generating bidsmap ------------")
-    logger.info("Current directory: {}".format(os.getcwd()))
+    logger.info("-------------- Processing data -------------")
     logger.info("Source directory: {}".format(source))
     logger.info("Destination directory: {}".format(destination))
 
     # Input checking
+    # source = os.path.abspath(source)
     if not os.path.isdir(source):
         logger.critical("Source directory {} don't exists"
                         .format(source))
@@ -144,54 +165,57 @@ def mapper(source: str, destination: str,
                         .format(destination))
         raise NotADirectoryError(destination)
 
-    bidscodefolder = os.path.join(destination,'code','bidscoin')
+    # Input checking & defaults
+    bidscodefolder = os.path.join(destination, 'code', 'bidscoin')
+
+    # Create a code/bidscoin subfolder
     os.makedirs(bidscodefolder, exist_ok=True)
 
-    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
+    # Check for dataset description file
+    dataset_file = os.path.join(destination, 'dataset_description.json')
+    if not os.path.isfile(dataset_file):
+        logger.warning("Dataset description file 'dataset_description.json' "
+                       "not found in '{}'".format(destination))
 
-    # removing old unknown files
-    if os.path.isfile(bidsunknown):
-        os.remove(bidsunknown)
+    # Check for README file
+    readme_file = os.path.join(destination, 'README')
+    if not os.path.isfile(readme_file):
+        logger.warning("Dataset readme file 'README' "
+                       "not found in '{}'".format(destination))
 
-    # Get the heuristics for filling the new bidsmap
-    logger.info("loading template bidsmap {}".format(map_template))
-    fname = paths.findFile(map_template,
-                           paths.local,
-                           paths.config,
-                           paths.heuristics)
-    if not fname:
-        logger.warning("Unable to find template map {}"
-                       .format(map_template))
-    template = bidsmap.Bidsmap(fname)
-    fname = paths.findFile(bidsmapfile,
-                           paths.local,
-                           paths.config,
-                           bidscodefolder)
-    if not fname:
-        bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
-    else:
-        bidsmapfile = fname
-    logger.info("loading working bidsmap {}".format(bidsmapfile))
+    # Get the bidsmap heuristics from the bidsmap YAML-file
+    bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
+    logger.info("loading bidsmap {}".format(bidsmapfile))
+    bidsmap = Bidsmap(bidsmapfile)
 
-    bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
+    if not bidsmap:
+        logger.critical('Bidsmap file {} not found.'
+                        .format(bidsmapfile))
+        raise FileNotFoundError(bidsmapfile)
 
+    ntotal, ntemplate, nunchecked = bidsmap.countRuns()
+    logger.debug("Map contains {} runs".format(ntotal))
+    if ntemplate != 0:
+        logger.warning("Map contains {} template runs"
+                       .format(ntemplate))
+    if nunchecked != 0:
+        logger.critical("Map contains {} unchecked runs"
+                        .format(nunchecked))
+        raise Exception("Unchecked runs present")
+
+    # Load and initialize plugin
     if plugin_file:
         logger.warning("Using plugin from configuration file")
-    elif bidsmap_new.plugin_file:
-        plugin_file = bidsmap_new.plugin_file
-        plugin_opt = bidsmap_new.plugin_options
+    elif bidsmap.plugin_file:
+        plugin_file = bidsmap.plugin_file
+        plugin_opt = bidsmap.plugin_options
 
     if plugin_file:
         plugins.ImportPlugins(plugin_file)
         plugins.InitPlugin(source=source,
                            destination=destination,
-                           dry=True,
+                           dry=dry_run,
                            **plugin_opt)
-
-    logger.info("creating bidsmap for unknown modalities")
-    bidsmap_unk = {mod:{t.__name__:list() 
-                        for t in types}
-                   for mod, types in Modules.selector.types_list.items()}
 
     ###############################
     # Checking participants list
@@ -199,7 +223,7 @@ def mapper(source: str, destination: str,
     new_sub_file = os.path.join(source, "participants.tsv")
     df_sub = pandas.read_csv(new_sub_file,
                              sep="\t", header=0,
-                             na_values="n/a")
+                             na_values="n/a").drop_duplicates()
     df_dupl = df_sub.duplicated("participant_id")
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
@@ -222,7 +246,7 @@ def mapper(source: str, destination: str,
     df_res = df_sub
     if old_sub is not None:
         if not old_sub.columns.equals(df_sub.columns):
-            logger.critical("Participant.tsv has differenrt columns "
+            logger.critical("Participant.tsv has different columns "
                             "from destination dataset")
             raise Exception("Participants column mismatch")
         df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()
@@ -241,7 +265,7 @@ def mapper(source: str, destination: str,
     # Subjects loop
     ##############################
     n_subjects = len(df_sub["participant_id"])
-    for sub_no, sub_id in enumerate(df_sub["participant_id"],1):
+    for sub_no, sub_id in enumerate(df_sub["participant_id"], 1):
         sub_dir = os.path.join(source, sub_id)
         if not os.path.isdir(sub_dir):
             logger.error("{}: Not found in {}"
@@ -287,6 +311,7 @@ def mapper(source: str, destination: str,
                 logger.warning("Session {} discarded by {}"
                                .format(scan.session, "SessionEP"))
                 continue
+
             scan.lock()
 
             if ses_skip_dir and tools.skipEntity(scan.session,
@@ -304,36 +329,27 @@ def mapper(source: str, destination: str,
                                  .format(module, ses_dir))
                     continue
                 for run in tools.lsdirs(mod_dir):
+                    scan.in_path = run
                     cls = Modules.selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
-                                     .format(mod_dir))
+                                     .format(run))
                         continue
                     recording = cls(rec_path=run)
                     if not recording or len(recording.files) == 0:
                         logger.error("unable to load data in folder {}"
                                      .format(run))
+                        continue
                     recording.setBidsSession(scan)
-                    createmap(recording, bidsmap_new, template, bidsmap_unk)
+                    coin(destination, recording, bidsmap, dry_run)
 
-    # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
+    plugins.RunPlugin("FinaliseEP")
+
     if not dry_run:
-        bidsmapfile = os.path.join(bidscodefolder, 'bidsmap.yaml')
-
-        # Save the bidsmap to the bidsmap YAML-file
-        bidsmap_new.save(bidsmapfile, empty_attributes=False)
-
-    # Scanning unknowing and exporting them to yaml file
-    d = dict()
-    for mod in bidsmap_unk:
-        for t in bidsmap_unk[mod]:
-            if bidsmap_unk[mod][t]:
-                if mod not in d:
-                    d[mod] = dict()
-                d[mod][t] = bidsmap_unk[mod][t]
-    if len(d) > 0:
-        logger.error("Was unable to identify several recordings. "
-                     "See {} for details".format(bidsunknown))
-        if not dry_run:
-            with open(bidsunknown, 'w') as stream:
-                yaml.dump(d, stream)
+        df_res.to_csv(new_sub_file,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
+        json_file = tools.change_ext(new_sub_file, "json")
+        if not os.path.isfile(json_file):
+            shutil.copyfile(os.path.join(source, "participants.json"),
+                            json_file)

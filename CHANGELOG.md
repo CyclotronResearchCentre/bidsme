@@ -11,6 +11,9 @@ by single quote to avoid bash expantion
 - logging options `level`, `quiet`, and `formatting` for log output control
 - save option for saving/updating locally configuration file
 - Search for map and config file in standard locations
+- New `process` step intended to run before bidsification and performing
+tests and cleanups. Additional data processings (QC, convertions) can be performed
+in plug-ins
 
 ### Fixed
 - EEG naming schema discrepency with BIDS standard
@@ -20,7 +23,8 @@ by single quote to avoid bash expantion
 - `participants.tsv` file now created at prepearing stage, with warning
 if field values are conflicting
 - Main code is `bidscoin.py` with cli command `prepare`, `bidsify` and `map`
-- Plugins exit code `< 0` do not throw exception  
+- Plugins `SubjectEP`, `SessionEP`, `SequenceEP` and `RecordingEP` can exit with
+code `< 0` will not throw exception but skip corresponding loop
 
 ## [dev2.1.0] - 2020-02-19
 

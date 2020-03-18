@@ -33,6 +33,11 @@ config = {
                 "path": "",
                 "options": {}
                 },
+            # plugin for processing
+            "process": {
+                "path": "",
+                "options": {}
+                },
             # plugin for mapping, if not set, one for bidsification is used
             "map": {
                 "path": "",

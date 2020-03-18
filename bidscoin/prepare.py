@@ -25,7 +25,11 @@ def sortsession(outfolder: str,
                 recording: object,
                 dry_run: bool) -> None:
 
-    plugins.RunPlugin("SequenceEP", recording)
+    if plugins.RunPlugin("SequenceEP", recording) < 0:
+        logger.warning("Sequence {} discarded by {}"
+                       .format(recording.recIdentity(False), 
+                               "SequenceEP"))
+        return
 
     logger.info("Processing: sub '{}', ses '{}' ({} files)"
                 .format(recording.subId(),
@@ -37,7 +41,12 @@ def sortsession(outfolder: str,
 
     recording.index = -1
     while recording.loadNextFile():
-        plugins.RunPlugin("RecordingEP", recording)
+        if plugins.RunPlugin("RecordingEP", recording) < 0:
+            logger.warning("Recording {} discarded by {}"
+                           .format(recording.recIdentity(), 
+                                   "RecordingEP"))
+            continue
+
         recording.getBidsSession().registerFields(True)
         serie = os.path.join(
                 outfolder,
@@ -207,6 +216,7 @@ def prepare(source: str, destination: str,
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))
+            continue
         scan.lock_subject()
 
         if scan.subject is not None:
@@ -244,7 +254,11 @@ def prepare(source: str, destination: str,
                 scan.unlock_session()
                 scan.session = os.path.basename(ses_dir)
                 scan.session = scan.session[len(ses_prefix):]
-            plugins.RunPlugin("SessionEP", scan)
+            if plugins.RunPlugin("SessionEP", scan) < 0:
+                logger.warning("Session {} discarded by {}"
+                               .format(scan.session, "SessionEP"))
+                continue
+
             scan.lock()
 
             if scan.session is not None:
@@ -291,5 +305,25 @@ def prepare(source: str, destination: str,
             plugins.RunPlugin("SessionEndEP", scan)
     if not dry_run:
         BidsSession.exportParticipants(destination)
+
+        # checking up and cleaning the participants
+        new_sub_file = os.path.join(destination, "participants.tsv")
+        df_sub = pandas.read_csv(new_sub_file,
+                                 sep="\t", header=0,
+                                 na_values="n/a")\
+            .sort_values(by=["participant_id"])\
+            .drop_duplicates()
+        df_dupl = df_sub.duplicated("participant_id")
+        if df_dupl.any():
+            logger.error("Participant list contains one or several duplicated "
+                         "entries: {}"
+                         .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                         )
+
+        new_sub_json = os.path.join(destination, "participants.json")
+        tools.checkTsvDefinitions(df_sub, new_sub_json)
+        df_sub.to_csv(new_sub_file,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
 
     plugins.RunPlugin("FinaliseEP")

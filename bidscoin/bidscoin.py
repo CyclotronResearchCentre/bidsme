@@ -8,6 +8,7 @@ import traceback
 import exceptions
 
 from prepare import prepare
+from process import process
 from bidsify import bidsify
 from mapper import mapper
 
@@ -69,6 +70,18 @@ if __name__ == "__main__":
                     sub_no_dir=args.no_subject,
                     ses_no_dir=args.no_session,
                     data_dirs=args.recfolder,
+                    dry_run=args.dry_run
+                    )
+        elif args.cmd == "process":
+            process(source=args.source,
+                    destination=args.destination,
+                    plugin_file=args.plugin, 
+                    plugin_opt=args.plugin_opt,
+                    sub_list=args.participants,
+                    sub_skip_tsv=args.skip_in_tsv,
+                    sub_skip_dir=args.skip_existing,
+                    ses_skip_dir=args.skip_existing_sessions,
+                    bidsmapfile=args.bidsmap,
                     dry_run=args.dry_run
                     )
         elif args.cmd == "bidsify":
