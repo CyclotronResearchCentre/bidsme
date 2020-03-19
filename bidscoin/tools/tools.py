@@ -9,13 +9,13 @@ import json
 logger = logging.getLogger(__name__)
 
 
-def lsdirs(folder: str, wildcard: str='*'):
+def lsdirs(folder: str, wildcard: str = '*'):
     """
     Gets all directories in a folder, ignores files
 
     :param folder:      The full pathname of the folder
-    :param wildcard:    Simple (glob.glob) shell-style wildcards. 
-                        Foldernames starting with a dot are special cases that 
+    :param wildcard:    Simple (glob.glob) shell-style wildcards.
+                        Foldernames starting with a dot are special cases that
                         are not matched by '*' and '?' patterns.") wildcard
     :return:            Iterable filter object with all directories in a folder
     """
@@ -29,7 +29,7 @@ def lsdirs(folder: str, wildcard: str='*'):
 def cleanup_value(label, prefix=""):
     """
     Converts a given label to a cleaned-up label
-    that can be used as a BIDS label. 
+    that can be used as a BIDS label.
     Remove leading and trailing spaces;
     removes all non ASCII alphanumeric characters,
     for example "Joe's reward_task" changes to "Joesrewardtask"
@@ -69,7 +69,7 @@ def match_value(val, regexp, force_str=False):
 
 def change_ext(filename, new_ext):
     pos = filename.rfind('.')
-    if pos > 0 :
+    if pos > 0:
         filename = filename[:pos]
     return filename + "." + new_ext
 
@@ -141,12 +141,12 @@ def checkTsvDefinitions(df: pandas.DataFrame, definitions: str) -> bool:
     return True
 
 
-def skipEntity(entity: str, 
-               ent_list: list = [], 
+def skipEntity(entity: str,
+               ent_list: list = [],
                ent_serie: pandas.Series = None,
                ent_path: str = "") -> bool:
     """
-    Checks if given entity (i.e. sub Id or ses Id) 
+    Checks if given entity (i.e. sub Id or ses Id)
     are found in given list, serie or folder and so
     should be skipped
 
@@ -154,7 +154,7 @@ def skipEntity(entity: str,
     ----------
     entity: str
         name of entity to check, including prefix,
-        e.g. sub-001, empty ("" or None) are always 
+        e.g. sub-001, empty ("" or None) are always
         skipped
     ent_list: list
         list of authorised names

@@ -3,7 +3,6 @@ import json
 import logging
 import re
 import datetime
-from collections import OrderedDict
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +15,9 @@ class MetaField(object):
     :param scaling: If int/float: field value will be casted as
                     int/float and scaled by given value
                     If string: field will be interpreted as string
-                    If dictionary: field value will be choosen from 
+                    If dictionary: field value will be choosen from
                     dictionary items
-    :param default: value to return if such field is not defined 
+    :param default: value to return if such field is not defined
                     or don't have a value
     """
 
@@ -74,7 +73,7 @@ class MetaField(object):
     @property
     def value(self):
         return self.__value
-    
+
     @value.setter
     def value(self, value):
         if value is None or value == "":
@@ -106,16 +105,16 @@ class fieldEntry(object):
         description : str
             description of the column
         levels : dict
-            For categorical variables: 
-            a dictionary of possible values (keys) 
+            For categorical variables:
+            a dictionary of possible values (keys)
             and their descriptions (values).
         units : str
-            measurement units. [<prefix symbol>] <unit symbol> format 
+            measurement units. [<prefix symbol>] <unit symbol> format
             following the SI standard is RECOMMENDED. See
             https://bids-specification.readthedocs.io/en/latest/\
                     99-appendices/05-units.html
         url : str
-            URL pointing to a formal definition of this type of data 
+            URL pointing to a formal definition of this type of data
             in an ontology available on the web
         activate : bool
             will be created field activated or not
@@ -188,18 +187,18 @@ class BIDSfieldLibrary(object):
     """
     a library class for fields used in BIDS tsv files.
 
-    In order to an object to use BIDS tsv fields, this object must 
+    In order to an object to use BIDS tsv fields, this object must
     inherit from this class.
 
-    It contains a static list of available fields, and a dynamic 
+    It contains a static list of available fields, and a dynamic
     dictionary of values for each of objects.
 
-    A list of required and suggested fields must be added to library in 
-    class definition (outside of __init__). User-defined fields can be 
+    A list of required and suggested fields must be added to library in
+    class definition (outside of __init__). User-defined fields can be
     added in plugin at any point.
 
     Each field can be described by its id (name), explicit name, description,
-    possible values and descriptive url. For more details, refer to BIDS 
+    possible values and descriptive url. For more details, refer to BIDS
     description there:
     https://bids-specification.readthedocs.io/\
 en/latest/02-common-principles.html
@@ -220,7 +219,7 @@ en/latest/02-common-principles.html
         self.__library = list()
         self.__indexes = dict()
 
-    def AddField(self, name, longName="", description="", 
+    def AddField(self, name, longName="", description="",
                  levels={}, units="", url="", activated=True,
                  override=False):
         """
@@ -236,16 +235,16 @@ en/latest/02-common-principles.html
         description : str
             description of the column
         levels : dict
-            For categorical variables: 
-            a dictionary of possible values (keys) 
+            For categorical variables:
+            a dictionary of possible values (keys)
             and their descriptions (values).
         units : str
-            measurement units. [<prefix symbol>] <unit symbol> format 
+            measurement units. [<prefix symbol>] <unit symbol> format
             following the SI standard is RECOMMENDED. See
             https://bids-specification.readthedocs.io/en/latest/\
                     99-appendices/05-units.html
         url : str
-            URL pointing to a formal definition of this type of data 
+            URL pointing to a formal definition of this type of data
             in an ontology available on the web
         activate : bool
             will be created field activated or not
@@ -257,7 +256,7 @@ en/latest/02-common-principles.html
         IndexError
             if name of field is already in dictionary
         """
-        fe = fieldEntry(name, longName, description, 
+        fe = fieldEntry(name, longName, description,
                         levels, units, url, activated)
         index = self.__indexes.get(name, None)
         if index is None:
@@ -303,7 +302,8 @@ en/latest/02-common-principles.html
         """
         count = 0
         for f in self.__library:
-            if f.Active(): count += 1
+            if f.Active():
+                count += 1
         return count
 
     def GetActive(self):
@@ -338,17 +338,17 @@ latest/02-common-principles.html
         Parameters
         ----------
         values : dict, optional
-            a dictionary of values with keys corresponding to fields 
+            a dictionary of values with keys corresponding to fields
             defined in library
 
         Returns
         -------
         str
             tab-separated string
-        """ 
+        """
         if not isinstance(values, dict):
             raise TypeError("values must be a dictionary")
-        active = self.GetActive() 
+        active = self.GetActive()
         result = list()
         for f in active:
             if f in values:
@@ -363,7 +363,7 @@ latest/02-common-principles.html
         adapt input value to format acceptable by BIDS tsv
         file. By default it transforms value to string using str(),
         then  it changes tab (\\t) and new line (\\n) to space.
-        datetime types are transformed using isoformat, and 
+        datetime types are transformed using isoformat, and
         timedelta are expressed in seconds. Non-defined values
         (None) and empty strings are replaced by 'n/a'.
 
@@ -384,12 +384,13 @@ latest/02-common-principles.html
             v = str(value.total_seconds())
         else:
             v = str(value).replace('\t', " ").replace('\n', " ")
-        if v == "" : return "n/a"
+        if v == "":
+            return "n/a"
         return v
 
     def GetTemplate(self):
         """
-        returns a template dictionary for values with active fields 
+        returns a template dictionary for values with active fields
         as keys and None as values
         """
         res = dict()
@@ -428,10 +429,9 @@ latest/02-common-principles.html
             else:
                 fe.Activate(False)
 
-
     def DumpDefinitions(self, filename):
         """
-        dump fields definitions to a json file. If file exists, it 
+        dump fields definitions to a json file. If file exists, it
         will be replaced.
 
         Parameters

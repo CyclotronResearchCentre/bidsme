@@ -27,7 +27,7 @@ def sortsession(outfolder: str,
 
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
-                       .format(recording.recIdentity(False), 
+                       .format(recording.recIdentity(False),
                                "SequenceEP"))
         return
 
@@ -43,7 +43,7 @@ def sortsession(outfolder: str,
     while recording.loadNextFile():
         if plugins.RunPlugin("RecordingEP", recording) < 0:
             logger.warning("Recording {} discarded by {}"
-                           .format(recording.recIdentity(), 
+                           .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
 

@@ -61,7 +61,7 @@ class MRI(baseModule):
 
         Additionally, if modality is dwi (diffusion MRI),
         look for file of same name and extentions bvec and
-        bval, and copies it. Will show a warning if such files 
+        bval, and copies it. Will show a warning if such files
         not found.
 
         Parameters

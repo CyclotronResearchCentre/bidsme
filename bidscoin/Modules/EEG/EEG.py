@@ -6,7 +6,7 @@ from bidsMeta import BIDSfieldLibrary
 logger = logging.getLogger(__name__)
 
 eeg_meta = [
-        # Generic fields 
+        # Generic fields
         "TaskName",
         "TaskDescription",
         "Instructions",

@@ -42,7 +42,7 @@ def coin(destination: str,
     """
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
-                       .format(recording.recIdentity(False), 
+                       .format(recording.recIdentity(False),
                                "SequenceEP"))
         return
 
@@ -58,10 +58,11 @@ def coin(destination: str,
     while recording.loadNextFile():
         if plugins.RunPlugin("RecordingEP", recording) < 0:
             logger.warning("Recording {} discarded by {}"
-                           .format(recording.recIdentity(), 
+                           .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
 
+        recording.getBidsSession().registerFields(False)
         out_path = os.path.join(destination,
                                 recording.getBidsPrefix("/"))
         # checking in the current map
@@ -98,6 +99,7 @@ def process(source: str, destination: str,
             sub_skip_tsv: bool = False,
             sub_skip_dir: bool = False,
             ses_skip_dir: bool = False,
+            part_template: str = "",
             bidsmapfile: str = "bidsmap.yaml",
             dry_run: bool = False
             ) -> None:
@@ -141,6 +143,11 @@ def process(source: str, destination: str,
         if set to True, sessions with already
         created directories will be ignored
         Can conflict with ses_no_dir
+    part_template: str
+        path to template json file, from whitch
+        participants.tsv will be modeled. If unset
+        the defeault one "source/participants.tsv"
+        is used
     bidsmapfile: str
         The name of bidsmap file, will be searched for
         in destination/code/bidsmap directory, unless
@@ -261,11 +268,23 @@ def process(source: str, destination: str,
             raise Exception("Duplicated subjects")
         old_sub = old_sub["participant_id"]
 
+    ################################
+    # Loading participants template
+    ################################
+    if not part_template:
+        part_template = os.path.join(source, "participants.json")
+    else:
+        logger.warning("Loading exterior participant template {}"
+                       .format(part_template))
+    BidsSession.loadSubjectFields(part_template)
+
     ##############################
     # Subjects loop
     ##############################
     n_subjects = len(df_sub["participant_id"])
-    for sub_no, sub_id in enumerate(df_sub["participant_id"], 1):
+    for index, sub_row in df_sub.iterrows():
+        sub_no = index + 1
+        sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
         if not os.path.isdir(sub_dir):
             logger.error("{}: Not found in {}"
@@ -275,6 +294,13 @@ def process(source: str, destination: str,
         scan = BidsSession()
         scan.in_path = sub_dir
         scan.subject = sub_id
+
+        #################################################
+        # Cloning df_sub row values in scans sub_values
+        #################################################
+        for column in df_sub.columns:
+            scan.sub_values[column] = sub_row[column]
+
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))
@@ -343,13 +369,39 @@ def process(source: str, destination: str,
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
 
-    plugins.RunPlugin("FinaliseEP")
+    df_processed = BidsSession.exportAsDataFrame()
+
+    df_res = pandas.merge(df_res, df_processed,
+                          how="outher", on="participant_id",
+                          suffixes=("_OLD_COLUMN", ""))
+    for col in df_res.columns:
+        col_old = col + "_OLD_COLUMN"
+        if col_old in df_res.columns:
+            df_res[col].fillna(df_res[col_old], inplace=True)
+
+    col_mismatch = False
+    if not df_processed.columns.equals(df_res.columns):
+        logger.warning("Modified participant table do not match "
+                       "original table. This is discouraged and can "
+                       "break future preparation and process steps")
+        df_res = df_res[[df_processed.getSubjectColumns()]]
+
+    df_res = df_res.drop_duplicates()
+    df_dupl = df_sub.duplicated("participant_id")
+    if df_dupl.any():
+        logger.error("Participant list contains one or several duplicated "
+                     "entries: {}"
+                     .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                     )
 
     if not dry_run:
+
         df_res.to_csv(new_sub_file,
                       sep='\t', na_rep="n/a",
                       index=False, header=True)
         json_file = tools.change_ext(new_sub_file, "json")
-        if not os.path.isfile(json_file):
-            shutil.copyfile(os.path.join(source, "participants.json"),
+        if col_mismatch or not os.path.isfile(json_file):
+            shutil.copyfile(os.path.join(part_template),
                             json_file)
+
+    plugins.RunPlugin("FinaliseEP")

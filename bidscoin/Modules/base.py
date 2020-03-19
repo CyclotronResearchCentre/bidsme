@@ -31,7 +31,7 @@ class baseModule(object):
                  # recording attributes
                  "attributes",
                  # local file variables
-                 "index", 
+                 "index",
                  "files",
                  "_recPath",
                  # json meta variables
@@ -79,7 +79,7 @@ class baseModule(object):
 
     def __init__(self):
         """
-        Basic class for module. Isn't intended to be 
+        Basic class for module. Isn't intended to be
         initiated directly.
         """
         self.files = list()
@@ -100,7 +100,7 @@ class baseModule(object):
     # Pure virtual methodes #
     #########################
     @classmethod
-    def _isValidFile(cls, file:str) -> bool:
+    def _isValidFile(cls, file: str) -> bool:
         """
         Virtual function that checks if file is valid one
         """
@@ -126,19 +126,19 @@ class baseModule(object):
         """
         return NotImplementedError
 
-    def _getField(self, field: list, prefix: str=""):
+    def _getField(self, field: list, prefix: str = ""):
         """
-        Virtual function that retrives the field value 
-        from recording metadata. field is garanteed to be 
+        Virtual function that retrives the field value
+        from recording metadata. field is garanteed to be
         non-empty
 
         Parameters
         ----------
         field: list(str)
-            list of nested values (or just one element) 
+            list of nested values (or just one element)
             giving position of field to retrieve
         prefix: str
-            prefix indicating the transformation function 
+            prefix indicating the transformation function
             to call on retrieved value
 
         Returns
@@ -148,7 +148,7 @@ class baseModule(object):
         Raises
         ------
         TypeError:
-            if field value is not applicable to prefix 
+            if field value is not applicable to prefix
             function
         KeyError:
             if prefix function is not defined
@@ -157,9 +157,9 @@ class baseModule(object):
 
     def recNo(self):
         """
-        Virtual function returning current serie number 
+        Virtual function returning current serie number
         (i.e. numero of scan in session).
-        recNo together with recId must uniquely 
+        recNo together with recId must uniquely
         identify serie within session
         """
         raise NotImplementedError
@@ -168,7 +168,7 @@ class baseModule(object):
         """
         Virtual function returning current serie id
         (i.e. name of scan in session).
-        recNo together with recId must uniquely 
+        recNo together with recId must uniquely
         identify serie within session
         """
         raise NotImplementedError
@@ -225,7 +225,7 @@ class baseModule(object):
     def copyRawFile(self, destination: str) -> str:
         """
         Virtual function to Copy raw (non-bidsified) file
-        to destination. 
+        to destination.
         Destination is an existing writable directory
 
         Parameters
@@ -243,7 +243,7 @@ class baseModule(object):
 
     def _transformField(self, value, prefix: str):
         """
-        Virtual function to apply custom, format 
+        Virtual function to apply custom, format
         depended transformation to retrieved meta data,
         for ex. units conversion.
         Value is garanteed to not be list or dictionary
@@ -323,7 +323,7 @@ class baseModule(object):
     @classmethod
     def isValidRecording(cls, rec_path: str) -> bool:
         """
-        Checks for all files in given directory and returns true if 
+        Checks for all files in given directory and returns true if
         found at list one valid file
 
         Parameters
@@ -367,10 +367,10 @@ class baseModule(object):
         return count
 
     @classmethod
-    def getValidFile(self, folder: str, index: int=0) -> int:
+    def getValidFile(self, folder: str, index: int = 0) -> int:
         """
-        Return valid file name of index from given folder without 
-        loading it. 
+        Return valid file name of index from given folder without
+        loading it.
         Use setRecPath if you want to load valid files.
 
         Parameters
@@ -398,7 +398,7 @@ class baseModule(object):
                 else:
                     idx += 1
         logger.warning("{}/{}: Cant find a valid file at index {} in {}"
-                       .format(self.Module(), self.Type(), 
+                       .format(self.Module(), self.Type(),
                                index, folder))
         return None
 
@@ -406,7 +406,7 @@ class baseModule(object):
     def isValidModality(cls, modality: str,
                         include_ignored: bool = True) -> bool:
         """
-        Returns True if given modality is in in the list 
+        Returns True if given modality is in in the list
         of declared modalities and False otherwise.
 
         Parameters
@@ -437,7 +437,7 @@ class baseModule(object):
         """
         return self._modality
 
-    def getField(self, field: str, default=None, prefix=':',separator='/'):
+    def getField(self, field: str, default=None, prefix=':', separator='/'):
         """
         Returns meta value corresponding to a given field.
         A prefix can be used to call a specific transformation
@@ -452,7 +452,7 @@ class baseModule(object):
         prefix: str
             separater used to identify prefix
         separator: str
-            character used to separate levels in case 
+            character used to separate levels in case
             of nested fields
 
         Returns
@@ -487,7 +487,7 @@ class baseModule(object):
         """
         Returns attribute (field from metadata).
         The main difference between this and getField
-        is getAttribute first tries to retrieve value 
+        is getAttribute first tries to retrieve value
         from saved attributes, and if it fails, retrieves
         from metadata.
         Retrieved values are stored in memory.
@@ -524,7 +524,7 @@ class baseModule(object):
         self.attributes.pop(attribute)
 
     def getDynamicField(self, field: str,
-                        cleanup: bool=True, raw: bool=False):
+                        cleanup: bool = True, raw: bool = False):
         if not field or not isinstance(field, str):
             return field
         res = ""
@@ -559,7 +559,7 @@ class baseModule(object):
                 else:
                     prefix = ""
                     if ":" in query:
-                        prefix, query = query.split(":",1)
+                        prefix, query = query.split(":", 1)
                     if prefix == "":
                         result = self._getCharacteristic(query)
                     elif prefix == "bids":
@@ -606,7 +606,7 @@ class baseModule(object):
 
     def setSubId(self) -> None:
         """
-        Sets current recording subject Id from value 
+        Sets current recording subject Id from value
         in BidsSession
         """
         name = self._bidsSession.subject
@@ -656,7 +656,7 @@ class baseModule(object):
         self._bidsSession.session = subid
         self._bidsSession.lock_session()
 
-    def recIdentity(self, padding: int=3, index=True):
+    def recIdentity(self, padding: int = 3, index=True):
         """
         Returns identification string for current recording
         in form {recNo}-{recId}/{index}
@@ -672,14 +672,14 @@ class baseModule(object):
         -------
         str
         """
-        if index: 
+        if index:
             return "{:0{width}}-{}/{}".format(self.recNo(),
-                                              self.recId(), 
+                                              self.recId(),
                                               self.index,
                                               width=padding)
         else:
             return "{:0{width}}-{}".format(self.recNo(),
-                                           self.recId(), 
+                                           self.recId(),
                                            width=padding)
 
     def _getCharacteristic(self, field):
@@ -688,7 +688,7 @@ class baseModule(object):
         Allowed characteristics:
             - subject: subject Id
             - session: session Id
-            - serieNumber: serie Id 
+            - serieNumber: serie Id
             - serie: serie name
             - index: index of current file in serie
             - nfiles: total number of files in serie
@@ -786,7 +786,7 @@ class baseModule(object):
 
     def loadNextFile(self) -> bool:
         """
-        Loads next file in serie. 
+        Loads next file in serie.
         Returns True in sucess, False othrwise
         """
         if self.index + 1 >= len(self.files):
@@ -794,14 +794,14 @@ class baseModule(object):
         self.loadFile(self.index + 1)
         return True
 
-    def currentFile(self, base: bool=False) -> str:
+    def currentFile(self, base: bool = False) -> str:
         """
         Returns the path to currently loaded file
 
         Parameters
         ----------
         base: bool
-            if True, only basename is retrieved, and 
+            if True, only basename is retrieved, and
             fullpath overwise
 
         Returns
@@ -851,7 +851,7 @@ class baseModule(object):
                                  self._modality))
             raise ValueError("Invalid modality")
 
-        outdir = os.path.join(bidsfolder, 
+        outdir = os.path.join(bidsfolder,
                               self.getBidsPrefix('/'),
                               self._modality)
 
@@ -900,7 +900,7 @@ class baseModule(object):
             self.rec_BIDSfields.DumpDefinitions(scans_json)
         return os.path.join(outdir, bidsname + ext)
 
-    def setLabels(self, run: Run=None):
+    def setLabels(self, run: Run = None):
         """
         Set the BIDS tags (labels) according to given run
 
@@ -958,7 +958,7 @@ class baseModule(object):
                                                  cleanup=False,
                                                  raw=True))
 
-    def getBidsPrefix(self, sep: str='_') -> str:
+    def getBidsPrefix(self, sep: str = '_') -> str:
         """
         Generates the subject/session prefix using separator,
         like sub-123_ses-456
@@ -1041,7 +1041,7 @@ class baseModule(object):
     #####################################
     # Recording identification methodes #
     #####################################
-    def matchAttribute(self, attribute: str, pattern:str) -> bool:
+    def matchAttribute(self, attribute: str, pattern: str) -> bool:
         """
         Return True if given attribute value matches pattern,
         False overwise

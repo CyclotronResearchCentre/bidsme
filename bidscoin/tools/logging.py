@@ -1,4 +1,5 @@
 import os
+import coloredlogs
 import logging
 
 
@@ -93,11 +94,11 @@ def setup_logging(
 
 
 def reporterrors(logger):
-   
+
     logger.info("{} errors has been reported."
                 .format(logger.error.count))
     logger.info("{} warnings has been reported."
                 .format(logger.warning.count))
     logger.info("Log files: {}".format(",".join([filehandler.baseFilename
-                                                 for filehandler 
+                                                 for filehandler
                                                  in logger.handlers])))

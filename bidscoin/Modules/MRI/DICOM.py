@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class DICOM(MRI):
-    __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE","isSiemens"]
+    __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE", "isSiemens"]
 
     def __init__(self, recording=""):
         super().__init__()
@@ -26,7 +26,7 @@ class DICOM(MRI):
     @classmethod
     def isValidFile(cls, file: str) -> bool:
         """
-        Checks whether a file is a DICOM-file. It uses the feature 
+        Checks whether a file is a DICOM-file. It uses the feature
         that Dicoms have the string DICM hardcoded at offset 0x80.
 
         :param file:    The full pathname of the file
@@ -53,18 +53,16 @@ class DICOM(MRI):
                              .format(self.converter))
         options = options['dcm2niix']
         command = '{path}dcm2niix {args} -f "{filename}" '\
-                '-o "{outfolder}" "{infolder}"'\
-                .format(path      = options['path'],
-                        args      = options['args'],
-                        filename  = self.get_bidsname(),
-                        outfolder = destination,
-                        infolder  = self.rec_path)
+                  '-o "{outfolder}" "{infolder}"'\
+                  .format(path=options['path'],
+                          args=options['args'],
+                          filename=self.get_bidsname(),
+                          outfolder=destination,
+                          infolder=self.rec_path)
 
         if not bids.run_command(command):
             return False
         return True
-
-
 
     def loadFile(self, index: int) -> None:
         path = self.files[index]
@@ -87,8 +85,8 @@ class DICOM(MRI):
                     if elem.name == field:
                         value = elem.value
                         continue
-        except Exception: 
-            try: 
+        except Exception:
+            try:
                 value = self.parse_x_protocol(field)
             except Exception:
                 logger.warning("Could not parse {} from {}"
@@ -105,13 +103,13 @@ class DICOM(MRI):
     def parse_x_protocol(self, pattern: str) -> str:
         """
         Siemens writes a protocol structure as text into each DICOM file.
-        This structure is necessary to recreate a scanning protocol 
-        from a DICOM, since the DICOM information alone 
+        This structure is necessary to recreate a scanning protocol
+        from a DICOM, since the DICOM information alone
         wouldn't be sufficient.
 
-        :param pattern:     A regexp expression: 
+        :param pattern:     A regexp expression:
                             '^' + pattern + '\t = \t(.*)\\n'
-        :return:            The string extracted values from the dicom-file 
+        :return:            The string extracted values from the dicom-file
                             according to the given pattern
         """
         if not self.isSiemens:
@@ -132,9 +130,9 @@ class DICOM(MRI):
 
     def is_dicomfile_siemens(file: str) -> bool:
         """
-        Checks whether a file is a *SIEMENS* DICOM-file. 
-        All Siemens Dicoms contain a dump of the  MrProt structure. 
-        The dump is marked with a header starting with 'ASCCONV BEGIN'. 
+        Checks whether a file is a *SIEMENS* DICOM-file.
+        All Siemens Dicoms contain a dump of the  MrProt structure.
+        The dump is marked with a header starting with 'ASCCONV BEGIN'.
         Though this check is not foolproof, it is very unlikely to fail.
 
         :param file:    The full pathname of the file
@@ -147,7 +145,7 @@ class DICOM(MRI):
         nfiles = self.get_nFiles()
 
         if nrep and nrep > nfiles:
-            logger.warning('{}: Incomplete acquisition: '\
+            logger.warning('{}: Incomplete acquisition: '
                            '\nExpected {}, found {} dicomfiles'
                            .format(self._DICOMFILE_CACHE, nrep, nfiles))
             return False

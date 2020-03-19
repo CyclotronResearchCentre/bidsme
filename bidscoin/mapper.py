@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin 
+Creates a bidsmap.yaml YAML file in the bidsfolder/code/bidscoin
 that maps the information from all raw source data to the BIDS labels.
 Created map can be edited/adjusted manually
 """
@@ -28,7 +28,7 @@ def createmap(recording: Modules.baseModule,
 
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
-                       .format(recording.recIdentity(False), 
+                       .format(recording.recIdentity(False),
                                "SequenceEP"))
         return
 
@@ -42,7 +42,7 @@ def createmap(recording: Modules.baseModule,
     while recording.loadNextFile():
         if plugins.RunPlugin("RecordingEP", recording) < 0:
             logger.warning("Recording {} discarded by {}"
-                           .format(recording.recIdentity(), 
+                           .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
         # checking in the current map
@@ -59,8 +59,8 @@ def createmap(recording: Modules.baseModule,
                              .format(recording.Module(),
                                      recording.recIdentity()))
                 bidsmap_unk[recording.Module()][recording.Type()].append({
-                    "provenance":recording.currentFile(),
-                    "attributes":recording.attributes})
+                    "provenance": recording.currentFile(),
+                    "attributes": recording.attributes})
                 continue
             r_obj.template = True
             modality, r_index, run = bidsmap.add_run(
@@ -79,11 +79,11 @@ def mapper(source: str, destination: str,
            sub_skip_dir: bool = False,
            ses_skip_dir: bool = False,
            bidsmapfile: str = "bidsmap.yaml",
-           map_template: str = "bidsmap_template.yaml", 
+           map_template: str = "bidsmap_template.yaml",
            dry_run: bool = False
            ) -> None:
     """
-    Generates bidsmap.yaml from prepeared dataset and 
+    Generates bidsmap.yaml from prepeared dataset and
     map template.
 
     Only subjects in source/participants.tsv are treated,
@@ -119,10 +119,10 @@ def mapper(source: str, destination: str,
         Can conflict with ses_no_dir
     bidsmapfile: str
         The name of bidsmap file, will be searched for
-        in destination/code/bidsmap directory, unless 
+        in destination/code/bidsmap directory, unless
         path is absolute
     map_template: str
-        The name of template map. The file is searched 
+        The name of template map. The file is searched
         in heuristics folder
     dry_run: bool
         if set to True, no disk writing operations
@@ -144,7 +144,7 @@ def mapper(source: str, destination: str,
                         .format(destination))
         raise NotADirectoryError(destination)
 
-    bidscodefolder = os.path.join(destination,'code','bidscoin')
+    bidscodefolder = os.path.join(destination, 'code', 'bidscoin')
     os.makedirs(bidscodefolder, exist_ok=True)
 
     bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
@@ -189,8 +189,8 @@ def mapper(source: str, destination: str,
                            **plugin_opt)
 
     logger.info("creating bidsmap for unknown modalities")
-    bidsmap_unk = {mod:{t.__name__:list() 
-                        for t in types}
+    bidsmap_unk = {mod: {t.__name__: list()
+                         for t in types}
                    for mod, types in Modules.selector.types_list.items()}
 
     ###############################
@@ -241,7 +241,7 @@ def mapper(source: str, destination: str,
     # Subjects loop
     ##############################
     n_subjects = len(df_sub["participant_id"])
-    for sub_no, sub_id in enumerate(df_sub["participant_id"],1):
+    for sub_no, sub_id in enumerate(df_sub["participant_id"], 1):
         sub_dir = os.path.join(source, sub_id)
         if not os.path.isdir(sub_dir):
             logger.error("{}: Not found in {}"
@@ -327,10 +327,10 @@ def mapper(source: str, destination: str,
     logger.info("Map contains {} runs".format(ntotal))
     if ntemplate != 0:
         logger.warning("Map contains {} template runs"
-                    .format(ntemplate))
+                       .format(ntemplate))
     if nunchecked != 0:
         logger.warning("Map contains {} unchecked runs"
-                    .format(nunchecked))
+                       .format(nunchecked))
 
     # Scanning unknowing and exporting them to yaml file
     d = dict()

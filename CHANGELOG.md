@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 files and copies them if exists. Warning is shown if they don't exist
 - Counting of unchecked/template runs shown in `map` command
 
+### Changed
+- `process` conserves the posibility to modify subject parameters 
 
 ## [dev2.2.0] - 2020-03-18
 

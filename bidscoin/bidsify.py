@@ -2,7 +2,7 @@
 """
 Converts datasets in the sourcefolder to datasets
 in the bidsfolder according to the BIDS standard, based on
-bidsmap.yaml file. 
+bidsmap.yaml file.
 """
 
 import os
@@ -38,7 +38,7 @@ def coin(destination: str,
     """
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
-                       .format(recording.recIdentity(False), 
+                       .format(recording.recIdentity(False),
                                "SequenceEP"))
         return
 
@@ -54,7 +54,7 @@ def coin(destination: str,
     while recording.loadNextFile():
         if plugins.RunPlugin("RecordingEP", recording) < 0:
             logger.warning("Recording {} discarded by {}"
-                           .format(recording.recIdentity(), 
+                           .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
         out_path = os.path.join(destination,
@@ -99,11 +99,11 @@ def bidsify(source: str, destination: str,
             sub_skip_tsv: bool = False,
             sub_skip_dir: bool = False,
             ses_skip_dir: bool = False,
-            bidsmapfile : str = "bidsmap.yaml",
+            bidsmapfile: str = "bidsmap.yaml",
             dry_run: bool = False
             ) -> None:
     """
-    Bidsify prepearde dataset in source and place it in 
+    Bidsify prepearde dataset in source and place it in
     destination folder.
 
     Only subjects in source/participants.tsv are treated,
@@ -139,7 +139,7 @@ def bidsify(source: str, destination: str,
         Can conflict with ses_no_dir
     bidsmapfile: str
         The name of bidsmap file, will be searched for
-        in destination/code/bidsmap directory, unless 
+        in destination/code/bidsmap directory, unless
         path is absolute
     dry_run: bool
         if set to True, no disk writing operations
@@ -282,7 +282,7 @@ def bidsify(source: str, destination: str,
             continue
 
         if tools.skipEntity(scan.subject, sub_list,
-                            old_sub if sub_skip_tsv else None, 
+                            old_sub if sub_skip_tsv else None,
                             destination if sub_skip_dir else ""):
             logger.info("Skipping subject '{}'"
                         .format(scan.subject))

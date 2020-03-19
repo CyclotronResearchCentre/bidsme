@@ -125,7 +125,7 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
         sys.exit(2)
     # loading configuration proper
     if args[0].configuration is not None:
-        args[0].configuration = loadConfig(args[0].configuration, 
+        args[0].configuration = loadConfig(args[0].configuration,
                                            update=args[0].conf_save)
 
     cmd = args[0].cmd

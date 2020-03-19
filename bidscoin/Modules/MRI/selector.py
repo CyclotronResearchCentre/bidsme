@@ -6,7 +6,7 @@ ignoremodality = "__ignore__"
 unknownmodality = "__unknown__"
 
 
-def select(folder: str, module: str=""):
+def select(folder: str, module: str = ""):
     if module == "":
         for m in types_list:
             for cls in types_list[m]:
@@ -19,7 +19,7 @@ def select(folder: str, module: str=""):
     return None
 
 
-def select_file(file: str, module: str=""):
+def select_file(file: str, module: str = ""):
     if module == "":
         for m in types_list:
             for cls in types_list[m]:
@@ -32,11 +32,11 @@ def select_file(file: str, module: str=""):
     return None
 
     for cls in types_list:
-            return cls
+        return cls
     return None
 
 
-def select_by_name(name: str, module: str=""):
+def select_by_name(name: str, module: str = ""):
     if module == "":
         for m in types_list:
             for cls in types_list[m]:
@@ -49,5 +49,5 @@ def select_by_name(name: str, module: str=""):
     return None
 
     for cls in types_list:
-            return cls
+        return cls
     return None

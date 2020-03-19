@@ -15,10 +15,12 @@ logger = logging.getLogger(__name__)
 class Nifti_SPM12(MRI):
     _type = "Nifti_SPM12"
 
-    __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE","isSiemens",
+    __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE",
+                 "isSiemens",
+                 "__csas", "__phoenix",
                  "__adFree", "__alFree", "__seqName"]
 
-    __spetialFields = {"NumberOfMeasurements", 
+    __spetialFields = {"NumberOfMeasurements",
                        "PhaseEncodingDirection",
                        "B1mapNominalFAValues",
                        "B1mapMixingTime",
@@ -51,7 +53,7 @@ class Nifti_SPM12(MRI):
         self.metaFields["SoftwareVersions"]\
             = MetaField("SoftwareVersions")
         self.metaFields["MagneticFieldStrength"]\
-            = MetaField("MagneticFieldStrength",1.)
+            = MetaField("MagneticFieldStrength", 1.)
         self.metaFields["ReceiveCoilActiveElements"]\
             = MetaField("CSASeriesHeaderInfo/CoilString")
         self.metaFields["ScanningSequence"]\
@@ -65,13 +67,13 @@ class Nifti_SPM12(MRI):
         self.metaFields["PhaseEncodingDirectionSign"]\
             = MetaField("PhaseEncodingDirectionSign", 1, 1)
         self.metaFields["InPlanePhaseEncodingDirection"]\
-            = MetaField("InPlanePhaseEncodingDirection","")
+            = MetaField("InPlanePhaseEncodingDirection", "")
         self.metaFields["EchoTime"]\
-            = MetaField("EchoTime",0.001)
+            = MetaField("EchoTime", 0.001)
         self.metaFields["DwellTime"]\
-            = MetaField("Private_0019_1018",0.000001)
+            = MetaField("Private_0019_1018", 0.000001)
         self.metaFields["FlipAngle"]\
-            = MetaField("FlipAngle",1.)
+            = MetaField("FlipAngle", 1.)
         self.metaFields["ProtocolName"]\
             = MetaField("ProtocolName")
         # self.metaFields["spoilingGradientMoment"]\
@@ -79,9 +81,9 @@ class Nifti_SPM12(MRI):
         # self.metaFields["spoilingGradientDuration"]\
         #     = MetaField("spoilingGradientDuration", 0.001)
         self.metaFields["BandwidthPerPixelRO"]\
-            = MetaField("PixelBandwidth",1.)
+            = MetaField("PixelBandwidth", 1.)
         self.metaFields["NumberOfMeasurements"]\
-            = MetaField("NumberOfMeasurements",1, 1)
+            = MetaField("NumberOfMeasurements", 1, 1)
         self.metaFields["InstitutionName"]\
             = MetaField("InstitutionName")
         self.metaFields["InstitutionAddress"]\
@@ -105,16 +107,16 @@ class Nifti_SPM12(MRI):
                                        file))
             try:
                 acqpar = cls.__loadJsonDump(file)
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 logger.error("{}: corrupted file {}"
                              .format(cls.formatIdentity(),
                                      file))
                 raise
-            except Exception as e:
+            except Exception:
                 return False
             if "Modality" in acqpar:
                 return True
-            else :
+            else:
                 logger.warning("{}: missing 'Modality' "
                                "in file {}"
                                .format(cls.formatIdentity(),
@@ -123,7 +125,7 @@ class Nifti_SPM12(MRI):
         return False
 
     def loadFile(self, index: int) -> None:
-        path = os.path.join(self._recPath,self.files[index])
+        path = os.path.join(self._recPath, self.files[index])
         if not self.isValidFile(path):
             raise ValueError("{}: {} is not valid file"
                              .format(self.formatIdentity(), path))
@@ -136,9 +138,11 @@ class Nifti_SPM12(MRI):
                               == "SIEMENS ")
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
             if self.isSiemens:
-                if "sWipMemBlock" in self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]:
-                    self.__alFree = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]["sWipMemBlock"]["alFree"]
-                    self.__adFree = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]["sWipMemBlock"]["adFree"]
+                self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
+                self.__phoenix = self.__csas["MrPhoenixProtocol"]
+                if "sWipMemBlock" in self.__phoenix:
+                    self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
+                    self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
             for key in self.attributes:
                 self.attributes[key] = self.getField(key)
         self.index = index
@@ -156,7 +160,7 @@ class Nifti_SPM12(MRI):
                                   indent=2, width=40, compact=True)
         elif len(self.files) > 0:
             self.loadFile(0)
-            return pprint.pformat(self._DICOMDICT_CACHE, 
+            return pprint.pformat(self._DICOMDICT_CACHE,
                                   indent=2, width=40, compact=True)
         else:
             logger.error("No defined files")
@@ -177,7 +181,7 @@ class Nifti_SPM12(MRI):
                     else:
                         break
                 res = value
-        except Exception as e: 
+        except Exception:
             logger.warning("{}: Could not parse '{}'"
                            .format(self.recIdentity(), field))
             res = None
@@ -208,7 +212,7 @@ class Nifti_SPM12(MRI):
             seriesdescr = self.getField("ProtocolName")
         if seriesdescr is None:
             logger.warning("{}: Unable to get recording Id for file {}"
-                           .format(self.formatIdentity(), 
+                           .format(self.formatIdentity(),
                                    self.currentFile()))
             seriesdescr = "unknown"
         return seriesdescr.strip()
@@ -227,7 +231,7 @@ class Nifti_SPM12(MRI):
                            .format(self.recIdentity(),
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(),"json"),
+        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
                      destination)
 
     def _getSubId(self) -> str:
@@ -245,7 +249,7 @@ class Nifti_SPM12(MRI):
                              .format(self.recIdentity(), name))
 
         if name == "NumberOfMeasurements":
-            value = self._DICOMDICT_CACHE.get("lRepetitions",0) + 1
+            value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
         elif name == "PhaseEncodingDirection":
             value = self._DICOM_CACHE["CSAImageHeaderInfo"]\
                     .get("PhaseEncodingDirectionPositive", 0)
@@ -256,7 +260,7 @@ class Nifti_SPM12(MRI):
                                   "b1epi2d3d2"):
                 value = list(range(self.__adFree[2], 0, -self.__adFree[3]))
             elif self.__seqName == "seste1d3d2":
-                value = list(range(230,-10,0))
+                value = list(range(230, -10, 0))
             else:
                 logger.warning("{}: Unable to get {}: sequence {} "
                                "not defined"
@@ -277,7 +281,7 @@ class Nifti_SPM12(MRI):
                                        name, self.__seqName))
                 value = None
         elif name == "RFSpoilingPhaseIncrement":
-            if self.__seqName in ("b1v2d3d2", "b1epi4a3d2","b1epi2d3d2"):
+            if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2d3d2"):
                 value = self.__adFree[5]
             elif self.__seqName in ("fl3d_2l3d8", "fl3d_2d3d6"):
                 value = self.__adFree[2]
@@ -291,8 +295,7 @@ class Nifti_SPM12(MRI):
                 value = 0
 
         elif name == "MTState":
-            value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]["sPrepPulses"]\
-                    .get("ucMTC", 0)
+            value = self.__phoenix["sPrepPulses"].get("ucMTC", 0)
             if value == 0:
                 value = "Off"
             else:

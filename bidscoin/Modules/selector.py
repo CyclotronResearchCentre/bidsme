@@ -3,7 +3,8 @@ from . import MRI, EEG
 types_list = {"MRI": (MRI.DICOM, MRI.Nifti_SPM12),
               "EEG": (EEG.BrainVision,)}
 
-def select(folder: str, module: str=""):
+
+def select(folder: str, module: str = ""):
     """
     Returns first class for wich given folder is correct
 
@@ -26,7 +27,7 @@ def select(folder: str, module: str=""):
     return None
 
 
-def selectFile(file: str, module: str=""):
+def selectFile(file: str, module: str = ""):
     """
     Returns first class for wich given file is correct
 
@@ -49,7 +50,7 @@ def selectFile(file: str, module: str=""):
     return None
 
 
-def selectByName(name: str, module: str=""):
+def selectByName(name: str, module: str = ""):
     """
     Returns first class with given name
 

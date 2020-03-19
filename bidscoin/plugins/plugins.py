@@ -1,25 +1,25 @@
-############################################################################# 
-## plugins defines a structure to define and use for plugin files
-############################################################################# 
-## Copyright (c) 2018-2019, University of Liège
-## Author: Nikita Beliy
-## Owner: Liege University https://www.uliege.be
-## Version: 0.77r1
-## Maintainer: Nikita Beliy
-## Email: Nikita.Beliy@uliege.be
-## Status: developpement
-############################################################################# 
-## This file is part of eegBidsCreator                                     
-## eegBidsCreator is free software: you can redistribute it and/or modify     
-## it under the terms of the GNU General Public License as published by     
-## the Free Software Foundation, either version 2 of the License, or     
-## (at your option) any later version.      
-## eegBidsCreator is distributed in the hope that it will be useful,     
-## but WITHOUT ANY WARRANTY; without even the implied warranty of     
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the     
-## GNU General Public License for more details.      
-## You should have received a copy of the GNU General Public License     
-## along with eegBidsCreator.  If not, see <https://www.gnu.org/licenses/>.
+#############################################################################
+# plugins defines a structure to define and use for plugin files
+#############################################################################
+# Copyright (c) 2018-2019, University of Liège
+# Author: Nikita Beliy
+# Owner: Liege University https://www.uliege.be
+# Version: 0.77r1
+# Maintainer: Nikita Beliy
+# Email: Nikita.Beliy@uliege.be
+# Status: developpement
+#############################################################################
+# This file is part of eegBidsCreator
+# eegBidsCreator is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# eegBidsCreator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with eegBidsCreator.  If not, see <https://www.gnu.org/licenses/>.
 ############################################################################
 
 import sys
@@ -29,7 +29,7 @@ import logging
 
 from tools.tools import check_type
 
-from . import exceptions 
+from . import exceptions
 from .entry_points import entry_points
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ def ImportPlugins(plugin_file):
     if plugin_file == "":
         return 0
 
-    global file 
+    global file
 
     file = str(plugin_file)
 
@@ -87,9 +87,9 @@ def ImportPlugins(plugin_file):
     spec.loader.exec_module(itertools)
     f_list = dir(itertools)
     for ep in entry_points:
-        if ep in f_list and callable(getattr(itertools,ep)):
+        if ep in f_list and callable(getattr(itertools, ep)):
             logger.debug("Entry point {} found".format(ep))
-            active_plugins[ep] = getattr(itertools,ep)
+            active_plugins[ep] = getattr(itertools, ep)
     if len(active_plugins) == 0:
         logger.warning("Plugin {} loaded but "
                        "no compatible functions found".format(pl_name))
@@ -143,11 +143,11 @@ def RunPlugin(entry, *args, **kwargs) -> int:
             result = active_plugins[entry](*args, **kwargs)
         else:
             result = active_plugins[entry](*args)
-    except exceptions.PluginError as e:
+    except exceptions.PluginError:
         raise
     except Exception as e:
         raise entry_points[entry]("{}: {}".format(type(e).__name__, e))\
-                .with_traceback(sys.exc_info()[2]) 
+                .with_traceback(sys.exc_info()[2])
     if result is None:
         result = 0
 

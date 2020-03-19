@@ -13,9 +13,8 @@ from bidsify import bidsify
 from mapper import mapper
 
 from tools import config
-from tools import info 
+from tools import info
 from tools import paths
-
 
 
 if __name__ == "__main__":
@@ -34,9 +33,9 @@ if __name__ == "__main__":
 
     logger = logging.getLogger()
     logger.name = os.path.splitext(os.path.basename(__file__))[0]
-    info.setup_logging(logger, 
-                       args.level, 
-                       args.formatter, 
+    info.setup_logging(logger,
+                       args.level,
+                       args.formatter,
                        args.quiet)
     log_dir = os.path.join(args.destination, "code",
                            prog, args.cmd)
@@ -75,19 +74,20 @@ if __name__ == "__main__":
         elif args.cmd == "process":
             process(source=args.source,
                     destination=args.destination,
-                    plugin_file=args.plugin, 
+                    plugin_file=args.plugin,
                     plugin_opt=args.plugin_opt,
                     sub_list=args.participants,
                     sub_skip_tsv=args.skip_in_tsv,
                     sub_skip_dir=args.skip_existing,
                     ses_skip_dir=args.skip_existing_sessions,
+                    part_template=args.part_template,
                     bidsmapfile=args.bidsmap,
                     dry_run=args.dry_run
                     )
         elif args.cmd == "bidsify":
             bidsify(source=args.source,
                     destination=args.destination,
-                    plugin_file=args.plugin, 
+                    plugin_file=args.plugin,
                     plugin_opt=args.plugin_opt,
                     sub_list=args.participants,
                     sub_skip_tsv=args.skip_in_tsv,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         elif args.cmd == "map":
             mapper(source=args.source,
                    destination=args.destination,
-                   plugin_file=args.plugin, 
+                   plugin_file=args.plugin,
                    plugin_opt=args.plugin_opt,
                    sub_list=args.participants,
                    sub_skip_tsv=args.skip_in_tsv,

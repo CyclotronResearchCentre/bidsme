@@ -1,5 +1,6 @@
 import os
-import logging 
+import logging
+import pandas
 from copy import deepcopy as copy
 
 from tools import tools
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class BidsSession(object):
-    __slots__ = ["__subject", "__session", 
+    __slots__ = ["__subject", "__session",
                  "in_path",
                  "__sub_locked", "__ses_locked",
                  "sub_values"
@@ -48,7 +49,7 @@ class BidsSession(object):
         return self.__session
 
     @session.setter
-    def session(self, val: str) ->str:
+    def session(self, val: str) -> str:
         if self.__ses_locked:
             raise Exception("Session Id is locked")
         if val is not None and not isinstance(val, str):
@@ -102,7 +103,7 @@ class BidsSession(object):
             res += "_" + self.__session
         return res
 
-    def getPath(self, empty: bool=False) -> str:
+    def getPath(self, empty: bool = False) -> str:
         """
         Returns path generated from subject and session Id
 
@@ -166,7 +167,7 @@ class BidsSession(object):
             return True
 
     @classmethod
-    def loadSubjectFields(cls, filename: str="") -> None:
+    def loadSubjectFields(cls, filename: str = "") -> None:
         """
         Loads the tsv fields for subject.tsv file
 
@@ -188,7 +189,19 @@ class BidsSession(object):
         else:
             cls.__sub_columns.LoadDefinitions(filename)
 
-    def registerFields(self, conflicting: bool=False) -> None:
+    @classmethod
+    def getSubjectColumns(cls) -> list:
+        """
+        Returns a list of currently activated columns of
+        participant list
+
+        Returns
+        -------
+        list
+        """
+        return cls.__sub_columns.GetActive()
+
+    def registerFields(self, conflicting: bool = False) -> None:
         """
         Register current values of participants fields
 
@@ -228,7 +241,7 @@ class BidsSession(object):
         # self.sub_values = self.__sub_columns.GetTemplate()
 
     @classmethod
-    def exportParticipants(cls, output:str) -> None:
+    def exportParticipants(cls, output: str) -> None:
         """
         Export current participants list to given location
 
@@ -241,7 +254,7 @@ class BidsSession(object):
         if os.path.isfile(fname):
             f = open(fname, "a")
             logger.warning("participants.tsv already exists, "
-                            "some subjects may be duplicated")
+                           "some subjects may be duplicated")
         else:
             f = open(fname, "w")
             f.write(cls.__sub_columns.GetHeader())
@@ -251,5 +264,20 @@ class BidsSession(object):
                 f.write(cls.__sub_columns.GetLine(vals))
                 f.write("\n")
         f.close()
-        cls.__sub_columns.DumpDefinitions(os.path.join(output, 
-                                                       "participants.json"))
+
+    @classmethod
+    def exportAsDataFrame(cls) -> pandas.DataFrame:
+        """
+        Exports current subject columns as a dataframe
+        It conserves all data, including one not defined
+        in participants.json file
+
+        Returns
+        -------
+        pandas.DataFrame
+        """
+
+        df = pandas.DataFrame(cls.__sub_values).transpose()
+        df["participant_id"] = df.index
+        df = df.reset_index(drop=True)
+        return df

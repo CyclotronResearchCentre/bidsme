@@ -297,7 +297,7 @@ class BrainVision(EEG):
                      os.path.join(directory, bidsname + ".eeg"))
 
         # Getting channels info
-        base = bidsname.rsplit("_",1)[0]
+        base = bidsname.rsplit("_", 1)[0]
         dest_chan = os.path.join(directory, base + "_channels")
         with open(dest_chan + ".tsv", "w") as f:
             f.write(self._chan_BIDS.GetHeader())
@@ -344,11 +344,11 @@ class BrainVision(EEG):
                     f.write(self._elec_BIDS.GetLine(chanValues))
                     f.write("\n")
                 self._elec_BIDS.DumpDefinitions(dest_elec + ".json")
-                dest_coord = os.path.join(directory, 
+                dest_coord = os.path.join(directory,
                                           "{}_acq-{}_coordsystem.json"
                                           .format(self.getBidsPrefix(),
                                                   self.labels["task"]))
-                d = {"EEGCoordinateSystem": "BESA", 
+                d = {"EEGCoordinateSystem": "BESA",
                      "EEGCoordinateSystemUnits": "mm"}
                 with open(dest_coord, "w") as f:
                     json.dump(d, f, indent="  ", separators=(',', ':'))
@@ -423,5 +423,5 @@ class BrainVision(EEG):
         str:
             path to referenced file
         """
-        name = re.sub("\$b", base, name)
+        name = re.sub("\\$b", base, name)
         return os.path.join(dirpath, name)

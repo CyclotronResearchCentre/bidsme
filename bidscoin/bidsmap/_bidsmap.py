@@ -43,9 +43,9 @@ class Bidsmap(object):
 
         # Read the heuristics from the bidsmap file
         with open(yamlfile, 'r') as stream:
-            try: 
+            try:
                 yaml_map = yaml.load(stream)
-            except Exception as e:
+            except Exception:
                 err = sys.exc_info()
                 logger.error("Failed to load bidsmap from {}"
                              .format(yamlfile))
@@ -93,7 +93,7 @@ class Bidsmap(object):
                 # Over Modalities
                 if not isinstance(form, dict):
                     logger.error("{}: {}/{} Malformed map, no modalities found"
-                                 .format(os.path.basename(yamlfile), 
+                                 .format(os.path.basename(yamlfile),
                                          module, f_name))
                     raise TypeError("Malformed map")
 
@@ -140,8 +140,8 @@ class Bidsmap(object):
                             raise
                         self.Modules[module][f_name][m_name][ind] = r
 
-    def match_run(self, recording: object, 
-                  check_multiple: bool=True, fix: bool=False) -> tuple:
+    def match_run(self, recording: object,
+                  check_multiple: bool = True, fix: bool = False) -> tuple:
         """
         Matches run for given recording
 
@@ -153,7 +153,7 @@ class Bidsmap(object):
             if True, proceeds over all runs and print warning if more
             than on run matches
         fix: bool
-            if True, matched run attriburtes are fixed after the succesful 
+            if True, matched run attriburtes are fixed after the succesful
             match
 
         Returns
@@ -205,7 +205,7 @@ class Bidsmap(object):
     def add_run(self, run: Run, module: str, form: str) -> tuple:
         """
         Add new run to list for given module and format.
-        Added run is copied and behaves as independent 
+        Added run is copied and behaves as independent
         object
 
         Parameters:
@@ -232,9 +232,9 @@ class Bidsmap(object):
                 len(self.Modules[module][form][run.modality]) - 1,
                 run)
 
-    def save(self, filename: str, 
-             empty_modules: bool=False, 
-             empty_attributes: bool=True) -> None:
+    def save(self, filename: str,
+             empty_modules: bool = False,
+             empty_attributes: bool = True) -> None:
         """
         Writes map to YAML file
 
@@ -274,10 +274,10 @@ class Bidsmap(object):
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
 
-    def countRuns(self, module: str="") -> tuple:
+    def countRuns(self, module: str = "") -> tuple:
         """
         returns tuple (run, template, unchecked) of
-        number of runs, template runs and unchecked 
+        number of runs, template runs and unchecked
         runs respectively for given module (or all
         if empty string)
 
