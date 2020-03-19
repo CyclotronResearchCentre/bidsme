@@ -33,9 +33,9 @@ file structure (file- and/or directory names, e.g. number of files).
 
 The retrieved information can be modified/adjusted by a set of plugins, 
 described [here](#plugins). Plugins can also be used to complete the bidsified 
-dataset, for example by parcing log files. 
+dataset, for example by parsing log files. 
 
-> NB: BIDScoin support variaty of formats listed in [supported formats](#formats). 
+> NB: BIDScoin support variety of formats listed in [supported formats](#formats). 
 Additional formats can be implemented following instructions [here](#new_formats).
 
 The mapping information is stored as key-value pairs in the human readable and 
@@ -43,21 +43,22 @@ widely supported [YAML](http://yaml.org/) files, generated from a template yaml-
 
 ## <a name="intrface"></a> The BIDScoin interface
 
-All interactions with bidscoin occures from command-line interface, by a master script `bidscoin.py`.
+All interactions with bidscoin occurs from command-line interface, by a master script `bidscoin.py`.
 
 This script accepts a small set of parameters and one of the command 
 
 - `prepare` to [prepare dataset](#wf_prep)
+- `process` to [process dataset](#wf_process)
 - `bidsify` to [bidsify dataset](#wf_bids)
 - `map` to [create bidsmap](#wf_map)
 
 Outside the standard `-h`, `-v` options that shows help and version, `bidscoin` accepts 
 `-c, --configuration` options which takes a path to configuration file. 
 This file is searched in (in order) current directory, user-standard directory and 
-bids code directory (when availible).
+bids code directory (when available).
 
 The `--conf-save` switch saves the current configuration (affected by command-line
-options) in the given location. It is usefull to run this option once to update configuration.
+options) in the given location. It is useful to run this option once to update configuration.
 
 > N.B. both `-c` and `--conf-save` must be given **before** the command.
 
@@ -66,7 +67,7 @@ In what follows only common arguments are described, and individual ones are
 described in corresponding sections.
 
 - <a name="gen_cli"></a>Logging options, corresponds to *logging* section of configuration file:
-    *  `-q`, `--quiet` supress the standard output, usefull for running in the script
+    *  `-q`, `--quiet` suppress the standard output, useful for running in the script
     * `--level` sets the message verbosity of the log output, from very verbose *DEBUG*
     to showing only critical message *CRITICAL*
     * `--formatter` sets the log line format message 
@@ -77,12 +78,12 @@ relevant command:
 - Subject and session selection, corresponds to *selection* section of configuration file
     * `--participants` space separated list of participants to process. Listed participants
     are concidered after the bidsification, with `sub-` prefix
-    * `--skip-in-tsv` switch that scips participants that already present in destination
+    * `--skip-in-tsv` switch that skips participants that already present in destination
     * `--skip-existing` switch that skips participants with corresponding folders existing
     in destination
     * `--skip-existing-sessions` same as above but for sessions
-- General options, nonexisting in configuration file:
-    * `--dry-run`, run in the simulation mode, without writting anything outside the
+- General options, non existing in configuration file:
+    * `--dry-run`, run in the simulation mode, without writing anything outside the
     logs
 
 The full list of commands parameters can be seen using `-h` option:
@@ -93,10 +94,10 @@ parameters.
 
 ## <a name="workflow"> </a>The BIDScoin workflow
 
-The BIDScoin workfolw is composed in two steps:
+The BIDScoin workflow is composed in two steps:
 
-  1. [Data preparation](#wf_prep), in which the source dataset is reorganazed into stadard bids-like structure
-  2. [Data bidsification](#wf_bids), in which prepeared data is bidsified.
+  1. [Data preparation](#wf_prep), in which the source dataset is reorganized into standard bids-like structure
+  2. [Data bidsification](#wf_bids), in which prepared data is bidsified.
 
 This organisation allow to user intervene before the bidsification in case of 
 presence of errors, or to complete the data manually if it could not be completed numerically.
@@ -109,11 +110,11 @@ sub-<subId>/ses-<sesId>/<DataType>/<seriesNo>-<seriesId>/<datafiles>
 ```
 where `subId` and `sesId` are the subject and session label, as defined by BIDS standard. 
 `DataType` is an unique label identifying the modality of data, e.g. `EEG` or `MRI`.
-`seriesNo` and `seriesId` are the unique identification of given recording serie, 
+`seriesNo` and `seriesId` are the unique identification of given recording series 
 which can be defined as a set of recording sharing the same recording parameters 
 (e.g. set of 2D slices for same fMRI scan).
 
-A generic data-set can be organized into prepeared datase using `prepare` command.
+A generic data-set can be organized into prepared dataset using `prepare` command.
 In addition of parameters cited [above](#gen_cli),
 some additional parameters are defined:
 
@@ -140,7 +141,7 @@ some additional parameters are defined:
 
 `prepare` iteratively scans the original dataset and determine the subjects and sessions Id from 
 folder names. Subject Id is taken from the name of top-most folder, and session from its sub-folder
-(modulo the the `prefix` parameters). 
+(modulo the `prefix` parameters). 
 
 The Id are taking as it, with removal of all non alphanumerical characters.
 For example, if subject folder is called `s0123-control`, the subject Id will be 
@@ -156,10 +157,10 @@ from data files.
 
 > N.B. Even with subject and session folders present, there is a possibility to determine them directly from
 data files. In order to do this  in corresponding [plugin](#wf_plugin) the `session.subject` must be set 
-to `None`, making it undefined. But undefined subjects and sessions make subject selection unavailible.
+to `None`, making it undefined. But undefined subjects and sessions make subject selection unavailable.
 
 If one need to rename subjects and/or sessions, it can be done with plug-in functions
-`SubjectEP` and `SessionEP` or by renaming directly folders in the prepeared dataset.
+`SubjectEP` and `SessionEP` or by renaming directly folders in the prepared dataset.
 
 Once the data-files are identified, they are placed into prepared dataset, which follows 
 loosely the basic BIDS structure:
@@ -179,13 +180,13 @@ different scanned volumes for the same MRI acquisition), it will be named as `<s
 which will uniquely identify the sequence.
 
 `prepare` do not modify/convert/rename data files, only copies them.
-If an actual modification of data is needed (e.g. anonymisation, or convertion),
-either in plugin functions `FileEP`, `SequenceEndEP` or manually in prepeared
+If an actual modification of data is needed (e.g. anonymisation, or conversion),
+either in plugin functions `FileEP`, `SequenceEndEP` or manually in prepared
 dataset. 
-As long datafiles remains in the correct folders and data format is supported 
+As long data files remains in the correct folders and data format is supported 
 by BIDScoin, bidsification should perform normally.
 
-This structure has been choosen to be as rigid possible, in order to mak it easier 
+This structure has been chosen to be as rigid possible, in order to mak it easier 
 to treat numerically, but still human-readable.
 It naturally  supports multimodal dataset.
 
@@ -193,8 +194,17 @@ It naturally  supports multimodal dataset.
 A working example of source dataset and `prepare` configuration can be found 
 [there](https://github.com/nbeliy/bidscoin_example).
 
-> NB: The logs for standard output and separetly errors and warnings are stored
+> NB: The logs for standard output and separately errors and warnings are stored
 in destination folder in `code/bidscoin/prepare/log` directory. 
+
+### <a name="wf_process"></a> Data processing
+
+The processing is completely optional step between data preparation and
+bidsification. It is intended to allow a data modification based on data identification
+of `bidscoin`. It can be used to check, pre-process data, convert it, merge etc...
+
+It is not intended to run without plugins. It does nothing without, except checking
+if all data is identifiable. It can be easily be replaced by a custom script. 
 
 ### <a name="wf_bids"></a>Data bidsification
 
@@ -205,21 +215,21 @@ the bidsification is performed by `bidsify` command:
 bidscoin.py bidsify prepared bidsified
 ```
 
-It will run over data-files in prepeared dataset, determine the correct modalities
+It will run over data-files in prepared dataset, determine the correct modalities
 and BIDS entities, extract the meta-data needed for sidecar json files, and 
 create BIDS dataset in destination folder.
 
 Outside options cited [above](#gen_cli), `bidsify` accepts one parameter:
 
 - `-b, --bidsmap` with path to the bidsmap file used to identify data files.
-If ommited, the `bidsmap.yaml` will be used. Bidsmap will be searched first 
+If omitted, the `bidsmap.yaml` will be used. Bidsmap will be searched first 
 in local path, then in `bidsified/code/bidscoin/`.
 
 > N.B. It is advisable to first run bidsification in ["dry mode"](#gen_cli), using
 switch `--dry-run`, then if there no errors detected run bidsification in normal mode.
 
 The subjects and session Id are retrieved from folder structure, but still
-can be modified in the plugins. It can be usefull if one plan perform a random 
+can be modified in the plugins. It can be useful if one plan perform a random 
 permutation on the subjects, for additional layer of anonymisation. 
 
 > NB: The log files with messages and, separately the errors are stored in
@@ -233,7 +243,7 @@ It tells how to identify any data file, and what modality and bids labels
 to attribute.
 
 It is a configuration file written in [YAML](http://yaml.org/) format, which is a 
-compromize between human readability and machine parcing.
+compromise between human readability and machine parsing.
 
 By default this file, once created is stored within bidsified dataset in 
 `code/bidscoin/bidsmap.yaml`.
@@ -270,11 +280,11 @@ These warnings and errors should be corrected before re-run of
 The final goal is to achieve state than `bidsmapper` will no more produce
 any warnings and errors.
 
-> NB:If bidsifigation requiers plugins, it is important to run `bidsmapper` 
+> NB:If bidsifigation requires plugins, it is important to run `bidsmapper` 
 with the same plugin.
 
 Using [example 1](#ex1), the first pass of `bidsmapper` will produce around 500
-warning, but they are repetetive. 
+warning, but they are repetitive. 
 
 > WARNING MRI/001-localizer/0: No run found in bidsmap. Looking into template`
 
@@ -380,11 +390,17 @@ Details on each of these functions can be found in [Plugins](#plugins) section
 Any of defined functions must accept a determined set of parameters, except `InitEP`, which
 acept additionaly a set of optional named parameters, needed to setup any given plugin.
 
-Each function is expected to return an ineger return code in range `[0-9]`, with `0` meaning 
-succesful execution, and non-zero return code indicates an error. In the latter case, the execution of
-programm will be stopped and plugin-related error will be raised.
-Any exception occured within plugin function will also interupt the execution.
-The returned `None` value is interpreted as succesfull execution.
+Each function is expected to return an ineger return code:
+
+- **0** -- succesful execution, programm continues normally
+- **None** -- interpreted as **0**
+- **[0-9]** -- an error in plugin occured, programm will stop execution
+ and `PluginError` will be rised
+- **<0** -- an error in plugin occured, current entity will be sckipped
+
+The negative code will affect only some of plugins, where skipping current entity
+will have a meaning, namely `SubjectEP`, `SessionEP`, `SequenceEP` and `RecordingEP`.
+For other function, negative code is interpreted as **0**
 
 > NB: Even if all scripts supports the same list of entry points, some of them 
 are more adapted for data preparation and other for bidsification.
