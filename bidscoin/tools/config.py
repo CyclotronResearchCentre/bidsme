@@ -136,7 +136,7 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
     elif cmd == "bidsify":
         setBidsify(parser)
     elif cmd == "process":
-        setBidsify(parser)
+        setProcess(parser)
     elif cmd == "map":
         setMap(parser)
     gr_help = parser.add_argument_group(
@@ -215,9 +215,12 @@ def saveConfig(args: argparse.Namespace) -> None:
         config[args.cmd]["no_subject"] = args.no_subject
         config[args.cmd]["no_session"] = args.no_session
         config[args.cmd]["rec_folders"] = args.recfolder
-
     elif args.cmd == "bidsify":
         config["maps"]["map"] = args.bidsmap
+        config[args.cmd]["part_template"] = args.part_template
+    elif args.cmd == "process":
+        config["maps"]["map"] = args.bidsmap
+        config[args.cmd]["part_template"] = args.part_template
     elif args.cmd == "map":
         config["maps"]["map"] = args.bidsmap
         config["maps"]["template"] = args.template
@@ -375,6 +378,13 @@ def setPrepare(parser):
 
 
 def setBidsify(parser):
+    gr_template = parser.add_argument_group(
+            title="template commands",
+            description="Files used for templates")
+    gr_template.add_argument('--part-template',
+                             help='Path to the template used for '
+                             'participants.tsv',
+                             metavar="TEMPLATE")
     gr_maps = parser.add_argument_group(
             title="map parameters"
             )
@@ -383,7 +393,30 @@ def setBidsify(parser):
                          'heuristics.'
                          )
     parser.set_defaults(
-            bidsmap=config["maps"]["map"])
+            bidsmap=config["maps"]["map"],
+            part_template=config["bidsify"]["part_template"]
+            )
+
+
+def setProcess(parser):
+    gr_template = parser.add_argument_group(
+            title="template commands",
+            description="Files used for templates")
+    gr_template.add_argument('--part-template',
+                             help='Path to the template used for '
+                             'participants.tsv',
+                             metavar="TEMPLATE")
+    gr_maps = parser.add_argument_group(
+            title="map parameters"
+            )
+    gr_maps.add_argument('-b', '--bidsmap',
+                         help='The bidsmap YAML-file with the study '
+                         'heuristics.'
+                         )
+    parser.set_defaults(
+            bidsmap=config["maps"]["map"],
+            part_template=config["process"]["part_template"]
+            )
 
 
 def setMap(parser):

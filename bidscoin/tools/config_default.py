@@ -58,5 +58,13 @@ config = {
             "rec_folders": {},
             # Path to template json file defining subject tsv columns
             "part_template": None
+            },
+        "process": {
+            # Path to template json file defining subject tsv columns
+            "part_template": None
+            },
+        "bidsify": {
+            # Path to template json file defining subject tsv columns
+            "part_template": None
             }
         }

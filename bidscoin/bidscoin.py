@@ -93,6 +93,7 @@ if __name__ == "__main__":
                     sub_skip_tsv=args.skip_in_tsv,
                     sub_skip_dir=args.skip_existing,
                     ses_skip_dir=args.skip_existing_sessions,
+                    part_template=args.part_template,
                     bidsmapfile=args.bidsmap,
                     dry_run=args.dry_run
                     )

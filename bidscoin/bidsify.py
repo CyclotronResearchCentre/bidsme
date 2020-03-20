@@ -6,7 +6,6 @@ bidsmap.yaml file.
 """
 
 import os
-import shutil
 import pandas
 import logging
 
@@ -57,6 +56,8 @@ def coin(destination: str,
                            .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
+
+        recording.getBidsSession().registerFields(False)
         out_path = os.path.join(destination,
                                 recording.getBidsPrefix("/"))
         # checking in the current map
@@ -99,6 +100,7 @@ def bidsify(source: str, destination: str,
             sub_skip_tsv: bool = False,
             sub_skip_dir: bool = False,
             ses_skip_dir: bool = False,
+            part_template: str = "",
             bidsmapfile: str = "bidsmap.yaml",
             dry_run: bool = False
             ) -> None:
@@ -137,6 +139,12 @@ def bidsify(source: str, destination: str,
         if set to True, sessions with already
         created directories will be ignored
         Can conflict with ses_no_dir
+    part_template: str
+        path to template json file, from whitch
+        participants.tsv will be modeled. If unset
+        the defeault one "source/participants.tsv"
+        is used. Setting this variable may break
+        workflow
     bidsmapfile: str
         The name of bidsmap file, will be searched for
         in destination/code/bidsmap directory, unless
@@ -197,7 +205,7 @@ def bidsify(source: str, destination: str,
     if nunchecked != 0:
         logger.critical("Map contains {} unchecked runs"
                         .format(nunchecked))
-        raise ValueError("Unchecked runs present")
+        raise Exception("Unchecked runs present")
 
     # Load and initialize plugin
     if plugin_file:
@@ -219,7 +227,7 @@ def bidsify(source: str, destination: str,
     new_sub_file = os.path.join(source, "participants.tsv")
     df_sub = pandas.read_csv(new_sub_file,
                              sep="\t", header=0,
-                             na_values="n/a")
+                             na_values="n/a").drop_duplicates()
     df_dupl = df_sub.duplicated("participant_id")
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
@@ -232,36 +240,33 @@ def bidsify(source: str, destination: str,
     if not tools.checkTsvDefinitions(df_sub, new_sub_json):
         raise Exception("Incompatible sidecar json")
 
-    BidsSession.loadSubjectFields(new_sub_json)
+    # Loading participants template
+    if not part_template:
+        part_template = os.path.join(source, "participants.json")
+    else:
+        logger.warning("Loading exterior participant template {}"
+                       .format(part_template))
+    BidsSession.loadSubjectFields(part_template)
+
     old_sub_file = os.path.join(destination, "participants.tsv")
     old_sub = None
     if os.path.isfile(old_sub_file):
         old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
                                   na_values="n/a")
-
-    df_res = df_sub
-    if old_sub is not None:
-        if not old_sub.columns.equals(df_sub.columns):
-            logger.critical("Participant.tsv has different columns "
-                            "from destination dataset")
-            raise Exception("Participants column mismatch")
-        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()
-        df_dupl = df_res.duplicated("participant_id")
-        if df_dupl.any():
-            logger.critical("Joined participant list contains one or "
-                            "several duplicated entries: {}"
-                            .format(", ".join(
-                                    df_sub[df_dupl]["participant_id"])
-                                    )
-                            )
-            raise Exception("Duplicated subjects")
-        old_sub = old_sub["participant_id"]
+        if not tools.checkTsvDefinitions(old_sub, part_template):
+            raise Exception("Incompatible sidecar json")
+    dupl_file = os.path.join(destination, "__duplicated.tsv")
+    if os.path.isfile(dupl_file):
+        logger.critical("Found unmerged file with duplicated subjects")
+        raise FileExistsError(dupl_file)
 
     ##############################
     # Subjects loop
     ##############################
     n_subjects = len(df_sub["participant_id"])
-    for sub_no, sub_id in enumerate(df_sub["participant_id"], 1):
+    for index, sub_row in df_sub.iterrows():
+        sub_no = index + 1
+        sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
         if not os.path.isdir(sub_dir):
             logger.error("{}: Not found in {}"
@@ -271,11 +276,19 @@ def bidsify(source: str, destination: str,
         scan = BidsSession()
         scan.in_path = sub_dir
         scan.subject = sub_id
+
+        #################################################
+        # Cloning df_sub row values in scans sub_values
+        #################################################
+        for column in df_sub.columns:
+            scan.sub_values[column] = sub_row[column]
+
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))
             continue
         scan.lock_subject()
+
         if not scan.isSubValid():
             logger.error("{}: Subject id '{}' is not valid"
                          .format(sub_id, scan.subject))
@@ -307,6 +320,7 @@ def bidsify(source: str, destination: str,
                 logger.warning("Session {} discarded by {}"
                                .format(scan.session, "SessionEP"))
                 continue
+
             scan.lock()
 
             if ses_skip_dir and tools.skipEntity(scan.session,
@@ -324,10 +338,11 @@ def bidsify(source: str, destination: str,
                                  .format(module, ses_dir))
                     continue
                 for run in tools.lsdirs(mod_dir):
+                    scan.in_path = run
                     cls = Modules.selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
-                                     .format(mod_dir))
+                                     .format(run))
                         continue
                     recording = cls(rec_path=run)
                     if not recording or len(recording.files) == 0:
@@ -337,13 +352,28 @@ def bidsify(source: str, destination: str,
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
 
-    plugins.RunPlugin("FinaliseEP")
+    df_processed = BidsSession.exportAsDataFrame()
 
+    if old_sub is not None:
+        df_res = pandas.concat[old_sub, df_processed].drop_duplicates()
+    else:
+        df_res = df_processed
+
+    df_dupl = df_sub.duplicated("participant_id")
+    if df_dupl.any():
+        logger.critical("Participant list contains one or several duplicated "
+                        "entries: {}"
+                        .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                        )
     if not dry_run:
-        df_res.to_csv(old_sub_file,
-                      sep='\t', na_rep="n/a",
-                      index=False, header=True)
-        json_file = tools.change_ext(old_sub_file, "json")
-        if not os.path.isfile(json_file):
-            shutil.copyfile(os.path.join(source, "participants.json"),
-                            json_file)
+        df_res[~df_dupl].to_csv(old_sub_file,
+                                sep='\t', na_rep="n/a",
+                                index=False, header=True)
+        if df_dupl.any():
+            logger.info("Saving the list to be merged manually to {}"
+                        .format(dupl_file))
+            df_res[df_dupl].to_csv(old_sub_file,
+                                   sep='\t', na_rep="n/a",
+                                   index=False, header=True)
+
+    plugins.RunPlugin("FinaliseEP")

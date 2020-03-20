@@ -147,7 +147,8 @@ def process(source: str, destination: str,
         path to template json file, from whitch
         participants.tsv will be modeled. If unset
         the defeault one "source/participants.tsv"
-        is used
+        is used. Setting this variable may break
+        workflow
     bidsmapfile: str
         The name of bidsmap file, will be searched for
         in destination/code/bidsmap directory, unless
@@ -243,34 +244,17 @@ def process(source: str, destination: str,
     if not tools.checkTsvDefinitions(df_sub, new_sub_json):
         raise Exception("Incompatible sidecar json")
 
-    BidsSession.loadSubjectFields(new_sub_json)
     old_sub_file = os.path.join(destination, "participants.tsv")
     old_sub = None
     if os.path.isfile(old_sub_file):
         old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
                                   na_values="n/a")
-
-    df_res = df_sub
-    if old_sub is not None:
         if not old_sub.columns.equals(df_sub.columns):
-            logger.critical("Participant.tsv has different columns "
-                            "from destination dataset")
-            raise Exception("Participants column mismatch")
-        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()
-        df_dupl = df_res.duplicated("participant_id")
-        if df_dupl.any():
-            logger.critical("Joined participant list contains one or "
-                            "several duplicated entries: {}"
-                            .format(", ".join(
-                                    df_sub[df_dupl]["participant_id"])
-                                    )
-                            )
-            raise Exception("Duplicated subjects")
+            logger.warning("Source participant.tsv has different columns "
+                           "from destination dataset")
         old_sub = old_sub["participant_id"]
 
-    ################################
     # Loading participants template
-    ################################
     if not part_template:
         part_template = os.path.join(source, "participants.json")
     else:
@@ -301,11 +285,12 @@ def process(source: str, destination: str,
         for column in df_sub.columns:
             scan.sub_values[column] = sub_row[column]
 
+        scan.lock_subject()
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))
             continue
-        scan.lock_subject()
+
         if not scan.isSubValid():
             logger.error("{}: Subject id '{}' is not valid"
                          .format(sub_id, scan.subject))
@@ -371,7 +356,7 @@ def process(source: str, destination: str,
 
     df_processed = BidsSession.exportAsDataFrame()
 
-    df_res = pandas.merge(df_res, df_processed,
+    df_res = pandas.merge(df_sub, df_processed,
                           how="outher", on="participant_id",
                           suffixes=("_OLD_COLUMN", ""))
     for col in df_res.columns:

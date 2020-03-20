@@ -7,9 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - diffusion MRI during bidsification checks for existance of bval/vec
 files and copies them if exists. Warning is shown if they don't exist
 - Counting of unchecked/template runs shown in `map` command
+- `bidsify` can rename subjects in plugins
 
 ### Changed
-- `process` conserves the posibility to modify subject parameters 
+- `process` and `bidsify` conserves the posibility to modify subject columns and parameters
+- `bidsify` stores duplicated subjects with conflicting values in destination dataset in 
+`__duplicated.tsv` file. This file should be merged manually
 
 ## [dev2.2.0] - 2020-03-18
 
