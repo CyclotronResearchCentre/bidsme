@@ -175,6 +175,9 @@ def mapper(source: str, destination: str,
 
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
+    ###############
+    # Plugin setup
+    ###############
     if plugin_file:
         logger.warning("Using plugin from configuration file")
     elif bidsmap_new.plugin_file:
@@ -188,7 +191,7 @@ def mapper(source: str, destination: str,
                            dry=True,
                            **plugin_opt)
 
-    logger.info("creating bidsmap for unknown modalities")
+    logger.debug("Creating bidsmap for unknown modalities")
     bidsmap_unk = {mod: {t.__name__: list()
                          for t in types}
                    for mod, types in Modules.selector.types_list.items()}

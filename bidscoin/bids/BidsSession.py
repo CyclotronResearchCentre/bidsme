@@ -217,15 +217,19 @@ class BidsSession(object):
             for key in self.sub_values:
                 old_val = last_values[key]
                 new_val = self.sub_values[key]
-                if new_val is None:
+                if new_val is None or pandas.isna(new_val):
                     self.sub_values[key] = old_val
+                elif old_val is None or pandas.isna(old_val):
+                    pass
                 elif old_val != new_val:
                     conflict = True
             if conflict:
                 if conflicting:
                     logger.warning("{}/{}: participants contains "
-                                   "conflicting values"
-                                   .format(self.subject, self.session))
+                                   "conflicting values for {}"
+                                   .format(self.subject,
+                                           self.session,
+                                           key))
                     self.__sub_values[self.subject].append(
                             copy(self.sub_values))
                 else:
@@ -276,8 +280,47 @@ class BidsSession(object):
         -------
         pandas.DataFrame
         """
+        values = list()
+        for key, val in cls.__sub_values.items():
+            values.extend(val)
 
-        df = pandas.DataFrame(cls.__sub_values).transpose()
-        df["participant_id"] = df.index
-        df = df.reset_index(drop=True)
+        df = pandas.DataFrame(values)
         return df
+
+    @classmethod
+    def exportDefinitions(cls, filename: str) -> None:
+        """
+        Exports subject column definitions into file
+
+        Parameters
+        ----------
+        filename: str
+            filename to export values
+        """
+        cls.__sub_columns.DumpDefinitions(filename)
+
+    @classmethod
+    def checkDefinitions(cls, df: pandas.DataFrame) -> bool:
+        """
+        Checks if given dataframe contains same columns as
+        currently defined
+
+        Always retruns True if df == None
+
+        Parameters
+        ----------
+        df: pandas.DataFrame
+            dataframe to check columns
+
+        Returns
+        -------
+        bool
+        """
+        if df is None:
+            return True
+        header = cls.__sub_columns.GetActive()
+        if df.columns.size != len(header):
+            return False
+        if not df.columns.difference(header).empty:
+            return False
+        return True

@@ -372,7 +372,7 @@ def bidsify(source: str, destination: str,
         if df_dupl.any():
             logger.info("Saving the list to be merged manually to {}"
                         .format(dupl_file))
-            df_res[df_dupl].to_csv(old_sub_file,
+            df_res[df_dupl].to_csv(dupl_file,
                                    sep='\t', na_rep="n/a",
                                    index=False, header=True)
 

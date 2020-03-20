@@ -62,7 +62,7 @@ def coin(destination: str,
                                    "RecordingEP"))
             continue
 
-        recording.getBidsSession().registerFields(False)
+        recording.getBidsSession().registerFields(True)
         out_path = os.path.join(destination,
                                 recording.getBidsPrefix("/"))
         # checking in the current map
@@ -88,8 +88,20 @@ def coin(destination: str,
             e = "{}/{}.json exists at destination"\
                 .format(bidsmodality, bidsname)
             logger.error(e)
-        plugins.RunPlugin("FileEP", None, recording)
-    plugins.RunPlugin("SequenceEndEP", None, recording)
+        if not dry_run:
+            plugins.RunPlugin("FileEP", 
+                              recording.getBidsSession().in_path,
+                              recording)
+        else:
+            plugins.RunPlugin("FileEP",
+                              None,
+                              recording)
+    if not dry_run:
+        plugins.RunPlugin("SequenceEndEP",
+                          recording.getBidsSession().in_path,
+                          recording)
+    else:
+        plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
 def process(source: str, destination: str,
@@ -240,6 +252,11 @@ def process(source: str, destination: str,
                         )
         raise Exception("Duplicated subjects")
 
+    dupl_file = os.path.join(destination, "__duplicated.tsv")
+    if os.path.isfile(dupl_file):
+        logger.critical("Found unmerged file with duplicated subjects")
+        raise FileExistsError(dupl_file)
+
     new_sub_json = os.path.join(source, "participants.json")
     if not tools.checkTsvDefinitions(df_sub, new_sub_json):
         raise Exception("Incompatible sidecar json")
@@ -355,14 +372,8 @@ def process(source: str, destination: str,
                     coin(destination, recording, bidsmap, dry_run)
 
     df_processed = BidsSession.exportAsDataFrame()
-
-    df_res = pandas.merge(df_sub, df_processed,
-                          how="outher", on="participant_id",
-                          suffixes=("_OLD_COLUMN", ""))
-    for col in df_res.columns:
-        col_old = col + "_OLD_COLUMN"
-        if col_old in df_res.columns:
-            df_res[col].fillna(df_res[col_old], inplace=True)
+    df_res = pandas.concat([df_sub, df_processed],
+                           sort=False, ignore_index=True)
 
     col_mismatch = False
     if not df_processed.columns.equals(df_res.columns):
@@ -372,21 +383,25 @@ def process(source: str, destination: str,
         df_res = df_res[[df_processed.getSubjectColumns()]]
 
     df_res = df_res.drop_duplicates()
-    df_dupl = df_sub.duplicated("participant_id")
+    df_dupl = df_res.duplicated("participant_id")
     if df_dupl.any():
         logger.error("Participant list contains one or several duplicated "
                      "entries: {}"
-                     .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                     .format(", ".join(df_res[df_dupl]["participant_id"]))
                      )
 
     if not dry_run:
-
-        df_res.to_csv(new_sub_file,
-                      sep='\t', na_rep="n/a",
-                      index=False, header=True)
+        df_res[~df_dupl].to_csv(old_sub_file,
+                                sep='\t', na_rep="n/a",
+                                index=False, header=True)
+        if df_dupl.any():
+            logger.info("Saving the list to be merged manually to {}"
+                        .format(dupl_file))
+            df_res[df_dupl].to_csv(dupl_file,
+                                   sep='\t', na_rep="n/a",
+                                   index=False, header=True)
         json_file = tools.change_ext(new_sub_file, "json")
         if col_mismatch or not os.path.isfile(json_file):
-            shutil.copyfile(os.path.join(part_template),
-                            json_file)
+            BidsSession.exportDefinitions(json_file)
 
     plugins.RunPlugin("FinaliseEP")

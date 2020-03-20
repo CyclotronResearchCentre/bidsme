@@ -174,25 +174,41 @@ def prepare(source: str, destination: str,
                        "Sessions will not be skipped "
                        "unless sesId defined in plugin")
 
-    df_participants = None
-    if sub_skip_tsv:
-        tsv = os.path.join(destination, "participants.tsv")
-        if os.path.isfile(tsv):
-            df_participants = pandas.read_csv(tsv,
-                                              sep="\t", header=0,
-                                              na_values="n/a",
-                                              usecols=["participant_id"],
-                                              comment="#")
-            df_participants = df_participants["participant_id"].values
-
+    ###############
+    # Plugin setup
+    ###############
     plugins.ImportPlugins(plugin_file)
     plugins.InitPlugin(source=source,
                        destination=destination,
                        dry=dry_run,
                        **plugin_opt)
 
+    ###############################
+    # Checking participants list
+    ###############################
+    new_sub_json = os.path.join(destination, "participants.json")
+    if not part_template:
+        if os.path.isfile(new_sub_json):
+            part_template = new_sub_json
+
     BidsSession.loadSubjectFields(part_template)
 
+    old_sub_file = os.path.join(destination, "participants.tsv")
+    old_sub = None
+    if os.path.isfile(old_sub_file):
+        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
+                                  na_values="n/a")
+        if not BidsSession.checkDefinitions(old_sub):
+            raise Exception("Destination participant.tsv incompatible "
+                            "with given columns definitions")
+    dupl_file = os.path.join(destination, "__duplicated.tsv")
+    if os.path.isfile(dupl_file):
+        logger.critical("Found unmerged file with duplicated subjects")
+        raise FileExistsError(dupl_file)
+
+    ###############
+    # Subject loop
+    ###############
     sub_prefix_dir, sub_prefix = os.path.split(sub_prefix)
     ses_prefix_dir, ses_prefix = os.path.split(ses_prefix)
 
@@ -220,22 +236,9 @@ def prepare(source: str, destination: str,
         scan.lock_subject()
 
         if scan.subject is not None:
-            skip = False
-            if sub_list:
-                if scan.subject not in sub_list:
-                    logger.debug("{} not in list".format(scan.subject))
-                    skip = True
-            if df_participants is not None:
-                if scan.subject in df_participants:
-                    logger.debug("{} in tsv".format(scan.subject))
-                    skip = True
-            if sub_skip_dir:
-                if os.path.isdir(os.path.join(destination,
-                                              scan.subject)):
-                    logger.debug("{} dir exists".format(scan.subject))
-                    skip = True
-
-            if skip:
+            if tools.skipEntity(scan.subject, sub_list,
+                                old_sub if sub_skip_tsv else None,
+                                destination if sub_skip_dir else ""):
                 logger.info("Skipping subject '{}'"
                             .format(scan.subject))
                 continue
@@ -303,27 +306,37 @@ def prepare(source: str, destination: str,
                                             scan.getPath(True))
                     sortsession(out_path, recording, dry_run)
             plugins.RunPlugin("SessionEndEP", scan)
-    if not dry_run:
-        BidsSession.exportParticipants(destination)
 
-        # checking up and cleaning the participants
-        new_sub_file = os.path.join(destination, "participants.tsv")
-        df_sub = pandas.read_csv(new_sub_file,
-                                 sep="\t", header=0,
-                                 na_values="n/a")\
-            .sort_values(by=["participant_id"])\
-            .drop_duplicates()
-        df_dupl = df_sub.duplicated("participant_id")
+    df_processed = BidsSession.exportAsDataFrame()
+
+    if old_sub is not None:
+        df_res = pandas.concat([old_sub, df_processed],
+                               sort=False,
+                               ignore_index=True)
+    else:
+        df_res = df_processed
+    df_res = df_res[BidsSession.getSubjectColumns()].drop_duplicates()
+
+    df_dupl = df_res.duplicated("participant_id")
+    if df_dupl.any():
+        logger.critical("Participant list contains one or several duplicated "
+                        "entries: {}"
+                        .format(", ".join(df_res[df_dupl]["participant_id"]))
+                        )
+
+    if not dry_run:
+        df_res[~df_dupl].to_csv(old_sub_file,
+                                sep='\t', na_rep="n/a",
+                                index=False, header=True)
         if df_dupl.any():
-            logger.error("Participant list contains one or several duplicated "
-                         "entries: {}"
-                         .format(", ".join(df_sub[df_dupl]["participant_id"]))
-                         )
+            logger.info("Saving the list to be merged manually to {}"
+                        .format(dupl_file))
+            df_res[df_dupl].to_csv(dupl_file,
+                                   sep='\t', na_rep="n/a",
+                                   index=False, header=True)
 
         new_sub_json = os.path.join(destination, "participants.json")
-        tools.checkTsvDefinitions(df_sub, new_sub_json)
-        df_sub.to_csv(new_sub_file,
-                      sep='\t', na_rep="n/a",
-                      index=False, header=True)
+        if not os.path.isfile(new_sub_json):
+            BidsSession.exportDefinitions(new_sub_json)
 
     plugins.RunPlugin("FinaliseEP")
