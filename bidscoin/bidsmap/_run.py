@@ -1,5 +1,5 @@
 """
-Run class is  a building block of bidsmap, containing 
+Run class is  a building block of bidsmap, containing
 the list of attributes to match, and list of bids fields
 to define the name
 """
@@ -22,7 +22,7 @@ class Run(object):
             "_bk_json",
             "provenance",    # file from which run is modelled
             "example",       # bids name from provenance file
-            "writable", 
+            "writable",
             "checked",       # switch if run was confirmed by user
             "template"       # switch if run was extracted from template
             ]
@@ -37,7 +37,7 @@ class Run(object):
                  example: str = None
                  ):
         """
-        Run class contains all information needed to identify and generate 
+        Run class contains all information needed to identify and generate
         the bidsified name. All init parameters must be named.
 
         Parameters
@@ -57,7 +57,7 @@ class Run(object):
         provenance: str
             path to the file from which this run was generated
         example: str
-            example of bidsified name generated from provenance 
+            example of bidsified name generated from provenance
             file
         """
         self._bk_modality = None
@@ -147,7 +147,6 @@ class Run(object):
         if isinstance(val, str):
             val = val.encode('unicode_escape').decode()
         attr = check_type("attr", str, attr)
-        to_remove = list
         if attr in self.attribute:
             if self.attribute[attr] == val:
                 return
@@ -236,7 +235,7 @@ class Run(object):
 
     def restore_attribute(self, attr: str) -> None:
         """
-        Restore old value of given attribute. 
+        Restore old value of given attribute.
         New value is lost
 
         Parameters:
@@ -339,7 +338,7 @@ class Run(object):
             return
         dest[attr] = source.pop(attr)
 
-    def dump(self, empty_attributes: bool=True) -> dict:
+    def dump(self, empty_attributes: bool = True) -> dict:
         """
         Dumps run into a dictionary
 

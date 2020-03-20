@@ -4,6 +4,7 @@ List of generic Plugin and individual plugin functions
 exceptions
 """
 
+
 class PluginError(CoinException):
     """
     Generic plugin error
@@ -88,11 +89,13 @@ class SessionEndEPError(PluginError):
     """
     base = 170
 
+
 class SubjectEndEPError(PluginError):
     """
     Raises if an error happens during the post-subject adjustement
     """
     base = 180
+
 
 class FinaliseEPError(PluginError):
     """
