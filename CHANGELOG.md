@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [dev2.3.0] - 2020-03-22
+
 ### Added
 - diffusion MRI during bidsification checks for existance of bval/vec
 files and copies them if exists. Warning is shown if they don't exist
