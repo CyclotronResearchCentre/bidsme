@@ -11,8 +11,8 @@ files and copies them if exists. Warning is shown if they don't exist
 
 ### Changed
 - `process` and `bidsify` conserves the posibility to modify subject columns and parameters
-- `bidsify` stores duplicated subjects with conflicting values in destination dataset in 
-`__duplicated.tsv` file. This file should be merged manually
+- duplicated subjects with conflicting values in destination dataset in `__duplicated.tsv` file.
+This file should be merged manually
 
 ## [dev2.2.0] - 2020-03-18
 
