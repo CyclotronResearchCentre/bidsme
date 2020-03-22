@@ -6,15 +6,15 @@ bidsmap.yaml file.
 """
 
 import os
-import pandas
 import logging
+import pandas
 
 from tools import tools
 import plugins
 
 import Modules
 from bidsmap import Bidsmap
-from bids.BidsSession import BidsSession
+from bids import BidsSession
 
 logger = logging.getLogger(__name__)
 
@@ -207,13 +207,9 @@ def bidsify(source: str, destination: str,
                         .format(nunchecked))
         raise Exception("Unchecked runs present")
 
-    # Load and initialize plugin
-    if plugin_file:
-        logger.warning("Using plugin from configuration file")
-    elif bidsmap.plugin_file:
-        plugin_file = bidsmap.plugin_file
-        plugin_opt = bidsmap.plugin_options
-
+    ###############
+    # Plugin setup
+    ###############
     if plugin_file:
         plugins.ImportPlugins(plugin_file)
         plugins.InitPlugin(source=source,
@@ -221,7 +217,9 @@ def bidsify(source: str, destination: str,
                            dry=dry_run,
                            **plugin_opt)
 
-    # Loading participants template
+    ###############################
+    # Checking participants list
+    ###############################
     if not part_template:
         part_template = os.path.join(source, "participants.json")
     else:
@@ -229,9 +227,6 @@ def bidsify(source: str, destination: str,
                        .format(part_template))
     BidsSession.loadSubjectFields(part_template)
 
-    ###############################
-    # Checking participants list
-    ###############################
     new_sub_file = os.path.join(source, "participants.tsv")
     df_sub = pandas.read_csv(new_sub_file,
                              sep="\t", header=0,
@@ -254,6 +249,7 @@ def bidsify(source: str, destination: str,
         raise Exception("Incompatible sidecar json")
 
     old_sub_file = os.path.join(destination, "participants.tsv")
+    new_sub_json = os.path.join(destination, "participants.json")
     old_sub = None
     if os.path.isfile(old_sub_file):
         old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
@@ -348,7 +344,7 @@ def bidsify(source: str, destination: str,
                     continue
                 for run in tools.lsdirs(mod_dir):
                     scan.in_path = run
-                    cls = Modules.selector.select(run, module)
+                    cls = Modules.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(run))
@@ -361,34 +357,41 @@ def bidsify(source: str, destination: str,
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
 
+    ##################################
+    # Merging the participants table
+    ##################################
     df_processed = BidsSession.exportAsDataFrame()
 
     if old_sub is not None:
-        df_res = pandas.concat[old_sub, df_processed]
+        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
+                                  na_values="n/a")
+        if not df_processed.columns.equals(old_sub.columns):
+            logger.critical("Modified participant table do not match "
+                            "destination table table. This shoud not "
+                            "happen.")
+            unmerged = os.path.join(destination, "__unmerged.tsv")
+            unmerged_json = os.path.join(destination, "__unmerged.json")
+            logger.critical("Saving processed table to {}"
+                            .format(unmerged))
+            df_sub.to_csv(unmerged,
+                          sep='\t', na_rep="n/a",
+                          index=False, header=True)
+            BidsSession.exportDefinitions(unmerged_json)
+            raise Exception("Conflictin participant table")
+
+        df_res = pandas.concat([old_sub, df_processed])
+        df_res = pandas.concat([old_sub, df_processed], join="inner",
+                               keys=("bidsified", "prepeared"),
+                               names=("stage", "ID"))
     else:
         df_res = df_processed
 
-    col_mismatch = False
-    if not df_processed.columns.equals(df_res.columns):
-        logger.critical("Modified participant table do not match "
-                        "destination table table. This shoud not "
-                        "happen.")
-        unmerged = os.path.join(destination, "__unmerged.tsv")
-        unmerged_json = os.path.join(destination, "__unmerged.json")
-        logger.critical("Saving processed table to {}"
-                        .format(unmerged))
-        df_res.to_csv(unmerged,
-                      sep='\t', na_rep="n/a",
-                      index=False, header=True)
-        BidsSession.exportDefinitions(unmerged_json)
-        raise Exception("Conflictin participant table")
-
     df_res = df_res.drop_duplicates()
-    df_dupl = df_sub.duplicated("participant_id")
+    df_dupl = df_res.duplicated("participant_id")
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
                         "entries: {}"
-                        .format(", ".join(df_sub[df_dupl]["participant_id"]))
+                        .format(", ".join(df_res[df_dupl]["participant_id"]))
                         )
     if not dry_run:
         df_res[~df_dupl].to_csv(old_sub_file,
@@ -400,8 +403,9 @@ def bidsify(source: str, destination: str,
             df_res[df_dupl].to_csv(dupl_file,
                                    sep='\t', na_rep="n/a",
                                    index=False, header=True)
-        json_file = tools.change_ext(new_sub_file, "json")
-        if col_mismatch or not os.path.isfile(json_file):
+        json_file = tools.change_ext(old_sub_file, "json")
+        if not os.path.isfile(json_file)\
+                or not tools.checkTsvDefinitions(df_res, json_file):
             BidsSession.exportDefinitions(json_file)
 
     plugins.RunPlugin("FinaliseEP")

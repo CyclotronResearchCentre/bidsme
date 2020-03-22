@@ -11,10 +11,10 @@ import logging
 import glob
 import pandas
 
-import tools.tools as tools
+from tools import tools
 import plugins
 
-from Modules import select
+import Modules
 from bids import BidsSession
 
 
@@ -177,11 +177,12 @@ def prepare(source: str, destination: str,
     ###############
     # Plugin setup
     ###############
-    plugins.ImportPlugins(plugin_file)
-    plugins.InitPlugin(source=source,
-                       destination=destination,
-                       dry=dry_run,
-                       **plugin_opt)
+    if plugin_file:
+        plugins.ImportPlugins(plugin_file)
+        plugins.InitPlugin(source=source,
+                           destination=destination,
+                           dry=dry_run,
+                           **plugin_opt)
 
     ###############################
     # Checking participants list
@@ -190,7 +191,6 @@ def prepare(source: str, destination: str,
     if not part_template:
         if os.path.isfile(new_sub_json):
             part_template = new_sub_json
-
     BidsSession.loadSubjectFields(part_template)
 
     old_sub_file = os.path.join(destination, "participants.tsv")
@@ -291,7 +291,7 @@ def prepare(source: str, destination: str,
                                                scan.session,
                                                rec_dir))
                         continue
-                    cls = select(rec_dir, rec_type)
+                    cls = Modules.select(rec_dir, rec_type)
                     if cls is None:
                         logger.warning("Unable to identify data in folder {}"
                                        .format(rec_dir))

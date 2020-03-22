@@ -10,15 +10,15 @@ bidsification itself.
 """
 
 import os
-import pandas
 import logging
+import pandas
 
 from tools import tools
 import plugins
 
 import Modules
 from bidsmap import Bidsmap
-from bids.BidsSession import BidsSession
+from bids import BidsSession
 
 logger = logging.getLogger(__name__)
 
@@ -222,7 +222,9 @@ def process(source: str, destination: str,
                         .format(nunchecked))
         raise Exception("Unchecked runs present")
 
-    # Load and initialize plugin
+    ###############
+    # Plugin setup
+    ###############
     if plugin_file:
         plugins.ImportPlugins(plugin_file)
         plugins.InitPlugin(source=source,
@@ -230,7 +232,9 @@ def process(source: str, destination: str,
                            dry=dry_run,
                            **plugin_opt)
 
-    # Loading participants template
+    ###############################
+    # Checking participants list
+    ###############################
     if not part_template:
         part_template = os.path.join(source, "participants.json")
     else:
@@ -238,9 +242,6 @@ def process(source: str, destination: str,
                        .format(part_template))
     BidsSession.loadSubjectFields(part_template)
 
-    ###############################
-    # Checking participants list
-    ###############################
     new_sub_file = os.path.join(source, "participants.tsv")
     df_sub = pandas.read_csv(new_sub_file,
                              sep="\t", header=0,
@@ -353,7 +354,7 @@ def process(source: str, destination: str,
                     continue
                 for run in tools.lsdirs(mod_dir):
                     scan.in_path = run
-                    cls = Modules.selector.select(run, module)
+                    cls = Modules.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(run))
@@ -366,9 +367,8 @@ def process(source: str, destination: str,
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
 
-
     ##################################
-    # Merging the participants table 
+    # Merging the participants table
     ##################################
     df_processed = BidsSession.exportAsDataFrame()
 
@@ -403,7 +403,7 @@ def process(source: str, destination: str,
                      )
 
     ##################################
-    # Saving the participants table 
+    # Saving the participants table
     ##################################
     if not dry_run:
         df_res[~df_dupl].to_csv(new_sub_file,
