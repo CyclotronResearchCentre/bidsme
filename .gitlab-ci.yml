@@ -1,0 +1,14 @@
+image: "python:3.6"
+
+before_script:
+    - python --version
+    - python -m pip install -r requirements.txt
+
+stages:
+    - Flake8
+
+flake8:
+    stage: Flake8
+    script:
+    - python -m pip install flake8
+    - python -m flake8 bidscoin
