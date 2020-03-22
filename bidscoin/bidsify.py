@@ -221,6 +221,14 @@ def bidsify(source: str, destination: str,
                            dry=dry_run,
                            **plugin_opt)
 
+    # Loading participants template
+    if not part_template:
+        part_template = os.path.join(source, "participants.json")
+    else:
+        logger.warning("Loading exterior participant template {}"
+                       .format(part_template))
+    BidsSession.loadSubjectFields(part_template)
+
     ###############################
     # Checking participants list
     ###############################
@@ -236,29 +244,28 @@ def bidsify(source: str, destination: str,
                         )
         raise Exception("Duplicated subjects")
 
+    dupl_file = os.path.join(destination, "__duplicated.tsv")
+    if os.path.isfile(dupl_file):
+        logger.critical("Found unmerged file with duplicated subjects")
+        raise FileExistsError(dupl_file)
+
     new_sub_json = os.path.join(source, "participants.json")
     if not tools.checkTsvDefinitions(df_sub, new_sub_json):
         raise Exception("Incompatible sidecar json")
-
-    # Loading participants template
-    if not part_template:
-        part_template = os.path.join(source, "participants.json")
-    else:
-        logger.warning("Loading exterior participant template {}"
-                       .format(part_template))
-    BidsSession.loadSubjectFields(part_template)
 
     old_sub_file = os.path.join(destination, "participants.tsv")
     old_sub = None
     if os.path.isfile(old_sub_file):
         old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
                                   na_values="n/a")
-        if not tools.checkTsvDefinitions(old_sub, part_template):
+        if not BidsSession.checkDefinitions(old_sub):
+            logger.critical("Participant column definition do not match "
+                            "destination participant.tsv")
             raise Exception("Incompatible sidecar json")
-    dupl_file = os.path.join(destination, "__duplicated.tsv")
-    if os.path.isfile(dupl_file):
-        logger.critical("Found unmerged file with duplicated subjects")
-        raise FileExistsError(dupl_file)
+        if not old_sub.columns.equals(df_sub.columns):
+            logger.warning("Source participant.tsv has different columns "
+                           "from destination dataset")
+        old_sub = old_sub["participant_id"]
 
     ##############################
     # Subjects loop
@@ -287,6 +294,8 @@ def bidsify(source: str, destination: str,
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))
             continue
+        # locking subjects here allows renaming in bidsification
+        # the files will be stored in appropriate folders
         scan.lock_subject()
 
         if not scan.isSubValid():
@@ -355,10 +364,26 @@ def bidsify(source: str, destination: str,
     df_processed = BidsSession.exportAsDataFrame()
 
     if old_sub is not None:
-        df_res = pandas.concat[old_sub, df_processed].drop_duplicates()
+        df_res = pandas.concat[old_sub, df_processed]
     else:
         df_res = df_processed
 
+    col_mismatch = False
+    if not df_processed.columns.equals(df_res.columns):
+        logger.critical("Modified participant table do not match "
+                        "destination table table. This shoud not "
+                        "happen.")
+        unmerged = os.path.join(destination, "__unmerged.tsv")
+        unmerged_json = os.path.join(destination, "__unmerged.json")
+        logger.critical("Saving processed table to {}"
+                        .format(unmerged))
+        df_res.to_csv(unmerged,
+                      sep='\t', na_rep="n/a",
+                      index=False, header=True)
+        BidsSession.exportDefinitions(unmerged_json)
+        raise Exception("Conflictin participant table")
+
+    df_res = df_res.drop_duplicates()
     df_dupl = df_sub.duplicated("participant_id")
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
@@ -375,5 +400,8 @@ def bidsify(source: str, destination: str,
             df_res[df_dupl].to_csv(dupl_file,
                                    sep='\t', na_rep="n/a",
                                    index=False, header=True)
+        json_file = tools.change_ext(new_sub_file, "json")
+        if col_mismatch or not os.path.isfile(json_file):
+            BidsSession.exportDefinitions(json_file)
 
     plugins.RunPlugin("FinaliseEP")

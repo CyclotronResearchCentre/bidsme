@@ -284,7 +284,7 @@ class BidsSession(object):
         for key, val in cls.__sub_values.items():
             values.extend(val)
 
-        df = pandas.DataFrame(values)
+        df = pandas.DataFrame(values, columns=cls.getSubjectColumns())
         return df
 
     @classmethod

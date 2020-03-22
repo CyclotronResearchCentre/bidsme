@@ -10,7 +10,6 @@ bidsification itself.
 """
 
 import os
-import shutil
 import pandas
 import logging
 
@@ -89,7 +88,7 @@ def coin(destination: str,
                 .format(bidsmodality, bidsname)
             logger.error(e)
         if not dry_run:
-            plugins.RunPlugin("FileEP", 
+            plugins.RunPlugin("FileEP",
                               recording.getBidsSession().in_path,
                               recording)
         else:
@@ -225,17 +224,19 @@ def process(source: str, destination: str,
 
     # Load and initialize plugin
     if plugin_file:
-        logger.warning("Using plugin from configuration file")
-    elif bidsmap.plugin_file:
-        plugin_file = bidsmap.plugin_file
-        plugin_opt = bidsmap.plugin_options
-
-    if plugin_file:
         plugins.ImportPlugins(plugin_file)
         plugins.InitPlugin(source=source,
                            destination=destination,
                            dry=dry_run,
                            **plugin_opt)
+
+    # Loading participants template
+    if not part_template:
+        part_template = os.path.join(source, "participants.json")
+    else:
+        logger.warning("Loading exterior participant template {}"
+                       .format(part_template))
+    BidsSession.loadSubjectFields(part_template)
 
     ###############################
     # Checking participants list
@@ -252,7 +253,7 @@ def process(source: str, destination: str,
                         )
         raise Exception("Duplicated subjects")
 
-    dupl_file = os.path.join(destination, "__duplicated.tsv")
+    dupl_file = os.path.join(source, "__duplicated.tsv")
     if os.path.isfile(dupl_file):
         logger.critical("Found unmerged file with duplicated subjects")
         raise FileExistsError(dupl_file)
@@ -270,14 +271,6 @@ def process(source: str, destination: str,
             logger.warning("Source participant.tsv has different columns "
                            "from destination dataset")
         old_sub = old_sub["participant_id"]
-
-    # Loading participants template
-    if not part_template:
-        part_template = os.path.join(source, "participants.json")
-    else:
-        logger.warning("Loading exterior participant template {}"
-                       .format(part_template))
-    BidsSession.loadSubjectFields(part_template)
 
     ##############################
     # Subjects loop
@@ -302,6 +295,8 @@ def process(source: str, destination: str,
         for column in df_sub.columns:
             scan.sub_values[column] = sub_row[column]
 
+        # locking subjects here forbids renaming in process
+        # as it will be unclear how manage folders with data
         scan.lock_subject()
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
@@ -371,18 +366,35 @@ def process(source: str, destination: str,
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
 
+
+    ##################################
+    # Merging the participants table 
+    ##################################
     df_processed = BidsSession.exportAsDataFrame()
-    df_res = pandas.concat([df_sub, df_processed],
-                           sort=False, ignore_index=True)
 
     col_mismatch = False
-    if not df_processed.columns.equals(df_res.columns):
+    if not df_processed.columns.equals(df_sub.columns):
+        col_mismatch = True
         logger.warning("Modified participant table do not match "
                        "original table. This is discouraged and can "
                        "break future preparation and process steps")
-        df_res = df_res[[df_processed.getSubjectColumns()]]
+        for col in df_processed.columns.difference(df_sub.columns):
+            df_sub[col] = None
+        df_sub = df_sub[BidsSession.getSubjectColumns()]
+        df_sub.drop_duplicates(inplace=True)
 
+    df_res = pandas.concat([df_sub, df_processed], join="inner",
+                           keys=("original", "processed"),
+                           names=("stage", "ID"))
     df_res = df_res.drop_duplicates()
+
+    df_dupl = df_res.duplicated("participant_id", keep=False)
+
+    if df_dupl.any():
+        logger.info("Updating participants values")
+        df_dupl = df_dupl.drop(["processed"])
+        df_res.drop(df_dupl[df_dupl].index, inplace=True)
+
     df_dupl = df_res.duplicated("participant_id")
     if df_dupl.any():
         logger.error("Participant list contains one or several duplicated "
@@ -390,8 +402,11 @@ def process(source: str, destination: str,
                      .format(", ".join(df_res[df_dupl]["participant_id"]))
                      )
 
+    ##################################
+    # Saving the participants table 
+    ##################################
     if not dry_run:
-        df_res[~df_dupl].to_csv(old_sub_file,
+        df_res[~df_dupl].to_csv(new_sub_file,
                                 sep='\t', na_rep="n/a",
                                 index=False, header=True)
         if df_dupl.any():
