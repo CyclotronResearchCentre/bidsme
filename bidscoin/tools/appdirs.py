@@ -314,7 +314,7 @@ def _get_win_folder_with_pywin32(csidl_name):
 
 
 def _get_win_folder_with_ctypes(csidl_name):
-    import ctypes
+    import ctypes  # noqa: F811
 
     csidl_const = {
         "CSIDL_APPDATA": 26,
@@ -339,13 +339,14 @@ def _get_win_folder_with_ctypes(csidl_name):
 
     return buf.value
 
+
 if sys.platform == "win32":
     try:
-        import win32com.shell
+        import win32com.shell  # noqa: F401
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
         try:
-            import ctypes
+            import ctypes  # noqa: F401
             _get_win_folder = _get_win_folder_with_ctypes
         except ImportError:
             _get_win_folder = _get_win_folder_from_registry

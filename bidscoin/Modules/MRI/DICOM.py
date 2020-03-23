@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from Modules.MRI.MRI import MRI
 
 import os
