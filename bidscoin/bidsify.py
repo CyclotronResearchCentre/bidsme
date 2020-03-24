@@ -196,7 +196,6 @@ def bidsify(source: str, destination: str,
     logger.info("loading bidsmap {}".format(bidsmapfile))
     bidsmap = Bidsmap(bidsmapfile)
 
-
     ntotal, ntemplate, nunchecked = bidsmap.countRuns()
     logger.debug("Map contains {} runs".format(ntotal))
     if ntemplate != 0:
