@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
 - raise error in bidsification when bidsmap file wasn't found
 
+### Removed
+- Setting plugin file in bidsmap, now plugin either in options or command line
 
 ## [dev2.3.0] - 2020-03-22
 

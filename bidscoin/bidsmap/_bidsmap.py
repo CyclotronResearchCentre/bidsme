@@ -16,7 +16,7 @@ class Bidsmap(object):
     __slots__ = ["Modules",
                  "filename",
                  "version", "bidsignore",
-                 "plugin_file", "plugin_options"]
+                 ]
 
     def __init__(self, yamlfile='bidsmap.yaml'):
         """
@@ -27,8 +27,6 @@ class Bidsmap(object):
         """
         self.version = info.version()
         self.bidsignore = list()
-        self.plugin_file = ""
-        self.plugin_options = dict()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
                         for mod, types in Modules.types_list.items()
@@ -63,18 +61,6 @@ class Bidsmap(object):
                            'but this is version {}'
                            .format(yamlfile, ver, info.version())
                            )
-        if 'PlugIns' in yaml_map:
-            if 'path' in yaml_map['PlugIns']:
-                self.plugin_file = yaml_map['PlugIns']['path']
-            if 'options' in yaml_map['PlugIns'] \
-                    and yaml_map['PlugIns']['options']:
-                self.plugin_options = yaml_map['PlugIns']['options']
-
-        if self.plugin_file:
-            if not os.path.isfile(self.plugin_file):
-                logger.error("Can't find plugin file {}"
-                             .format(self.plugin_file))
-                raise FileNotFoundError(self.plugin_file)
 
         # Over Modules (MRI, EEG etc..)
         for module in self.Modules:
@@ -253,8 +239,7 @@ class Bidsmap(object):
         d = dict()
         d['Options'] = {"version": self.version,
                         "bidsignore": self.bidsignore}
-        d['PlugIns'] = {"path": self.plugin_file,
-                        "options": self.plugin_options}
+
         # Modules
         for m_name, module in self.Modules.items():
             if not module and not empty_modules:
