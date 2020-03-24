@@ -189,13 +189,13 @@ def bidsify(source: str, destination: str,
 
     # Get the bidsmap heuristics from the bidsmap YAML-file
     bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
-    logger.info("loading bidsmap {}".format(bidsmapfile))
-    bidsmap = Bidsmap(bidsmapfile)
-
-    if not bidsmap:
+    if not os.path.isfile(bidsmapfile):
         logger.critical('Bidsmap file {} not found.'
                         .format(bidsmapfile))
         raise FileNotFoundError(bidsmapfile)
+    logger.info("loading bidsmap {}".format(bidsmapfile))
+    bidsmap = Bidsmap(bidsmapfile)
+
 
     ntotal, ntemplate, nunchecked = bidsmap.countRuns()
     logger.debug("Map contains {} runs".format(ntotal))
