@@ -307,6 +307,9 @@ def prepare(source: str, destination: str,
                     sortsession(out_path, recording, dry_run)
             plugins.RunPlugin("SessionEndEP", scan)
 
+        scan.in_path = sub_dir
+        plugins.RunPlugin("SubjectEndEP", scan)
+
     df_processed = BidsSession.exportAsDataFrame()
 
     if old_sub is not None:

@@ -366,6 +366,10 @@ def process(source: str, destination: str,
                         continue
                     recording.setBidsSession(scan)
                     coin(destination, recording, bidsmap, dry_run)
+            plugins.RunPlugin("SessionEndEP", scan)
+
+        scan.in_path = sub_dir
+        plugins.RunPlugin("SubjectEndEP", scan)
 
     ##################################
     # Merging the participants table
