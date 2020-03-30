@@ -1,26 +1,29 @@
 # flake8: noqa
 
-from Modules.MRI.MRI import MRI
+from .MRI import MRI
+from bidsMeta import MetaField
+from tools import tools
 
 import os
 import re
 import logging
 import pydicom
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 
 class DICOM(MRI):
-    __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE", "isSiemens"]
+    _type = "DICOM"
+
+    __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE", "isSiemens"]
 
     def __init__(self, recording=""):
         super().__init__()
 
-        self._DICOMDICT_CACHE = None
+        self._DICOM_CACHE = None
         self._DICOMFILE_CACHE = ""
         self.isSiemens = False
-        self.type = "DICOM"
-        self.converter = "dcm2niix"
 
         if recording:
             self.set_rec_path(recording)
@@ -28,43 +31,36 @@ class DICOM(MRI):
     @classmethod
     def isValidFile(cls, file: str) -> bool:
         """
-        Checks whether a file is a DICOM-file. It uses the feature
-        that Dicoms have the string DICM hardcoded at offset 0x80.
+        Checks whether a file is a DICOM-file.
+        It checks if file ends in .dcm or .DCM
+        and contains 'DICM' string at 0x80
 
-        :param file:    The full pathname of the file
-        :return:        Returns true if a file is a DICOM-file
+        Parameters:
+        -----------
+        file: str
+            path to file to test
+            
+        Returns:
+        --------
+        bool:
+            True if file is identified as DICOM
         """
-
-        if os.path.isfile(file):
+        if not os.path.isfile(file):
+            return False
+        if file.endswith(".dcm") and file.endswith(".DCM"):
             if os.path.basename(file).startswith('.'):
-                logger.warning(f'DICOM file is hidden: {file}')
-            with open(file, 'rb') as dcmfile:
-                dcmfile.seek(0x80, 1)
+                logger.warning('{}: file {} is hidden'
+                               .format(cls.formatIdentity(),
+                                       file))
+            try:
+                with open(file, 'rb') as dcmfile:
+                    dcmfile.seek(0x80, 1)
                 if dcmfile.read(4) == b'DICM':
                     return True
-                else:
-                    # The DICM tag may be missing for anonymized DICOM files
-                    dicomdict = pydicom.dcmread(file, force=True)
-                    return 'Modality' in dicomdict
-        else:
-            return False
-
-    def convert(self, destination: str, options: dict) -> bool:
-        if self.converter not in options:
-            raise ValueError("Missing configuration options for {}"
-                             .format(self.converter))
-        options = options['dcm2niix']
-        command = '{path}dcm2niix {args} -f "{filename}" '\
-                  '-o "{outfolder}" "{infolder}"'\
-                  .format(path=options['path'],
-                          args=options['args'],
-                          filename=self.get_bidsname(),
-                          outfolder=destination,
-                          infolder=self.rec_path)
-
-        if not bids.run_command(command):
-            return False
-        return True
+                raise
+            except Exception:
+                return False
+        return False
 
     def loadFile(self, index: int) -> None:
         path = self.files[index]
@@ -72,12 +68,20 @@ class DICOM(MRI):
             raise ValueError("{} is not valid {} file"
                              .format(path, self.name))
         if path != self._DICOMFILE_CACHE:
-            # The DICM tag may be missing for anonymized DICOM files
-            dicomdict = pydicom.dcmread(path, force=True)
+            dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
             self.isSiemens = self.is_dicomfile_siemens(self._DICOMFILE_CACHE)
         self.index = index
+
+    def acqTime(self) -> datetime:
+        if "AcquisitionDateTime" in self._DICOM_CACHE:
+            dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
+            return self.__transform(dt_stamp)
+        
+        date_stamp = int(self.getField("AcquisitionDate"))
+        time_stamp = float(self.getField("AcquisitionTime"))
+
 
     def get_field(self, field: str):
         try:
@@ -152,3 +156,190 @@ class DICOM(MRI):
                            .format(self._DICOMFILE_CACHE, nrep, nfiles))
             return False
         return True
+
+    
+    def __transform(element: pydicom.dataelem.DataElement):
+        if element is None:
+            return None
+        VR = element.VR
+        VM = element.VM
+        val = element.value
+
+        if VR == "AE":
+            """
+            Application Entity
+                A string of characters that identifies an Application Entity
+                with leading and trailing spaces (20H) being non-significant.
+                A value consisting solely of spaces shall not be used.
+            """
+            return str(value.value)
+        elif VR == "AS":
+            """
+            Age String
+                A string of characters with one of the following formats -- 
+                nnnD, nnnW, nnnM, nnnY; where nnn shall contain 
+                    the number of days for D, 
+                    weeks for W, 
+                    months for M, 
+                    or years for Y.
+
+            Example: "018M" would represent an age of 18 months.
+            """
+            if val.endswith("Y"):
+                return int(val[:-1])
+            elif val.endswith("M"):
+                return int(val[:-1])
+            elif val.endswith("W"):
+                return int(val[:-1])
+            elif val.endswith("W"):
+                return int(val[:-1])
+            else:
+                return int(val)
+        elif VR == "AT":
+            """
+            Attribute Tag
+                Ordered pair of 16-bit unsigned integers that is the value
+                of a Data Element Tag.
+
+                Example: A Data Element Tag of (0018,00FF) would be encoded
+                as a series of 4 bytes in a Little-Endian Transfer Syntax as
+                18H,00H,FFH,00H.
+            """
+            logger.warning("Tag {}({}) contains DataElement"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "CS":
+            """
+            Code String
+                A string of characters identifying a controlled concept.
+                Leading or trailing spaces (20H) are not significant.
+            """
+            return val
+        elif VR == "DA":
+            """
+            Date
+                A string of characters of the format YYYYMMDD;
+                where YYYY shall contain year,
+                MM shall contain the month,
+                and DD shall contain the day,
+                interpreted as a date of the Gregorian calendar system.
+            """
+            return datetime.strptime(val, "%Y%m%d")
+        elif VR == "DS":
+            """
+            Decimal String
+                A string of characters representing either 
+                a fixed point number or a floating point number.
+                A fixed point number shall contain only the characters 
+                0-9 with an optional leading "+" or "-" and an optional "."
+                to mark the decimal point.
+                A floating point number shall be conveyed as defined 
+                in ANSI X3.9, with an "E" or "e" to indicate the start
+                of the exponent. 
+                Decimal Strings may be padded with leading or trailing spaces. 
+                Embedded spaces are not allowed.
+            """
+            return float(val)
+        elif VR == "DT":
+            """
+            Date Time
+                A concatenated date-time character string in the format:
+                YYYYMMDDHHMMSS.FFFFFF&ZZXX
+                
+                The components of this string, from left to right, are
+                YYYY = Year, MM = Month, DD = Day,
+                HH = Hour (range "00" - "23"),
+                MM = Minute (range "00" - "59"),
+                SS = Second (range "00" - "60").
+                FFFFFF = Fractional Second contains a fractional part of
+                a second as small as 1 millionth of a second
+                (range "000000" - "999999").
+
+                &ZZXX is an optional suffix for offset from 
+                Coordinated Universal Time (UTC), 
+                where & = "+" or "-", 
+                and ZZ = Hours and XX = Minutes of offset.
+            """
+            val = val.strip()
+            time_stamp = None
+            dt = timedelta()
+            if val[-5] == "+":
+                dt = timedelta(hours=int(val[-4:-2],
+                               minutes=int(val[-2:])))
+                val = val[0:-5]
+            if val[-5] == "-":
+                dt = -timedelta(hours=int(val[-4:-2],
+                                minutes=int(val[-2:])))
+                val = val[0:-5]
+            if "." in val:
+                time_stamp = datetime(val, "%Y%m%d%H%M%S.%f")
+            else:
+                time_stamp = datetime(val, "%Y%m%d%H%M%S")
+            return time_stamp + dt
+        elif VR == "FL":
+            """
+            Floating Point Single
+            """
+            return val
+        elif VR == "FD":
+            """
+            Floating Point Double
+            """
+            return val
+        elif VR == "IS":
+            """
+            Integer String
+            """
+            return int(val)
+        elif VR == "LO"
+            """
+            Long String
+            """
+            return val
+        elif VR == "LT":
+            """
+            Long Text
+            """
+            return val
+        elif VR == "OB":
+            """
+            Other Byte
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "OD":
+            """
+            Other double
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "OF":
+            """
+            Other double
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "OL":
+            """
+            Other double
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "OV":
+            """
+            Other double
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
+        elif VR == "OW":
+            """
+            Other double
+            """
+            logger.warning("Tag {}({}) contains Transfert syntax"
+                           .format(element.name, element.tag))
+            return None
