@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class DICOM(MRI):
     _type = "DICOM"
 
-    __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE", "isSiemens"]
-    __spetialFields = {}
+    __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE",
+                 "isSiemens"]
+    __specialFields = {}
 
     def __init__(self, recording=""):
         super().__init__()
@@ -71,7 +72,7 @@ class DICOM(MRI):
         if path != self._DICOMFILE_CACHE:
             dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
-            self._DICOMDICT_CACHE = dicomdict
+            self._DICOM_CACHE = dicomdict
         self.index = index
 
     def acqTime(self) -> datetime:
@@ -98,7 +99,7 @@ class DICOM(MRI):
         return acq
 
     def dump(self):
-        if self._DICOMDICT_CACHE is not None:
+        if self._DICOM_CACHE is not None:
             return str(self._DICOM_CACHE)
         elif len(self.files) > 0:
             self.loadFile(0)
@@ -114,19 +115,25 @@ class DICOM(MRI):
                 res = self._adaptMetaField(field[0])
             else:
                 value = self._DICOM_CACHE
-                for f in field:
+                for ind, f in enumerate(field):
+                    f = f.strip()
+                    tag = self.__getTag(f)
+                    if tag is not None:
+                        f = tag
                     if isinstance(value, pydicom.dataset.Dataset):
                         value = value[f]
-                    if isinstance(value, pydicom.dataelem.DataElement):
+                    elif isinstance(value, pydicom.dataelem.DataElement):
                         if value.VR == "SQ":
                             value = value[int(f)]
-                        else:
-                            value = self.__transform(value)
-                            break
-                res = value
-        except Exception:
-            logger.warning("{}: Could not parse '{}'"
-                           .format(self.recIdentity(), field))
+                    if isinstance(value, pydicom.dataelem.DataElement) \
+                            and value.VR != "SQ":
+                        break
+                res = self.__transform(value)
+                for i in range(ind + 1, len(field)):
+                    res = res[int(field[i])]
+        except Exception as e:
+            logger.warning("{}: Could not parse '{}' for {}"
+                           .format(self.recIdentity(), field, e))
             res = None
         return res
 
@@ -174,8 +181,12 @@ class DICOM(MRI):
                            .format(self.recIdentity(),
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
-                     destination)
+        data_file = self.currentFile(True)
+        json_file = "dcm_dump_" + tools.change_ext(data_file, "json")
+        json_file = os.path.join(destination, json_file)
+        with open(json_file, "w") as f:
+            json.dump(self.__extractStruct(self._DICOM_CACHE), f, 
+                      indent=2)
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))
@@ -292,3 +303,60 @@ class DICOM(MRI):
         # unregistered VR
         logger.error("{} is not valid DICOM VR")
         raise ValueError("invalid VR")
+
+
+    def __getTag(tag: str) -> tuple:
+        """
+        Parces a DICOM tag from string into a tuple of int
+
+        String is expected to have format '(%4d, %4d)', and
+        tag numbers are expected to be in DICOM standart form:
+        hex numbers without '0x' prefix
+
+        Parameters
+        ----------
+        tag: str
+            string tag, e.g. '(0008, 0030)'
+
+        Returns
+        -------
+        (int, int)
+        None
+        """
+        res = re.match("\(([0-9a-fA-F]{4})\, ([0-9a-fA-F]{4})\)", tag)
+        if res:
+            return (int(res.group(1),16), int(res.group(2),16))
+        else:
+            return None
+
+    def __extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
+        """
+        Recurcively extract data from DICOM dataset and put it 
+        into dictionary. Key are created from keyword, or if not 
+        defined from tag.
+
+        Values are parced from DataElement values, multiple values
+        are stored as list.
+        Sequences are stored as lists of dictionaries
+
+        Parameters
+        ----------
+        dataset: pydicom.dataset.Dataset
+            dataset to extract
+
+        Returns
+        -------
+        dict
+        """
+        res = dict()
+
+        for el in dataset:
+            key = el.keyword
+            if key == '':
+                key = str(el.tag)
+            if el.VR == "SQ":
+                res[key] = [self.__extractStruct(val)
+                            for val in el]
+            else:
+                res[key] = self.__transform(el)
+        return res
