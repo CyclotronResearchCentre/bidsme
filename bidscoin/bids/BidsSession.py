@@ -122,7 +122,7 @@ class BidsSession(object):
             if self.__session is None:
                 res = os.path.join(res, "Unknown")
             else:
-                res = os.path.join(res, "/ses-")
+                res = os.path.join(res, "ses-")
         return res
 
     def isValid(self) -> bool:

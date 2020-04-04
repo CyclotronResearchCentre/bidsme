@@ -8,7 +8,9 @@ import os
 import re
 import logging
 import pydicom
-from datetime import datetime, timedelta
+import shutil
+import json
+from datetime import date, time, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +22,18 @@ class DICOM(MRI):
                  "isSiemens"]
     __specialFields = {}
 
-    def __init__(self, recording=""):
+    def __init__(self, rec_path=""):
         super().__init__()
 
         self._DICOM_CACHE = None
         self._DICOMFILE_CACHE = ""
         self.isSiemens = False
 
-        if recording:
-            self.set_rec_path(recording)
+        if rec_path:
+            self.setRecPath(rec_path)
 
     @classmethod
-    def isValidFile(cls, file: str) -> bool:
+    def _isValidFile(cls, file: str) -> bool:
         """
         Checks whether a file is a DICOM-file.
         It checks if file ends in .dcm or .DCM
@@ -49,7 +51,7 @@ class DICOM(MRI):
         """
         if not os.path.isfile(file):
             return False
-        if file.endswith(".dcm") and file.endswith(".DCM"):
+        if file.endswith(".dcm") or file.endswith(".DCM"):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
@@ -57,19 +59,19 @@ class DICOM(MRI):
             try:
                 with open(file, 'rb') as dcmfile:
                     dcmfile.seek(0x80, 1)
-                if dcmfile.read(4) == b'DICM':
-                    return True
-                raise
+                    if dcmfile.read(4) == b'DICM':
+                        return True
             except Exception:
                 return False
         return False
 
     def loadFile(self, index: int) -> None:
-        path = self.files[index]
-        if not self.isValidFile(self, path):
-            raise ValueError("{} is not valid {} file"
-                             .format(path, self.name))
+        path = os.path.join(self._recPath, self.files[index])
+        if not self.isValidFile(path):
+            raise ValueError("{}: {} is not valid file"
+                             .format(self.formatIdentity(), path))
         if path != self._DICOMFILE_CACHE:
+            # The DICM tag may be missing for anonymized DICOM files
             dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
             self._DICOM_CACHE = dicomdict
@@ -133,7 +135,7 @@ class DICOM(MRI):
                     res = res[int(field[i])]
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
-                           .format(self.recIdentity(), field, e))
+                           .format(self.currentFile(False), field, e))
             res = None
         return res
 
@@ -185,8 +187,8 @@ class DICOM(MRI):
         json_file = "dcm_dump_" + tools.change_ext(data_file, "json")
         json_file = os.path.join(destination, json_file)
         with open(json_file, "w") as f:
-            json.dump(self.__extractStruct(self._DICOM_CACHE), f, 
-                      indent=2)
+            d = self.__extractStruct(self._DICOM_CACHE)
+            json.dump(d, f, indent=2)
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))
@@ -201,7 +203,9 @@ class DICOM(MRI):
     def _adaptMetaField(self, name):
         return None
 
-    def __transform(element: pydicom.dataelem.DataElement):
+    @staticmethod
+    def __transform(element: pydicom.dataelem.DataElement,
+                    clean: bool=False):
         if element is None:
             return None
         VR = element.VR
@@ -209,11 +213,12 @@ class DICOM(MRI):
         val = element.value
 
         if VM > 1:
-            return [self.__decodeValue(val[i], VR) for i in range(VM)]
+            return [DICOM.__decodeValue(val[i], VR, clean) for i in range(VM)]
         else:
-            return self.__decodeValue(val[i], VR)
+            return DICOM.__decodeValue(val, VR, clean)
 
-    def __decodeValue(self, val, VR: str):
+    @staticmethod
+    def __decodeValue(val, VR: str, clean=False):
         """
         Decodes a value from pydicom.DataElement to corresponding
         python class following description in:
@@ -228,6 +233,9 @@ class DICOM(MRI):
             value as stored in DataElements.value
         VR: str
             Value representation defined by DICOM
+        clean: bool
+            if True, values of not-basic classes (None, int, float)
+            transformed to string
 
         Returns
         -------
@@ -250,11 +258,20 @@ class DICOM(MRI):
 
         # Text and text-like
         # using strip to remove apddings
-        if VR in ("AE", "CS", "PN", 
+        if VR in ("AE", "CS",
                   "LO", "LT",
-                  "SH", "UC",
+                  "SH", "ST", "UC",
                   "UR", "UT", "UI"):
             return val.strip(" \0")
+
+        # Persons Name 
+        # Use decoded original value
+        if VR == "PN":
+            if isinstance(val, str):
+                return val.strip(" \0")
+            if len(val.encodings) > 0:
+                enc = val.encodings[0]
+            return val.original_string.decode(enc)
 
         # Age string 
         # unit mark is ignored, value converted to int
@@ -268,24 +285,49 @@ class DICOM(MRI):
         # converted to corresponding datetime subclass
         if VR == "TM":
             if "." in val:
-                return time.strptime(val, "%H%M%S.%f")
+                dt = datetime.strptime(val, "%H%M%S.%f").time()
             else:
-                return time.strptime(val, "%H%M%S")
+                dt =  datetime.strptime(val, "%H%M%S").time()
+            if clean:
+                return dt.isoformat()
+            else:
+                return dt
         if VR == "DA":
-            return date.strptime(val, "%Y%m%d")
+            dt = datetime.strptime(val, "%Y%m%d").date()
+            if clean:
+                return dt.isoformat()
+            else:
+                return dt
         if VR == "DT":
             val = val.strip()
             date_string = "%Y%m%d"
             time_string = "%H%M%S"
+            ms_string = ""
+            uts_string = ""
             if "." in val:
-                time_string += ".%f"
+                ms_string += ".%f"
             if "+" in val or "-" in val:
-                time_string += "%z"
-            t = datetime.strptime(val, date_string + time_string)
+                uts_string += "%z"
+            if len(val) == 8 or \
+                    (len(val) == 13 and uts_string != ""):
+                logger.warning("{}: Format is DT, but string looks like DA"
+                               .format(val))
+                t = datetime.strptime(val, date_string + uts_string)
+            elif len(val) == 6 or \
+                    (len(val) == 13 and ms_string != ""):
+                logger.warning("{}: Format is DT, but string looks like TM"
+                               .format(val))
+                t = datetime.strptime(val, time_string + ms_string)
+            else:
+                t = datetime.strptime(val, date_string + time_string
+                                      + ms_string + uts_string)
             if t.tzinfo is not None:
                 t += t.tzinfo.utcoffset(t)
                 t = t.replace(tzinfo=None)
-            return t
+            if clean:
+                return t.isoformat()
+            else:
+                return t
 
         # Invalid type
         # Attributes and sequences will produce warning and return
@@ -301,10 +343,11 @@ class DICOM(MRI):
             return None
 
         # unregistered VR
-        logger.error("{} is not valid DICOM VR")
+        logger.error("{} is not valid DICOM VR".format(VR))
         raise ValueError("invalid VR")
 
 
+    @staticmethod
     def __getTag(tag: str) -> tuple:
         """
         Parces a DICOM tag from string into a tuple of int
@@ -329,6 +372,7 @@ class DICOM(MRI):
         else:
             return None
 
+    @staticmethod
     def __extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
         """
         Recurcively extract data from DICOM dataset and put it 
@@ -355,8 +399,8 @@ class DICOM(MRI):
             if key == '':
                 key = str(el.tag)
             if el.VR == "SQ":
-                res[key] = [self.__extractStruct(val)
+                res[key] = [DICOM.__extractStruct(val)
                             for val in el]
             else:
-                res[key] = self.__transform(el)
+                res[key] = DICOM.__transform(el, clean=True)
         return res

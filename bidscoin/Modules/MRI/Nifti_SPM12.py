@@ -183,7 +183,7 @@ class Nifti_SPM12(MRI):
                 res = value
         except Exception:
             logger.warning("{}: Could not parse '{}'"
-                           .format(self.recIdentity(), field))
+                           .format(self.currentFile(False), field))
             res = None
         return res
 

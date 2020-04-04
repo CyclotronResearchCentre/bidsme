@@ -276,11 +276,13 @@ def prepare(source: str, destination: str,
                                 .format(scan.session))
                     continue
 
+            if not data_dirs:
+                data_dirs[""] = ""
             for rec_dirs, rec_type in data_dirs.items():
                 rec_dirs = [f for f in
                             glob.glob(os.path.join(ses_dir,
                                                    rec_dirs)
-                                      + "/")
+                                      )
                             ]
                 for rec_dir in rec_dirs:
                     if not os.path.isdir(rec_dir):
