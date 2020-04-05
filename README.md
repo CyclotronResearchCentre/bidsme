@@ -14,6 +14,7 @@
 - [Supported formats](#formats)
     * [MRI](#mri)
         + [Nifti\_SPM12](#Nifti_SPM12)
+        + [DICOM](#dicom)
     * [EEG](#eeg)
         + [BrainVision](#BV)
 - [Plug-in functions](#plugins)
@@ -77,7 +78,7 @@ relevant command:
     * `-o Name=Value` sets the options passed to plugin
 - Subject and session selection, corresponds to *selection* section of configuration file
     * `--participants` space separated list of participants to process. Listed participants
-    are concidered after the bidsification, with `sub-` prefix
+    are considered after the bidsification, with `sub-` prefix
     * `--skip-in-tsv` switch that skips participants that already present in destination
     * `--skip-existing` switch that skips participants with corresponding folders existing
     in destination
@@ -125,19 +126,19 @@ some additional parameters are defined:
 	For example if in original dataset subject folders are stored in `participants` folder 
 	(`participants/001`, `participants/002` etc.. ), then setting `sub-prefix` to `participants/` 
 	(note the slash) will make `prepare` search for subjects in correct folder. 
-	The paths can contain wildecar charachter `*` in case if different participants 
+	The paths can contain wildcard character `*` in case if different participants 
 	are stored in different folders (e.g. `patients/001` and `control/002`). Both can be 
 	reached by  `--sub-prefix '*/'`. 
-	If used, widecard characters must be protected by single quote in order to avoid shell expension. 
+	If used, wildcard characters must be protected by single quote in order to avoid shell expansion. 
 	The non-path part of prefix is removed from subject id. 
-	For this reason widecard is forbidden outside the path.
+	For this reason wildcard is forbidden outside the path.
 - `--ses-prefix` sets the session prefix in the same manner as `sub-prefix` above
 - `--no-subject` and `--no-session` are mandatory to indicate if the original dataset subjects and respectively
 	sessions are not stored in dedicated folders. 
 - `--recfolder folder=type` options indicates in what folders the actual data is stored, 
 	and what is the type of data.
 	For example `nii=MRI` tells that the `nii` subfolders contains MRI data. 
-	The wildecard is allowed in the folder name.
+	The wildcard is allowed in the folder name.
 
 `prepare` iteratively scans the original dataset and determine the subjects and sessions Id from 
 folder names. Subject Id is taken from the name of top-most folder, and session from its sub-folder
@@ -186,7 +187,7 @@ dataset.
 As long data files remains in the correct folders and data format is supported 
 by BIDScoin, bidsification should perform normally.
 
-This structure has been chosen to be as rigid possible, in order to mak it easier 
+This structure has been chosen to be as rigid possible, in order to make it easier 
 to treat numerically, but still human-readable.
 It naturally  supports multimodal dataset.
 
@@ -201,7 +202,7 @@ in destination folder in `code/bidscoin/prepare/log` directory.
 
 The processing is completely optional step between data preparation and
 bidsification. It is intended to allow a data modification based on data identification
-of `bidscoin`. It can be used to check, pre-process data, convert it, merge etc...
+of `bidscoin`. It can be used to check, pre-process data, convert it, merge etc.
 
 It is not intended to run without plugins. It does nothing without, except checking
 if all data is identifiable. It can be easily be replaced by a custom script. 
@@ -216,7 +217,7 @@ bidscoin.py bidsify prepared bidsified
 ```
 
 It will run over data-files in prepared dataset, determine the correct modalities
-and BIDS entities, extract the meta-data needed for sidecar json files, and 
+and BIDS entities, extract the meta-data needed for sidecar JSON files, and 
 create BIDS dataset in destination folder.
 
 Outside options cited [above](#gen_cli), `bidsify` accepts one parameter:
@@ -273,7 +274,7 @@ and in the `bidscoin` installation directory.
 
 At first pass tool will scan reference dataset and try to guess 
 correct parameters for bidsification. If he can't find correct
-parameters or couldn't identify the run, a corresponding warning
+parameters or could not identify the run, a corresponding warning
 or error will be shown on stdout (and reported in the log file).
 These warnings and errors should be corrected before re-run of
 `bidsmapper`. 
@@ -300,7 +301,7 @@ complete the template).
 > `WARNING 002-cmrr_mbep2d_bold_mb2_invertpe/0: Placehoder found`
 
 This warning tells that given sample is identified, but bids parameters
-contains placeholder. To correct this warning it is enought to find
+contains placeholder. To correct this warning it is enough to find
 an corresponding entry in `bidsmap` and replaced placeholders by needed
 values. 
 The easiest way is to search for line `002-cmrr_mbep2d_bold_mb2_invertpe`:
@@ -326,7 +327,7 @@ generated from template.
 
 > `WARNING func/0: also checks run: func/1`
 This warning indicates that first run of `func` modality and second one
-cheks the same scan. At first run it is normal, as samples are identified 
+checks the same scan. At first run it is normal, as samples are identified 
 from template, and some overlaps are expected. If this warning remains in
 subsequent passes, then the attributes of mentioned runs must be moved apart.
 
@@ -343,14 +344,14 @@ or an empty string (otherwise).
 
 > `WARNING 014-al_B1mapping/9: Naming schema not BIDS`
 This warning appears when specified BIDS schema do not follows the standard. 
-To correct this warning it will be enought to put bids section in bidsmap
+To correct this warning it will be enough to put bids section in bidsmap
 into conform form ti the BIDS specifications. 
-Alternitavly, if the deviation from the standard is intentional (e.g. 
-given data type is not officialy supported by BIDS), the warning can be silenced 
+Alternately, if the deviation from the standard is intentional (e.g. 
+given data type is not officially supported by BIDS), the warning can be silenced 
 by setting `checked` to `true`. 
 
 Bidsmap contain several automatically filled fields that are to simplify the map 
-adjustements:
+adjustments:
 - provenance: contains the path to the first data file matched to this run. 
 This field is updated at each run of `bidsmapper`, but only if `checked` is 
 false 
@@ -376,27 +377,27 @@ Details on each of these functions can be found in [Plugins](#plugins) section
 
 | Function | Entry point | Used for |
 | ----------- | -------------- | ------------|
-| `InitEP`  | At the start of programm | Initialisation of plugin, setting global parameters |
-| `SubjectEP` | After entering subject folder | Adjustement of subject Id |
-| `SessionEP` | After entering session folder | Adjustement of session Id |
+| `InitEP`  | At the start of program | Initialisation of plugin, setting global parameters |
+| `SubjectEP` | After entering subject folder | Adjustment of subject Id |
+| `SessionEP` | After entering session folder | Adjustment of session Id |
 | `SequenceEP` | After loading first data file in sequence | Global sequence actions |
-| `RecordingEP`| After loading a new data file in sequence | Adjustement of recording parameters |
-| `FileEP`| After copiyng a data file to its dInitEP(source: str, destination: str,estination | Any post-copy adjustement |
+| `RecordingEP`| After loading a new data file in sequence | Adjustment of recording parameters |
+| `FileEP`| After copying a data file to its dInitEP(source: str, destination: str,estination | Any post-copy adjustment |
 | `SequenceEndEP`| After processing last file in the sequence | Any post-sequence treatments |
 | `SessionEndEP`| After processing all sequences in session | Any post-session treatments |
 | `SubjectEndEP`| After processing last subject | Any post-subject treatments |
 | `FinaliseEP`| At the end of program | Any actions needed to finalise dataset |
 
 Any of defined functions must accept a determined set of parameters, except `InitEP`, which
-acept additionaly a set of optional named parameters, needed to setup any given plugin.
+accept additional a set of optional named parameters, needed to setup any given plugin.
 
 Each function is expected to return an ineger return code:
 
-- **0** -- succesful execution, programm continues normally
+- **0** -- successful execution, program continues normally
 - **None** -- interpreted as **0**
-- **[0-9]** -- an error in plugin occured, programm will stop execution
- and `PluginError` will be rised
-- **<0** -- an error in plugin occured, current entity will be sckipped
+- **[0-9]** -- an error in plugin occurred, program will stop execution
+ and `PluginError` will be raised
+- **<0** -- an error in plugin occurred, current entity will be skipped
 
 The negative code will affect only some of plugins, where skipping current entity
 will have a meaning, namely `SubjectEP`, `SessionEP`, `SequenceEP` and `RecordingEP`.
@@ -404,11 +405,11 @@ For other function, negative code is interpreted as **0**
 
 > NB: Even if all scripts supports the same list of entry points, some of them 
 are more adapted for data preparation and other for bidsification.
-From practice, it is more convinient to perform all subject and session
+From practice, it is more convenient to perform all subject and session
 determination, data retrieval and additional files treatment during
 preparation, and bidisification is concentrated on just renaming and 
 copying files. This way, there an opportunity of checking, correcting 
-and/or completting data manually. 
+and/or completing data manually. 
 
 ## <a name="examples"></a>Examples
 
@@ -419,12 +420,12 @@ and/or completting data manually.
 BIDScoin was designed for supporting different types of data (MRI, PET, EEG...)
 and various data-files format. This is achieved using object-oriented approach.
 
-Each data-type is vewed as sub-module of `Modules` and inherits from base class
+Each data-type is viewed as sub-module of `Modules` and inherits from base class
 `baseModule`, which defines the majority of logic needed for bidsification.
 
 The sub-modules main classes (e.g. `Modules/MRI/MRI.py`) defines the bids-related 
 information defines for this particular data-type, like the list of needed metadata for
-json sidecar file or list of modalities and entities.
+JSON sidecar file or list of modalities and entities.
 
 Finally for each data-type, several file-formats are treated by a separate class, that 
 inherits from corresponding data-type class (e.g. `Modules/MRI/Nifti_SPM12.py`).
@@ -445,12 +446,12 @@ It defines the following modalities:
 `Nifti_SPM12` data-format is a DICOM files converted to Nifti format by 
 [hMRI toolbox](https://www.sciencedirect.com/science/article/pii/S1053811919300291) for 
 [SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/). 
-Essentially it consists by a nifti image data and a json file with DICOM header dumped into it.
+Essentially it consists by a nifti image data and a JSON file with DICOM header dumped into it.
 
 All recording attributes are retrieved from `acqpar[0]` dictionary within json file,
 requesting directly the name of corresponding field: `getField("SeriesNumber") -> 4`
 In case of nested dictionaries, for ex. `"[CSAImageHeaderInfo"]["RealDwellTime"]`,
-a field separator `/` sould be used: 
+a field separator `/` should be used: 
 ```
 getField("CSAImageHeaderInfo/RealDwellTime") -> 2700
 ```
@@ -459,13 +460,13 @@ In case of lists, individual elements are retrieved by passing the index:
 getField("AcquisitionMatrix[3]") -> 72
 ```
 
-The additional fields, that are not stored directly in json file, are calculated:
+The additional fields, that are not stored directly in JSON file, are calculated:
 - **DwellTime** is retrieved from private field with tags `(0019,1018)` and converted from 
 micro-seconds to seconds. 
 - **NumberOfMeasurements** are retrieved from `lRepetitions` field and incremented by one.
 - **PhaseEncodingDirection** are retrieved from `PhaseEncodingDirectionPositive`, and transformed 
 to `1`(positive) or `-1`(negative)
-- **B1mapNominalFAValues** are rereconstructed from `adFree` and `alFree`. The exact reconstruction 
+- **B1mapNominalFAValues** are reconstructed from `adFree` and `alFree`. The exact reconstruction 
 alghorytm is sequence dependent. 
 - **B1mapMixingTime** are reconstructed from `adFree` and `alFree`. The exact reconstruction 
 alghorytm is sequence dependent. 
@@ -474,12 +475,37 @@ alghorytm is sequence dependent.
 - **MTState** is retrieved from `[CSASeriesHeaderInfo"]["MrPhoenixProtocol"]["sPrepPulses"]` and set either 
 to `On` of `Off`
 
-> **Warning** These fields are garanteed to be in the Siemens DICOM files, in case different origin, their
+> **Warning** These fields are guaranteed to be in the Siemens DICOM files, in case different origin, their
 implementation must be either patched up or performed in plugins.
 
 > **Warning** `B1mapNominalFAValues`, `B1mapMixingTime` and `RFSpoilingPhaseIncrement` are sequence
 dependent. It is unclear to me if sequences names are standard or not. If outcome of these values produces
 incorrect output, the correction must be either patched or corrected in plugin.
+
+#### <a name="dicom"></a> DICOM
+`bidscoin` support generic raw [DICOM](https://www.dicomstandard.org/) file format. 
+Attributes extraction rely on [`pydicom`](https://pydicom.github.io/pydicom/stable/index.html) library.
+
+DICOM files are identified by an extension `.dcm` and `.DCM`, and by word `DICM` placed in file at  `0x80`.
+
+Attributes can be retrieved using both the DICOM tag and keyword (if defined).
+For example `getField("InstanceCreationDate")` and `getField("(008, 0012)")` will both retrieve the same 
+`Instance Creation Date`.
+Tags must be **exatctly** in form of string formatted as follows: `"(%04d, %04d)"`, and the tag numbers
+must be put in hexadecimal form without `0x` prefix -- the same way as DICOM tags are usually depicted.
+Retrieved values are parsed if possible into python base values: `int`, `float`, `str`, `datetime.date`, 
+`datetime.time` and `datetime.datetime`.
+
+Nested values are retrieved using `/` separator, for example `getField("(2005, 140f)/0/PixelPresentation")` 
+will retrieve Pixel Presentation value from private tag.
+The navigation follows the same structure as pydicom: `ds[0x2005, 0x140f][0]["PixelPresentation"]`.
+To retrieve values with multiplicity an index addressing each value must be used.
+For example if `(0008, 0008) Image Type` is `['ORIGINAL', 'PRIMARY', 'M_FFE', 'M', 'FFE']`,
+it can be accessed by `getField("ImageType/0") -> 'ORIGINAL'`. 
+
+For convenience, during the preparation step, the full dump of DICOM header is created in form of JSON file
+`dcm_dump_<dicom file name>.json`. 
+In this dump, dataset structure is represented as dictionary, multi-values and sequences as lists.
 
 
 ### <a name="eeg"></a>EEG
@@ -489,15 +515,15 @@ incorrect output, the correction must be either patched or corrected in plugin.
 ## <a name="plugins"></a>Plug-in functions
 
 #### <a name="plug_init"></a> `InitEP(source: str, destination: str, dry: bool, **kwargs) -> int:`
-The `InitEP` function is called imidiatly after start of main programm. 
+The `InitEP` function is called immediately after start of main program. 
 As name indicates, it initialise the plugin, store the global variables and parameters.
 
 It accepts 3 mandatory parameters:
  - **source: str**: a path to the source directory, from where data files are processed.
  - **destination: str**: a path to destination directory, where processed data will be stored
- - **dry: bool**: a swithc to indicate if it is a dry-run (i.e. a test run where nothing is written to disk)
+ - **dry: bool**: a switch to indicate if it is a dry-run (i.e. a test run where nothing is written to disk)
 
-> **Warning**: `dry` parameter must be alwas stored as global parameter, 
+> **Warning**: `dry` parameter must be always stored as global parameter, 
 and **any** file and folder modification parts in the plugins **must** be protected 
 by check if `dry` is `False`:
 ```python
@@ -506,12 +532,12 @@ if not dry:
 	....
 ```
  
- The custom additional parameters can be recieved via `**kwargs`. These parameters are communicated 
- to the programm via `-o` option:
+ The custom additional parameters can be received via `**kwargs`. These parameters are communicated 
+ to the program via `-o` option:
  ```
  -o par1=val1 -o par2=val2
  ```
- These parameters will be parced into dictionary and feeded to `InitEP`:
+ These parameters will be parsed into dictionary and feeded to `InitEP`:
  ```
  {
  	"par1": "val1",
@@ -529,9 +555,9 @@ source_path = source
 ```
 
 Outside the definition and storage of global parameters, `InitEP` can be used for loading
-and parcing external files. For example, in [Example1](#ex1), the `Appariement.xlsx`
-exel file, containing the list of subjects is parced. 
-The parced excel file is used later to identify sessions and fill the `participant.tsv` file.
+and parsing external files. For example, in [Example1](#ex1), the `Appariement.xlsx`
+excel file, containing the list of subjects is parced. 
+The parsed excel file is used later to identify sessions and fill the `participant.tsv` file.
 
 If `--part-template` option is not used in `coinsort`, then the template
  json file for `participants.tsv` can be done there, using 
@@ -550,7 +576,7 @@ with proprieties:
 - **subject**: containing current subject Id
 - **session**: containing current session Id
 - **in_path**: containing current path
-- **sub_values**: containing a dictionaru of current subject
+- **sub_values**: containing a dictionary of current subject
 data destined for `participants.tsv`
 
 In order to change subject, it will suffice to change the `subject`
@@ -559,19 +585,19 @@ property of BidsSession:
 scan.subject = scan.subject + "patient"
 ```
 
-It is not nesessary to add `ses-` to the subject name, it will be added
-automatically, together with removal of all non alphanumerical charachters.
-So subject Id is garanteed to be bids-compatible.
+It is not necessary to add `ses-` to the subject name, it will be added
+automatically, together with removal of all non alphanumerical characters.
+So subject Id is guaranteed to be bids-compatible.
 
 `sub_values` is a dictionary with `participants.tsv` columns as keys and `None` as values.
 Filling values will populate the corresponding line in `participants.tsv`.
 
-> The columns are normally defined by template json file during 
+> The columns are normally defined by template JSON file during 
 preparation step, but they can be loaded from within plugin
 during `InitEP` execution.
 
 #### <a name="plug_ses"></a> `SessionEP(scan: BidsSession) -> int`
-`SessionEP` is executed immideatly after entering session folder, and 
+`SessionEP` is executed imideatly after entering session folder, and 
 mean to modify current session Id.
 It accepts the same `BidsSession` object as `SubjectId`, with not yet bidsified
 names.
