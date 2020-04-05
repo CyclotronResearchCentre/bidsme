@@ -21,7 +21,10 @@ class BrainVision(EEG):
                  "_acqTime",
                  "_chanValues"
                  ]
-    __spetialFields = {}
+    __spetialFields = {"SeriesNumber",
+                       "SeriesDescription",
+                       "SamplingFrequency"
+                       }
     __fileversion = "Brain Vision Data Exchange Header File Version 1.0"
 
     def __init__(self, rec_path=""):
@@ -77,11 +80,7 @@ class BrainVision(EEG):
             return True
         return False
 
-    def loadFile(self, index: int) -> None:
-        path = os.path.join(self._recPath, self.files[index])
-        if not self.isValidFile(path):
-            raise ValueError("{}: {} is not valid file"
-                             .format(self.formatIdentity(), path))
+    def loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             self.clearCache()
             dirpath, base = os.path.split(path)
@@ -144,15 +143,7 @@ class BrainVision(EEG):
                                        .format(self.formatIdentity()))
                     else:
                         self._acqTime = t
-
-            # Series number and secription is not defined
-            self.setAttribute("SeriesNumber", index)
             self.setAttribute("SeriesDescription", base)
-            self.setAttribute(
-                    "SamplingFrequency",
-                    1e6 / self.getAttribute("SamplingInterval"))
-
-        self.index = index
 
     def acqTime(self) -> datetime:
         return self._acqTime
@@ -425,3 +416,12 @@ class BrainVision(EEG):
         """
         name = re.sub("\\$b", base, name)
         return os.path.join(dirpath, name)
+
+    def _adaptMetaField(self, field: str):
+        if field == "SeriesNumber":
+            return self.index
+        if field == "SeriesDescription":
+            return os.path.splitext(self.currentFile(False))[0]
+        if field == "SamplingFrequency":
+            return 1e6 / self.getAttribute("SamplingInterval")
+        return None

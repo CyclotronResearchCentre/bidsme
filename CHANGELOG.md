@@ -3,8 +3,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added 
+- support of DICOM MRI images, performed via `pydicom` library
+
+### Changed
+- `Module.loadFile` is no loger virtual function. It assures that file at given index
+exists, calls a new virtual function `_loadFile` changes index and updates attributes
+- `_loadFile` firtual function and its redefinitions accepts path to file instead of index
+- in `BrainVision` the attributes `SeriesNumber`, `SeriesDescription` and `SamplingFrequency`
+are set not in `loadFile` but via `specialFields` dictionary
+
 ### Fixed
 - raise error in bidsification when bidsmap file wasn't found
+- added a try/catch trap in `Module.recIdentity` to avoid infinite error cascades if recId and recNo are not defined. In such case `recIdentity` returns current file name
 
 ### Removed
 - Setting plugin file in bidsmap, now plugin either in options or command line

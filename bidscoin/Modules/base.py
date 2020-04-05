@@ -106,9 +106,14 @@ class baseModule(object):
         """
         raise NotImplementedError
 
-    def loadFile(self, index: int) -> None:
+    def _loadFile(self, path: str) -> None:
         """
-        Virtual function that load file at index of current serie
+        Virtual function that load file at given path
+
+        Parameters
+        ----------
+        path: str
+            path to file to load
         """
         raise NotImplementedError
 
@@ -672,15 +677,18 @@ class baseModule(object):
         -------
         str
         """
-        if index:
-            return "{:0{width}}-{}/{}".format(self.recNo(),
-                                              self.recId(),
-                                              self.index,
-                                              width=padding)
-        else:
-            return "{:0{width}}-{}".format(self.recNo(),
-                                           self.recId(),
-                                           width=padding)
+        try:
+            if index:
+                return "{:0{width}}-{}/{}".format(self.recNo(),
+                                                  self.recId(),
+                                                  self.index,
+                                                  width=padding)
+            else:
+                return "{:0{width}}-{}".format(self.recNo(),
+                                               self.recId(),
+                                               width=padding)
+        except Exception:
+            return self.currentFile()
 
     def _getCharacteristic(self, field):
         """
@@ -729,6 +737,25 @@ class baseModule(object):
     ##############################
     # File manipulation methodes #
     ##############################
+    def loadFile(self, index: int) -> None:
+        """
+        Load file at given index. All stored attributes will be recalculated.
+
+        Parameters
+        ----------
+        index: int
+            index of file in registered files list
+        """
+        path = os.path.join(self._recPath, self.files[index])
+        if not self.isValidFile(path):
+            raise ValueError("{}: {} is not valid file"
+                             .format(self.formatIdentity(), path))
+
+        self._loadFile(path)
+        self.index = index
+        for key in self.attributes:
+            self.attributes[key] = self.getField(key)
+
     def setRecPath(self, folder: str) -> int:
         """
         Set given folder as folder containing all files for serie.

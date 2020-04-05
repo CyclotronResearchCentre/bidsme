@@ -179,12 +179,6 @@ def mapper(source: str, destination: str,
     # Plugin setup
     ###############
     if plugin_file:
-        logger.warning("Using plugin from configuration file")
-    elif bidsmap_new.plugin_file:
-        plugin_file = bidsmap_new.plugin_file
-        plugin_opt = bidsmap_new.plugin_options
-
-    if plugin_file:
         plugins.ImportPlugins(plugin_file)
         plugins.InitPlugin(source=source,
                            destination=destination,

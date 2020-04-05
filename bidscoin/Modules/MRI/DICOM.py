@@ -65,17 +65,12 @@ class DICOM(MRI):
                 return False
         return False
 
-    def loadFile(self, index: int) -> None:
-        path = os.path.join(self._recPath, self.files[index])
-        if not self.isValidFile(path):
-            raise ValueError("{}: {} is not valid file"
-                             .format(self.formatIdentity(), path))
+    def _loadFile(self, path: str) -> None:
         if path != self._DICOMFILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
             dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
             self._DICOM_CACHE = dicomdict
-        self.index = index
 
     def acqTime(self) -> datetime:
         if "AcquisitionDateTime" in self._DICOM_CACHE:

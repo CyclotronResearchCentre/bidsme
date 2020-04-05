@@ -124,11 +124,7 @@ class Nifti_SPM12(MRI):
                 return False
         return False
 
-    def loadFile(self, index: int) -> None:
-        path = os.path.join(self._recPath, self.files[index])
-        if not self.isValidFile(path):
-            raise ValueError("{}: {} is not valid file"
-                             .format(self.formatIdentity(), path))
+    def _loadFile(self, path: str) -> None:
         if path != self._DICOMFILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
             dicomdict = self.__loadJsonDump(path)
@@ -143,9 +139,6 @@ class Nifti_SPM12(MRI):
                 if "sWipMemBlock" in self.__phoenix:
                     self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
                     self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
-            for key in self.attributes:
-                self.attributes[key] = self.getField(key)
-        self.index = index
 
     def acqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
