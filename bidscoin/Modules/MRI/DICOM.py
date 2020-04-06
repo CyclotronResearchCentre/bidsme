@@ -1,7 +1,4 @@
-# flake8: noqa
-
 from .MRI import MRI
-from bidsMeta import MetaField
 from tools import tools
 
 import os
@@ -10,7 +7,7 @@ import logging
 import pydicom
 import shutil
 import json
-from datetime import date, time, datetime, timedelta
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +40,7 @@ class DICOM(MRI):
         -----------
         file: str
             path to file to test
-            
+
         Returns:
         --------
         bool:
@@ -76,7 +73,7 @@ class DICOM(MRI):
         if "AcquisitionDateTime" in self._DICOM_CACHE:
             dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
             return self.__transform(dt_stamp)
-        
+
         acq = datetime.min
 
         if "AcquisitionDate" in self._DICOM_CACHE:
@@ -85,7 +82,7 @@ class DICOM(MRI):
             logger.warning("{}: Acquisition Date not defined"
                            .format(self.recIdentity()))
             return acq
-        
+
         if "AcquisitionDate" in self._DICOM_CACHE:
             time_stamp = self.__transform(self._DICOM_CACHE["AcquisitionTime"])
         else:
@@ -165,7 +162,7 @@ class DICOM(MRI):
             logger.warning("{}/{}: Unknown field prefix {}"
                            .format(self.formatIdentity(),
                                    prefix))
- 
+
     def clearCache(self) -> None:
         del self._DICOM_CACHE
         self._DICOM_CACHE = None
@@ -191,7 +188,6 @@ class DICOM(MRI):
     def _getSesId(self) -> str:
         return ""
 
-
     ########################
     # Additional fonctions #
     ########################
@@ -200,7 +196,7 @@ class DICOM(MRI):
 
     @staticmethod
     def __transform(element: pydicom.dataelem.DataElement,
-                    clean: bool=False):
+                    clean: bool = False):
         if element is None:
             return None
         VR = element.VR
@@ -219,12 +215,12 @@ class DICOM(MRI):
         python class following description in:
         http://dicom.nema.org/medical/dicom/current/output/
         chtml/part05/sect_6.2.html
-    
+
         Nested values are not permitted
 
         Parameters
         ----------
-        val: 
+        val:
             value as stored in DataElements.value
         VR: str
             Value representation defined by DICOM
@@ -259,7 +255,7 @@ class DICOM(MRI):
                   "UR", "UT", "UI"):
             return val.strip(" \0")
 
-        # Persons Name 
+        # Persons Name
         # Use decoded original value
         if VR == "PN":
             if isinstance(val, str):
@@ -268,7 +264,7 @@ class DICOM(MRI):
                 enc = val.encodings[0]
             return val.original_string.decode(enc)
 
-        # Age string 
+        # Age string
         # unit mark is ignored, value converted to int
         if VR == "AS":
             if val[-1] in "YMWD":
@@ -282,7 +278,7 @@ class DICOM(MRI):
             if "." in val:
                 dt = datetime.strptime(val, "%H%M%S.%f").time()
             else:
-                dt =  datetime.strptime(val, "%H%M%S").time()
+                dt = datetime.strptime(val, "%H%M%S").time()
             if clean:
                 return dt.isoformat()
             else:
@@ -341,7 +337,6 @@ class DICOM(MRI):
         logger.error("{} is not valid DICOM VR".format(VR))
         raise ValueError("invalid VR")
 
-
     @staticmethod
     def __getTag(tag: str) -> tuple:
         """
@@ -361,17 +356,17 @@ class DICOM(MRI):
         (int, int)
         None
         """
-        res = re.match("\(([0-9a-fA-F]{4})\, ([0-9a-fA-F]{4})\)", tag)
+        res = re.match("\\(([0-9a-fA-F]{4})\\, ([0-9a-fA-F]{4})\\)", tag)
         if res:
-            return (int(res.group(1),16), int(res.group(2),16))
+            return (int(res.group(1), 16), int(res.group(2), 16))
         else:
             return None
 
     @staticmethod
     def __extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
         """
-        Recurcively extract data from DICOM dataset and put it 
-        into dictionary. Key are created from keyword, or if not 
+        Recurcively extract data from DICOM dataset and put it
+        into dictionary. Key are created from keyword, or if not
         defined from tag.
 
         Values are parced from DataElement values, multiple values
