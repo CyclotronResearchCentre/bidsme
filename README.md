@@ -14,6 +14,7 @@
 - [Supported formats](#formats)
     * [MRI](#mri)
         + [Nifti\_SPM12](#Nifti_SPM12)
+        + [genNIFTI](#gennifti)
         + [DICOM](#dicom)
     * [EEG](#eeg)
         + [BrainVision](#BV)
@@ -507,8 +508,51 @@ For convenience, during the preparation step, the full dump of DICOM header is c
 `dcm_dump_<dicom file name>.json`. 
 In this dump, dataset structure is represented as dictionary, multi-values and sequences as lists.
 
+#### <a name=gennifti> </a> genNIFTI
+Generic Nifti format implements [NIfti file format](os.path.join(directory, bidsname).
+It's supports `ni1` (`.hdr + .img` files), `n+1` and `n+2` (`.nii`) formats.
+
+Nifti files are identified by extension, either `.hdr` or `.nii`, and 
+the first 4 bytes of file: it must encode either `348` or `540`. 
+As Nifti do not impose the endianess of file, both little and big 
+endiannes is checked.
+
+Base attributes are extracted directly from header, and conserve 
+the name as defined
+[here](https://brainder.org/2012/09/23/the-nifti-file-format/)
+and [here](https://brainder.org/2015/04/03/the-nifti-2-file-format/),
+or alternatively in `C` header file for 
+[`ni1/n+1`](https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)
+and [`n+2`](https://nifti.nimh.nih.gov/pub/dist/doc/nifti2.h).
+For example, the image x-dimension can be accessed by
+`getAttribute("dim/1")`.
+
+The Nifti header do not contain information used to identify given
+recording, like protocol name, subject Id, Sequence etc.
+To identify recordings these values must be set in plugins using
+`setAttribute(name, value)` function.
+If they are not set manually, a default value will be used.
+If filename is formatted in bids-like way, the default subject Id 
+and session Id are extracted from file name, if not a null value `None`
+will be used.
+
+|Attribute name| Default value|
+|--------------------|------------------|
+|`PatientId`			| `sub-<subId>` or `None` |
+|`SessionId`			| `ses-<sesId>` or `None` |
+|`RecordingId`		| filename without extension |
+|`RecordingNumber`	| index of current file |
+|`AcquisitionTime`		| `None`|
+
 
 ### <a name="eeg"></a>EEG
+`EEG` data-type integrated all EEG recordings. 
+The corresponding BIDS formatting can be
+found [there](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/03-electroencephalography.html).
+
+It defines the modality **eeg**.
+Outside the data files, BIDS requires also export of channels and events
+(if present) data in `.tsv` files accompagnied by sidecar JSON file.
 
 #### <a name="BV"></a>BrainVision
 

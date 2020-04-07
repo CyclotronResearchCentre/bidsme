@@ -1,9 +1,11 @@
 from .MRI import MRI
+from tools import tools
 
 import os
 import re
 import logging
 import struct
+import shutil
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -171,6 +173,25 @@ class genNIFTI(MRI):
                            .format(self.currentFile(False), field, e))
             res = None
         return res
+
+    def copyRawFile(self, destination: str) -> None:
+        if os.path.isfile(os.path.join(destination,
+                                       self.currentFile(True))):
+            logger.warning("{}: File {} exists at destination"
+                           .format(self.recIdentity(),
+                                   self.currentFile(True)))
+        shutil.copy2(self.currentFile(), destination)
+        if self._type == "ni1":
+            data_file = tools.change_ext(self.currentFile(), "img")
+            shutil.copy2(data_file, destination)
+
+    def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
+        shutil.copy2(self.currentFile(),
+                     os.path.join(directory, bidsname + ext))
+        if self._type == "ni1":
+            data_file = tools.change_ext(self.currentFile(), "img")
+            shutil.copy2(data_file,
+                         os.path.join(directory, bidsname + ".img"))
 
     def acqTime(self) -> datetime:
         return self.getAttribute("AcquisitionTime")
