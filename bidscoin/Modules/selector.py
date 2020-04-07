@@ -1,6 +1,6 @@
 from . import MRI, EEG
 
-types_list = {"MRI": (MRI.Nifti_SPM12, MRI.DICOM,),
+types_list = {"MRI": (MRI.Nifti_SPM12, MRI.Nifti_genNIFTI, MRI.DICOM,),
               "EEG": (EEG.BrainVision,)}
 
 

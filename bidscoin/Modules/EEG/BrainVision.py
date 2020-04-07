@@ -21,8 +21,10 @@ class BrainVision(EEG):
                  "_acqTime",
                  "_chanValues"
                  ]
-    __spetialFields = {"SeriesNumber",
-                       "SeriesDescription",
+    __spetialFields = {"PatientId",
+                       "SessionId",
+                       "RecordingNumber",
+                       "RecordingId",
                        "SamplingFrequency"
                        }
     __fileversion = "Brain Vision Data Exchange Header File Version 1.0"
@@ -204,11 +206,12 @@ class BrainVision(EEG):
         return value
 
     def recNo(self):
-        return self.getAttribute("SeriesNumber", 0)
+        return self.getAttribute("RecordingNumber")
 
     def recId(self):
-        seriesdescr = self.getAttribute("SeriesDescription", "unknown")
-        return seriesdescr.strip()
+        return self.getAttribute("RecordingId",
+                                 os.path.splitext(self.currentFile(False)[0])
+                                 )
 
     def isCompleteRecording(self):
         return True
@@ -387,10 +390,10 @@ class BrainVision(EEG):
             self._task_BIDS.DumpDefinitions(dest_vmrk + ".json")
 
     def _getSubId(self) -> str:
-        return "unknown"
+        return self.getAttribute("PatientId")
 
     def _getSesId(self) -> str:
-        return ""
+        return self.getAttribute("SessionId")
 
     ########################
     # Additional fonctions #
@@ -418,10 +421,23 @@ class BrainVision(EEG):
         return os.path.join(dirpath, name)
 
     def _adaptMetaField(self, field: str):
-        if field == "SeriesNumber":
+        if field == "RecordingNumber":
             return self.index
-        if field == "SeriesDescription":
+        if field == "RecordingId":
             return os.path.splitext(self.currentFile(False))[0]
         if field == "SamplingFrequency":
             return 1e6 / self.getAttribute("SamplingInterval")
+        if field == "RecordingId":
+            return os.path.splitext(self.currentFile(False))[0]
+        if field == "PatientId":
+            recId = os.path.splitext(self.currentFile(False))[0]
+            res = re.search("sub-([a-zA-Z0-9]+)", recId)
+            if res:
+                return res.group(1)
+        if field == "SessionId":
+            recId = os.path.splitext(self.currentFile(False))[0]
+            res = re.search("ses-([a-zA-Z0-9]+)", recId)
+            if res:
+                return res.group(1)
+
         return None

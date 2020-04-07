@@ -1,12 +1,9 @@
 from .MRI import MRI
-from tools import tools
 
 import os
 import re
 import logging
 import struct
-import shutil
-import json
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -19,7 +16,11 @@ class genNIFTI(MRI):
                  "_type", "_endiannes"
                  ]
 
-    __specialFields = {}
+    __specialFields = {"AcquisitionTime",
+                       "SeriesNumber",
+                       "RecordingId",
+                       "PatientId",
+                       "SessionId"}
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -78,7 +79,7 @@ class genNIFTI(MRI):
             # The DICM tag may be missing for anonymized DICOM files
             nii = open(path, "rb")
             # getting endiannes and type
-            header_bsize = struct.unpack("<i", nii.read(4))
+            header_size = struct.unpack("<i", nii.read(4))
             if header_size == 348:
                 self._endiannes = "<"
                 if path.endswith(".hdr"):
@@ -104,7 +105,7 @@ class genNIFTI(MRI):
                 header_size = 510
                 if path.endswith(".hdr"):
                     logger.error("{}:{} .hdr/.img cannot be NIFTI-2"
-                                 .format(self(cls.formatIdentity(),
+                                 .format(self(self.formatIdentity(),
                                               path)))
                     raise Exception("Corrupted file")
 
@@ -134,11 +135,67 @@ class genNIFTI(MRI):
             self._FILE_CACHE = path
 
             nii.seek(0)
-            nii_header = nee.read(header_size)
+            nii_header = nii.read(header_size)
             if self._type == "n+2":
                 self._NIFTI_CACHE = self.__parse_header2(nii_header)
             else:
                 self._NIFTI_CACHE = self.__parse_header1(nii_header)
+
+    def dump(self):
+        if self._NIFTI_CACHE is not None:
+            return str(self._NIFTI_CACHE)
+        elif len(self.files) > 0:
+            self.loadFile(0)
+            return str(self._NIFTI_CACHE)
+        else:
+            logger.error("No defined files")
+            return "No defined files"
+
+    def _getField(self, field: list):
+        res = None
+        try:
+            if field[0] in self.__specialFields:
+                res = self._adaptMetaField(field[0])
+            else:
+                value = self._NIFTI_CACHE
+                for ind, f in enumerate(field):
+                    if isinstance(value, list):
+                        value = value[int(f)]
+                        continue
+                    if isinstance(value, dict):
+                        value = value[f]
+                    raise Exception("Not iterable")
+                res = value
+        except Exception as e:
+            logger.warning("{}: Could not parse '{}' for {}"
+                           .format(self.currentFile(False), field, e))
+            res = None
+        return res
+
+    def acqTime(self) -> datetime:
+        return self.getAttribute("AcquisitionTime")
+
+    def recNo(self):
+        self.getAttribute("RecordingNumber", 0)
+
+    def recId(self):
+        return self.getAttribute("RecordingId",
+                                 os.path.splitext(self.currentFile(False)[0])
+                                 )
+
+    def _getSubId(self) -> str:
+        return str(self.getAttribute("PatientId"))
+
+    def _getSesId(self) -> str:
+        return str(self.getAttribute("SessionId"))
+
+    def isCompleteRecording(self):
+        return True
+
+    def clearCache(self) -> None:
+        del self._NIFTI_CACHE
+        self._NIFTI_CACHE = None
+        self._FILE_CACHE = ""
 
     ########################
     # Additional fonctions #
@@ -161,7 +218,9 @@ class genNIFTI(MRI):
         res = dict()
         res["diminfo"] = struct.unpack("c", header[39:40])
         res["dim"] = struct.unpack(endian + "8h", header[40:56])
-        res["intent_p"] = struct.unpack(endian + "3f", header[56:68])
+        res["intent_p1"] = struct.unpack(endian + "f", header[56:60])
+        res["intent_p2"] = struct.unpack(endian + "f", header[60:64])
+        res["intent_p3"] = struct.unpack(endian + "f", header[64:68])
         res["intent_code"] = struct.unpack(endian + "h", header[68:70])
         res["datatype"] = struct.unpack(endian + "h", header[70:72])
         res["bitpix"] = struct.unpack(endian + "h", header[70:72])
@@ -169,9 +228,9 @@ class genNIFTI(MRI):
         res["pixdim"] = struct.unpack(endian + "8f", header[74:108])
         res["vox_offset"] = struct.unpack(endian + "f", header[108:112])
         res["scl_slope"] = struct.unpack(endian + "f", header[112:116])
-        res["scl_inter"] =  struct.unpack(endian + "f", header[116:120])
-        res["slice_end"] =  struct.unpack(endian + "h", header[120:122])
-        res["slice_code"] =  struct.unpack(endian + "b", header[122:123])
+        res["scl_inter"] = struct.unpack(endian + "f", header[116:120])
+        res["slice_end"] = struct.unpack(endian + "h", header[120:122])
+        res["slice_code"] = struct.unpack(endian + "b", header[122:123])
         res["xyz_units"] = struct.unpack(endian + "b", header[123:124])
         res["cal_max"] = struct.unpack(endian + "f", header[124:128])
         res["cal_min"] = struct.unpack(endian + "f", header[128:132])
@@ -215,17 +274,19 @@ class genNIFTI(MRI):
         res["datatype"] = struct.unpack(endian + "h", header[12:14])
         res["bitpix"] = struct.unpack(endian + "h", header[14:16])
         res["dim"] = struct.unpack(endian + "8q", header[16:80])
-        res["intent_p"] = struct.unpack(endian + "3d", header[80:104])
+        res["intent_p1"] = struct.unpack(endian + "d", header[80:88])
+        res["intent_p2"] = struct.unpack(endian + "d", header[88:96])
+        res["intent_p3"] = struct.unpack(endian + "d", header[96:104])
         res["pixdim"] = struct.unpack(endian + "8d", header[104:168])
         res["vox_offset"] = struct.unpack(endian + "q", header[168:176])
         res["scl_slope"] = struct.unpack(endian + "d", header[176:184])
-        res["scl_inter"] =  struct.unpack(endian + "d", header[184:192])
+        res["scl_inter"] = struct.unpack(endian + "d", header[184:192])
         res["cal_max"] = struct.unpack(endian + "d", header[192:200])
         res["cal_min"] = struct.unpack(endian + "d", header[200:208])
         res["slice_duration"] = struct.unpack(endian + "d", header[208:216])
         res["toffset"] = struct.unpack(endian + "d", header[216:224])
         res["slice_start"] = struct.unpack(endian + "q", header[224:232])
-        res["slice_end"] =  struct.unpack(endian + "q", header[232:240])
+        res["slice_end"] = struct.unpack(endian + "q", header[232:240])
         res["descrip"] = header[240:320].decode()
         res["aux_file"] = header[320:344].decode()
         res["qform_code"] = struct.unpack(endian + "i", header[344:348])
@@ -239,9 +300,28 @@ class genNIFTI(MRI):
         res["srow_x"] = struct.unpack(endian + "4d", header[400:432])
         res["srow_y"] = struct.unpack(endian + "4d", header[432:464])
         res["srow_z"] = struct.unpack(endian + "4d", header[464:496])
-        res["slice_code"] =  struct.unpack(endian + "i", header[496:500])
+        res["slice_code"] = struct.unpack(endian + "i", header[496:500])
         res["xyz_units"] = struct.unpack(endian + "i", header[500:504])
         res["intent_code"] = struct.unpack(endian + "i", header[504:508])
         res["intent_name"] = header[508:524].decode()
 
         return res
+
+    def _adaptMetaField(self, name):
+        if name == "AcquisitionTime":
+            return None
+        if name == "RecordingNumber":
+            return self.index
+        if name == "RecordingId":
+            return os.path.splitext(self.currentFile(False))[0]
+        if name == "PatientId":
+            recId = os.path.splitext(self.currentFile(False))[0]
+            res = re.search("sub-([a-zA-Z0-9]+)", recId)
+            if res:
+                return res.group(1)
+        if name == "SessionId":
+            recId = os.path.splitext(self.currentFile(False))[0]
+            res = re.search("ses-([a-zA-Z0-9]+)", recId)
+            if res:
+                return res.group(1)
+        return None
