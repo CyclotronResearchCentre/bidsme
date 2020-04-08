@@ -1,5 +1,5 @@
 include version.txt
 include bidsversion.txt
 include requirements.txt
-include LICENSE.txt
+include LICENSE.md
 global-exclude *.pyc

@@ -1,10 +1,6 @@
-# BIDScoin
+# BIDSme
 
-[//]: # (<img name="bidscoin-logo" src="./docs/bidscoin_logo.png" alt="A BIDS converter toolkit" height="325" align="right">)
-
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/bidscoin.svg)
-
-- [The BIDScoin workflow](#workflow)
+- [The BIDSme workflow](#workflow)
     * [Data preparation](#wf_prep)
     * [Data bidsification](#wf_bids)
     * [Bidsmap configuration](#wf_map)
@@ -23,11 +19,12 @@
 - [Bidsmap file structure](#bidsmap)
 
 
-BIDScoin is a user friendly [open-source](https://github.com/nbeliy/bidscoin)
+BIDSme is a user friendly
+[open-source](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme)
 python toolkit that converts ("bidsifies") source-level (raw) neuroimaging 
 data-sets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable).
 Rather then depending on complex or ambiguous programmatic logic for the 
-identification of imaging modalities, BIDScoin uses a direct mapping approach to 
+identification of imaging modalities, BIDSme uses a direct mapping approach to 
 identify and convert the raw source data into BIDS data. The information sources 
 that can be used to map the source data to BIDS are retrieved dynamically from 
 source data header files (DICOM, BrainVision, nifti etc...) and file source data-set 
@@ -37,15 +34,15 @@ The retrieved information can be modified/adjusted by a set of plugins,
 described [here](#plugins). Plugins can also be used to complete the bidsified 
 dataset, for example by parsing log files. 
 
-> NB: BIDScoin support variety of formats listed in [supported formats](#formats). 
+> NB: BIDSme support variety of formats listed in [supported formats](#formats). 
 Additional formats can be implemented following instructions [here](#new_formats).
 
 The mapping information is stored as key-value pairs in the human readable and 
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
-## <a name="intrface"></a> The BIDScoin interface
+## <a name="intrface"></a> The BIDSme interface
 
-All interactions with bidscoin occurs from command-line interface, by a master script `bidscoin.py`.
+All interactions with BIDSme occurs from command-line interface, by a master script `bidsme.py`.
 
 This script accepts a small set of parameters and one of the command 
 
@@ -54,7 +51,7 @@ This script accepts a small set of parameters and one of the command
 - `bidsify` to [bidsify dataset](#wf_bids)
 - `map` to [create bidsmap](#wf_map)
 
-Outside the standard `-h`, `-v` options that shows help and version, `bidscoin` accepts 
+Outside the standard `-h`, `-v` options that shows help and version, `bidsme` accepts 
 `-c, --configuration` options which takes a path to configuration file. 
 This file is searched in (in order) current directory, user-standard directory and 
 bids code directory (when available).
@@ -89,14 +86,14 @@ relevant command:
     logs
 
 The full list of commands parameters can be seen using `-h` option:
-`bidscoin.py [command] -h`.
+`bidsme.py [command] -h`.
 If a configuration file is set, then the shown default values corresponds to configuration file
 parameters.
  
 
-## <a name="workflow"> </a>The BIDScoin workflow
+## <a name="workflow"> </a>The BIDSme workflow
 
-The BIDScoin workflow is composed in two steps:
+The BIDSme workflow is composed in two steps:
 
   1. [Data preparation](#wf_prep), in which the source dataset is reorganized into standard bids-like structure
   2. [Data bidsification](#wf_bids), in which prepared data is bidsified.
@@ -174,7 +171,7 @@ The `sub-<subId>` and `ses-<sesId>` will be the bidsified version of subjects an
 Note that if original dataset don't have sessions, the folder `sub-` will be present, with and empty 
 `<sesId>`.
 
-`<DataType>` folder will correspond to one of `bidscoin` defined data types and will contain 
+`<DataType>` folder will correspond to one of `bidsme` defined data types and will contain 
 all data files identified as being of this type.
 
 `<Sequence>` folders will group all data files corresponding to the same recording (for ex. 
@@ -186,7 +183,7 @@ If an actual modification of data is needed (e.g. anonymisation, or conversion),
 either in plugin functions `FileEP`, `SequenceEndEP` or manually in prepared
 dataset. 
 As long data files remains in the correct folders and data format is supported 
-by BIDScoin, bidsification should perform normally.
+by BIDSme, bidsification should perform normally.
 
 This structure has been chosen to be as rigid possible, in order to make it easier 
 to treat numerically, but still human-readable.
@@ -194,16 +191,16 @@ It naturally  supports multimodal dataset.
 
 
 A working example of source dataset and `prepare` configuration can be found 
-[there](https://github.com/nbeliy/bidscoin_example).
+[there](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example).
 
 > NB: The logs for standard output and separately errors and warnings are stored
-in destination folder in `code/bidscoin/prepare/log` directory. 
+in destination folder in `code/bidsme/prepare/log` directory.
 
 ### <a name="wf_process"></a> Data processing
 
 The processing is completely optional step between data preparation and
 bidsification. It is intended to allow a data modification based on data identification
-of `bidscoin`. It can be used to check, pre-process data, convert it, merge etc.
+of `bidsme`. It can be used to check, pre-process data, convert it, merge etc.
 
 It is not intended to run without plugins. It does nothing without, except checking
 if all data is identifiable. It can be easily be replaced by a custom script. 
@@ -214,7 +211,7 @@ Considering that the data is [prepeared](#wf_prep) together with
 [bidsmap](#wf_map) and [plugins](#wf_plug),
 the bidsification is performed by `bidsify` command:
 ```
-bidscoin.py bidsify prepared bidsified
+bidsme.py bidsify prepared bidsified
 ```
 
 It will run over data-files in prepared dataset, determine the correct modalities
@@ -225,7 +222,7 @@ Outside options cited [above](#gen_cli), `bidsify` accepts one parameter:
 
 - `-b, --bidsmap` with path to the bidsmap file used to identify data files.
 If omitted, the `bidsmap.yaml` will be used. Bidsmap will be searched first 
-in local path, then in `bidsified/code/bidscoin/`.
+in local path, then in `bidsified/code/bidsme/`.
 
 > N.B. It is advisable to first run bidsification in ["dry mode"](#gen_cli), using
 switch `--dry-run`, then if there no errors detected run bidsification in normal mode.
@@ -235,12 +232,12 @@ can be modified in the plugins. It can be useful if one plan perform a random
 permutation on the subjects, for additional layer of anonymisation. 
 
 > NB: The log files with messages and, separately the errors are stored in
-destination directory in `source/bidscoin/bidsify/log` sub-directory.
+destination directory in `source/bidsme/bidsify/log` sub-directory.
 
 
 ### <a name="wf_map"></a>Bidsmap configuration
 
-Bidsmap is the central piece of BIDScoin. 
+Bidsmap is the central piece of BIDSme. 
 It tells how to identify any data file, and what modality and bids labels 
 to attribute.
 
@@ -248,7 +245,7 @@ It is a configuration file written in [YAML](http://yaml.org/) format, which is 
 compromise between human readability and machine parsing.
 
 By default this file, once created is stored within bidsified dataset in 
-`code/bidscoin/bidsmap.yaml`.
+`code/bidsme/bidsmap.yaml`.
 
 The structure of a valid bidsmap is described in the section [Bidsmap file structure](#bidsmap).
 
@@ -260,18 +257,18 @@ This reference dataset will serve as a model for bidsmap.
 
 Once the reference dataset is ready, the bidsmap is created by command `map`:
 ```
-bidscoin.py map prepeared/ bidsified/
+bidsme.py map prepeared/ bidsified/
 ```
 
 The `map` command accepts two additional parameters:
 
 - `-b, --bidsmap` (default: `bidsmap.yaml`), with path to the bidsmap file.
 As in `bidsify` command given file will be searched first locally, then in 
-`bidsified/code/bidscoin/` directory. 
+`bidsified/code/bidsme/` directory. 
 - `-t, --template` (default: `bidsmap-template.yaml`), with path to template map.
 This file will be searched in order in local directory, default configuration directory 
-(`$HOME/$XDG_CONFIG/bidscoin/` on \*NIX, `\User\AppData\bidscoin\` on Windows),
-and in the `bidscoin` installation directory.
+(`$HOME/$XDG_CONFIG/bidsme/` on \*NIX, `\User\AppData\bidsme\` on Windows),
+and in the `bidsme` installation directory.
 
 At first pass tool will scan reference dataset and try to guess 
 correct parameters for bidsification. If he can't find correct
@@ -307,7 +304,7 @@ an corresponding entry in `bidsmap` and replaced placeholders by needed
 values. 
 The easiest way is to search for line `002-cmrr_mbep2d_bold_mb2_invertpe`:
 ```
-- provenance: /home/beliy/Works/bidscoin_example/example1/renamed/sub-001/ses-HCL/MRI/002-cmrr_mbep2d_bold_mb2_invertpe/f1513-0002-00001-000001-01.nii
+- provenance: /home/beliy/Works/bidsme_example/example1/renamed/sub-001/ses-HCL/MRI/002-cmrr_mbep2d_bold_mb2_invertpe/f1513-0002-00001-000001-01.nii
         example: func/sub-001_ses-HCL_task-placeholder_acq-nBack_dir-PA_run-1_echo-1_bold
         template: true
         checked: false
@@ -353,24 +350,25 @@ by setting `checked` to `true`.
 
 Bidsmap contain several automatically filled fields that are to simplify the map 
 adjustments:
-- provenance: contains the path to the first data file matched to this run. 
+
+  - provenance: contains the path to the first data file matched to this run. 
 This field is updated at each run of `bidsmapper`, but only if `checked` is 
 false 
-- example: this field shows an generated bids name for the file in `provenance`
-- template: indicates if run was generated from template map. This value is 
+  - example: this field shows an generated bids name for the file in `provenance`
+  - template: indicates if run was generated from template map. This value is 
 not updated, and should be set to `false` at first manual edit
-- checked: indicates if operator checked the run and is satisfied with the
+  - checked: indicates if operator checked the run and is satisfied with the
 results. In order to bidsify dataset, all runs must be checked.
 
-Finally `bidscoiner` can be run of reference dataset, to assure that there 
+Finally `bidsify` command can be run of reference dataset, to assure that there 
 no conflicts in definitions and the bidsified dataset is correct.
 
 
 
 ### <a name="wf_plug"></a>Plugin configuration
-Plugins in BIDScoin are implemented as a functions (entry point) that are called at 
-specific time during the execution of main program. All of the programs `coinsort`, 
-`bidsmapping` and `bidscoiner` are support the plugin.
+Plugins in BIDSme are implemented as a functions (entry point) that are called at 
+specific time during the execution of main program. All of the commands `prepare`, 
+`map`, `process` and `bidsify` are support the plugin.
 
 All functions must be defined in the same python file, but it is possible include additional
 files using the usual `import` instruction. The list of accepted functions is given in table below. 
@@ -418,7 +416,7 @@ and/or completing data manually.
 
 ## <a name="formats"></a>Supported formats
 
-BIDScoin was designed for supporting different types of data (MRI, PET, EEG...)
+BIDSme was designed for supporting different types of data (MRI, PET, EEG...)
 and various data-files format. This is achieved using object-oriented approach.
 
 Each data-type is viewed as sub-module of `Modules` and inherits from base class
@@ -484,7 +482,7 @@ dependent. It is unclear to me if sequences names are standard or not. If outcom
 incorrect output, the correction must be either patched or corrected in plugin.
 
 #### <a name="dicom"></a> DICOM
-`bidscoin` support generic raw [DICOM](https://www.dicomstandard.org/) file format. 
+BIDSme support generic raw [DICOM](https://www.dicomstandard.org/) file format. 
 Attributes extraction rely on [`pydicom`](https://pydicom.github.io/pydicom/stable/index.html) library.
 
 DICOM files are identified by an extension `.dcm` and `.DCM`, and by word `DICM` placed in file at  `0x80`.
