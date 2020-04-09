@@ -33,7 +33,11 @@ from tools import appdirs
 
 logger = logging.getLogger(__name__)
 
-user = os.getlogin()
+try:
+    user = os.getlogin()
+except OSError:
+    user = None
+
 app = os.path.splitext(os.path.basename(sys.argv[0]))[0]
 
 local = os.getcwd()
