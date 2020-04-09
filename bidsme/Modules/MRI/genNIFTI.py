@@ -41,7 +41,7 @@ class genNIFTI(MRI):
     _type = "genNIFTI"
 
     __slots__ = ["_NIFTI_CACHE", "_FILE_CACHE",
-                 "_type", "_endiannes"
+                 "_nii_type", "_endiannes"
                  ]
 
     __specialFields = {"AcquisitionTime",
@@ -55,7 +55,7 @@ class genNIFTI(MRI):
 
         self._NIFTI_CACHE = None
         self._FILE_CACHE = ""
-        self._type = ""
+        self._nii_type = ""
         self._endiannes = "<"
 
         if rec_path:
@@ -111,12 +111,12 @@ class genNIFTI(MRI):
             if header_size == 348:
                 self._endiannes = "<"
                 if path.endswith(".hdr"):
-                    self._type = "ni1"
+                    self._nii_type = "ni1"
                 else:
-                    self._type = "n+1"
+                    self._nii_type = "n+1"
             elif header_size == "510":
                 self._endiannes = ">"
-                self._type = "n+2"
+                self._nii_type = "n+2"
                 if path.endswith(".hdr"):
                     logger.error("{}:{} .hdr/.img cannot be NIFTI-2"
                                  .format(self.formatIdentity(), path))
@@ -124,12 +124,12 @@ class genNIFTI(MRI):
                 self._endiannes = ">"
                 header_size = 348
                 if path.endswith(".hdr"):
-                    self._type = "ni1"
+                    self._nii_type = "ni1"
                 else:
-                    self._type = "n+1"
+                    self._nii_type = "n+1"
             elif header_size == -33488896:
                 self._endiannes = ">"
-                self._type = "n+2"
+                self._nii_type = "n+2"
                 header_size = 510
                 if path.endswith(".hdr"):
                     logger.error("{}:{} .hdr/.img cannot be NIFTI-2"
@@ -138,7 +138,7 @@ class genNIFTI(MRI):
                     raise Exception("Corrupted file")
 
             # confirming endiannes and type
-            if self._type == "n+2":
+            if self._nii_type == "n+2":
                 nii.seek(16)
                 dim_0 = struct.decode(self._endiannes + "q", nii.read(2))
                 nii.seek(4)
@@ -154,7 +154,7 @@ class genNIFTI(MRI):
                                 "conflicting endiannes"
                                 .format(self.formatIdentity(), path))
                 raise Exception("Corrupted file")
-            if magic != self._type:
+            if magic != self._nii_type:
                 logger.critical("{}:{} corrupted file -- "
                                 "conflicting format version"
                                 .format(self.formatIdentity(), path))
@@ -164,7 +164,7 @@ class genNIFTI(MRI):
 
             nii.seek(0)
             nii_header = nii.read(header_size)
-            if self._type == "n+2":
+            if self._nii_type == "n+2":
                 self._NIFTI_CACHE = self.__parse_header2(nii_header)
             else:
                 self._NIFTI_CACHE = self.__parse_header1(nii_header)
@@ -207,14 +207,14 @@ class genNIFTI(MRI):
                            .format(self.recIdentity(),
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
-        if self._type == "ni1":
+        if self._nii_type == "ni1":
             data_file = tools.change_ext(self.currentFile(), "img")
             shutil.copy2(data_file, destination)
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         shutil.copy2(self.currentFile(),
                      os.path.join(directory, bidsname + ext))
-        if self._type == "ni1":
+        if self._nii_type == "ni1":
             data_file = tools.change_ext(self.currentFile(), "img")
             shutil.copy2(data_file,
                          os.path.join(directory, bidsname + ".img"))
