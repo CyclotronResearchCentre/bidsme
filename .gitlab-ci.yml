@@ -1,11 +1,5 @@
 image: "python:3.6"
 
-only:
-  - tags
-  - dev
-  - master
-  - cli
-
 variables:
   RUN_MAIN: "python3 $MAIN_DIR/bidsme/bidsme.py"
   RUN_PREP: "$RUN_MAIN prepare"
