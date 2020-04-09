@@ -10,8 +10,6 @@ cache:
     - .cache/pip
 
 before_script: 
-  - export 
-  - echo $CI_PROJECT_DIR
   - python --version
   - mkdir -p .cache/pip
   - pip --cache-dir=.cache/pip install -r requirements.txt
@@ -41,14 +39,16 @@ get_examples:
   stage: get_examples
   artifacts:
     paths:
-      - $EXAMPLE-DIR
+      - $EXAMPLE_DIR
     expire_in: 1 day
   script: 
     - wget -nv $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
     - tar -xzf $EXAMPLE_DIR.tar.gz
+    - ls
 
 example1:
   stage: run_examples
   script:
+    - ls
     - cd $EXAMPLE_DIR/example1
     - $RUN prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
