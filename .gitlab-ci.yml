@@ -5,14 +5,26 @@ before_script:
     - python -m pip install -r requirements.txt
 
 stages:
-    - Flake8
+    - build
     - test
 
+job_1:
+  stage: build
+  script: 
+    - python --version
+    - python -m pip install -r requirements.txt
+
+
 flake8:
-    stage: Flake8
+    stage: test
+    before_script:
+      - python -m pip install flake8
     script:
-    - python -m pip install flake8
-    - python -m flake8 bidscoin
+      - python -m flake8 bidscoin
+    only:
+      - tags
+      - dev
+      - master
     
 include_test:
     stage: test
