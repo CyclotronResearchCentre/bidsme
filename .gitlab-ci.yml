@@ -2,13 +2,13 @@ image: "python:3.6"
 
 
 variables:
-  EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
-  EXAMPLE_DIR: "bidsme_example-master"
-  RUN_MAIN: "python3 $$CI_BUILDS_DIR/bidsme/bidsme.py"
+  RUN_MAIN: "python3 $CI_BUILDS_DIR/bidsme/bidsme.py"
   RUN_PREP: "$RUN_MAIN prepare"
   RUN_MAP: "$RUN_MAIN map"
   RUN_PROC: "$RUN_MAIN process"
   RUN_BIDS: "$RUN_MAIN bidsify"
+  EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
+  EXAMPLE_DIR: "bidsme_example-master"
 
 cache:
   paths:
@@ -23,6 +23,7 @@ before_script:
 stages:
   - test
   - get_examples
+  - run_examples
 
 flake8:
   stage: test
@@ -56,3 +57,9 @@ get_examples:
   script: 
     - wget -nv $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
     - tar -xzf $EXAMPLE_DIR.tar.gz
+
+example1:
+  stage: run_examples
+  script:
+    - cd $EXAMPLE_DIR/example1
+    - $RUN_PREP source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
