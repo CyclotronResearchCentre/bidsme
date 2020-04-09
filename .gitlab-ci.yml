@@ -14,6 +14,7 @@ before_script:
   - mkdir -p .cache/pip
   - pip --cache-dir=.cache/pip install -r requirements.txt
   - pip --cache-dir=.cache/pip install flake8
+  - pip --cache-dir=.cache/pip install xldr
 
 stages:
   - test
