@@ -63,4 +63,9 @@ example1:
     - ls
     - cd $EXAMPLE_DIR/example1
     - $RUN prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
+    - mkdir -p bids/code/bidsme
+    - cp resources/map/bidsmap.yaml bids/code/bidsme/.
+    - $RUN map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
+    - $RUN process renamed/ bids/ --plugin resources/plugins/process_plugin.py
+    - $RUN bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
   <<: *only_branches

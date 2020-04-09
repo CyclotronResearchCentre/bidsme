@@ -162,7 +162,7 @@ def mapper(source: str, destination: str,
                         .format(destination))
         raise NotADirectoryError(destination)
 
-    bidscodefolder = os.path.join(destination, 'code', 'bidscoin')
+    bidscodefolder = os.path.join(destination, 'code', 'bidsme')
     os.makedirs(bidscodefolder, exist_ok=True)
 
     bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
@@ -331,7 +331,6 @@ def mapper(source: str, destination: str,
                     recording.setBidsSession(scan)
                     createmap(recording, bidsmap_new, template, bidsmap_unk)
 
-    # Create the bidsmap YAML-file in bidsfolder/code/bidscoin
     if not dry_run:
         bidsmapfile = os.path.join(bidscodefolder, 'bidsmap.yaml')
 

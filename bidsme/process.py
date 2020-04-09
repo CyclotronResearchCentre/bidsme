@@ -198,9 +198,9 @@ def process(source: str, destination: str,
         raise NotADirectoryError(destination)
 
     # Input checking & defaults
-    bidscodefolder = os.path.join(destination, 'code', 'bidscoin')
+    bidscodefolder = os.path.join(destination, 'code', 'bidsme')
 
-    # Create a code/bidscoin subfolder
+    # Create a code/bidsme subfolder
     os.makedirs(bidscodefolder, exist_ok=True)
 
     # Check for dataset description file
