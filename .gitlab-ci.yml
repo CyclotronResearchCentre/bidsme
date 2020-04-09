@@ -13,7 +13,6 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-  - python -m pip install -r requirements.txt
 
 stages:
   - build
@@ -41,10 +40,14 @@ flake8:
 include_test:
   stage: test
   script:
-  - python3 bidsme/bidsme.py --help
-  - python3 bidsme/bidsme.py --version
-  - python3 bidsme/bidsme.py prepare --help
-  - python3 bidsme/bidsme.py map --help
-  - python3 bidsme/bidsme.py process --help
-  - python3 bidsme/bidsme.py bidsify --help
+    - python3 bidsme/bidsme.py --help
+    - python3 bidsme/bidsme.py --version
+    - python3 bidsme/bidsme.py prepare --help
+    - python3 bidsme/bidsme.py map --help
+    - python3 bidsme/bidsme.py process --help
+    - python3 bidsme/bidsme.py bidsify --help
+  only:
+    - tags
+    - dev
+    - master
 
