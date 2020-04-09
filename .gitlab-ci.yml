@@ -1,5 +1,15 @@
 image: "python:3.6"
 
+
+variables:
+  EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
+  EXAMPLE_DIR: "bidsme_example-master"
+  RUN_MAIN: "python3 bidsme/bidsme.py"
+  RUN_PREP: "$$RUN_MAIN prepare"
+  RUN_MAP: "$$RUN_MAIN map"
+  RUN_PROC: "$$RUN_MAIN process"
+  RUN_BIDS: "$$RUN_MAIN bidsify"
+
 cache:
   paths:
     - .cache/pip
@@ -12,6 +22,7 @@ before_script:
 
 stages:
   - test
+  - get_examples
 
 flake8:
   stage: test
@@ -25,14 +36,23 @@ flake8:
 include_test:
   stage: test
   script:
-    - python3 bidsme/bidsme.py --help
-    - python3 bidsme/bidsme.py --version
-    - python3 bidsme/bidsme.py prepare --help
-    - python3 bidsme/bidsme.py map --help
-    - python3 bidsme/bidsme.py process --help
-    - python3 bidsme/bidsme.py bidsify --help
+    - $RUN_MAIN --help
+    - $RUN_MAIN --version
+    - $RUN_PREP --help
+    - $RUN_MAP --help
+    - $RUN_PROC --help
+    - $RUN_BIDS --help
   only:
     - tags
     - dev
     - master
 
+get_examples:
+  stage: get_examples
+  artifacts:
+    paths:
+      - $EXAMPLE-DIR
+    expire_in: 1 day
+  script: 
+    - wget $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
+    - tar -xzf $EXAMPLE_DIR.tar.gz
