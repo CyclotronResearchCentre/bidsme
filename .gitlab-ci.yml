@@ -28,10 +28,10 @@ flake8:
   stage: test
   script:
     - python -m flake8 bidscoin
-  only:
-    - tags
-    - dev
-    - master
+  #only:
+  #  - tags
+  #  - dev
+  #  - master
     
 include_test:
   stage: test
@@ -42,10 +42,10 @@ include_test:
     - $RUN_MAP --help
     - $RUN_PROC --help
     - $RUN_BIDS --help
-  only:
-    - tags
-    - dev
-    - master
+  #only:
+  #  - tags
+  #  - dev
+  #  - master
 
 get_examples:
   stage: get_examples
