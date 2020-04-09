@@ -5,10 +5,10 @@ variables:
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
   EXAMPLE_DIR: "bidsme_example-master"
   RUN_MAIN: "python3 bidsme/bidsme.py"
-  RUN_PREP: "$$RUN_MAIN prepare"
-  RUN_MAP: "$$RUN_MAIN map"
-  RUN_PROC: "$$RUN_MAIN process"
-  RUN_BIDS: "$$RUN_MAIN bidsify"
+  RUN_PREP: "$RUN_MAIN prepare"
+  RUN_MAP: "$RUN_MAIN map"
+  RUN_PROC: "$RUN_MAIN process"
+  RUN_BIDS: "$RUN_MAIN bidsify"
 
 cache:
   paths:
