@@ -4,7 +4,7 @@ image: "python:3.6"
 variables:
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
   EXAMPLE_DIR: "bidsme_example-master"
-  RUN_MAIN: "python3 bidsme/bidsme.py"
+  RUN_MAIN: "python3 $$CI_BUILDS_DIR/bidsme/bidsme.py"
   RUN_PREP: "$RUN_MAIN prepare"
   RUN_MAP: "$RUN_MAIN map"
   RUN_PROC: "$RUN_MAIN process"
@@ -54,5 +54,5 @@ get_examples:
       - $EXAMPLE-DIR
     expire_in: 1 day
   script: 
-    - wget $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
+    - wget -nv $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
     - tar -xzf $EXAMPLE_DIR.tar.gz
