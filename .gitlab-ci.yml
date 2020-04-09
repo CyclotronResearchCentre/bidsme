@@ -1,5 +1,12 @@
 image: "python:3.6"
 
+# run on branches
+&only_branches:
+  - tags
+  - master
+  - dev
+  - cli
+
 variables:
   RUN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
@@ -25,6 +32,7 @@ flake8:
   stage: test
   script:
     - python -m flake8 bidscoin
+  <<: *only
     
 include_test:
   stage: test
@@ -46,6 +54,7 @@ get_examples:
     - wget -nv $EXAMPLE_URL/$EXAMPLE_DIR.tar.gz
     - tar -xzf $EXAMPLE_DIR.tar.gz
     - ls
+  <<: *only
 
 example1:
   stage: run_examples
@@ -53,3 +62,4 @@ example1:
     - ls
     - cd $EXAMPLE_DIR/example1
     - $RUN prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
+  <<: *only
