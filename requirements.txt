@@ -1,4 +1,4 @@
 pandas
 ruamel.yaml>=0.15.35
 coloredlogs
-pydicom >= 2.0.0
+pydicom >= 1.4.2
