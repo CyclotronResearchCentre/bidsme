@@ -1,8 +1,13 @@
 image: "python:3.6"
 
+only:
+  - tags
+  - dev
+  - master
+  - cli
 
 variables:
-  RUN_MAIN: "python3 $CI_PROJECT_DIR/bidsme/bidsme.py"
+  RUN_MAIN: "python3 $MAIN_DIR/bidsme/bidsme.py"
   RUN_PREP: "$RUN_MAIN prepare"
   RUN_MAP: "$RUN_MAIN map"
   RUN_PROC: "$RUN_MAIN process"
@@ -15,6 +20,7 @@ cache:
     - .cache/pip
 
 before_script: 
+  - export MAIN_DIR="${CI_PROJECT_DIR}"
   - python --version
   - mkdir -p .cache/pip
   - pip --cache-dir=.cache/pip install -r requirements.txt
@@ -43,10 +49,6 @@ include_test:
     - $RUN_MAP --help
     - $RUN_PROC --help
     - $RUN_BIDS --help
-  #only:
-  #  - tags
-  #  - dev
-  #  - master
 
 get_examples:
   stage: get_examples
