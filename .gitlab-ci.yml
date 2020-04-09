@@ -3,12 +3,25 @@ image: "python:3.6"
 before_script:
     - python --version
     - python -m pip install -r requirements.txt
+    - git clone git@gitlab.uliege.be:CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example.git
 
 stages:
     - Flake8
+    - test
 
 flake8:
     stage: Flake8
     script:
     - python -m pip install flake8
     - python -m flake8 bidscoin
+    
+include_test:
+    stage: test
+    script:
+    - python3 bidsme/bidsme.py --help
+    - python3 bidsme/bidsme.py --version
+    - python3 bidsme/bidsme.py prepare --help
+    - python3 bidsme/bidsme.py map --help
+    - python3 bidsme/bidsme.py process --help
+    - python3 bidsme/bidsme.py bidsify --help
+
