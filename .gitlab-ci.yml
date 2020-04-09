@@ -1,7 +1,8 @@
 image: "python:3.6"
 
 # run on branches
-&only_branches:
+&only_branches
+only:
   - tags
   - master
   - dev
@@ -32,7 +33,7 @@ flake8:
   stage: test
   script:
     - python -m flake8 bidscoin
-  <<: *only
+  <<: *only_branches
     
 include_test:
   stage: test
