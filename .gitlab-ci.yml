@@ -1,32 +1,17 @@
 image: "python:3.6"
 
-variables:
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-
 cache:
   paths:
     - .cache/pip
-    - venv/
 
 before_script: 
   - python --version
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
+  - mkdir -p .cache/pip
+  - pip --cache-dir=.cache/pip install -r requirements.txt
+  - pip --cache-dir=.cache/pip install flake8
 
 stages:
-  - build
   - test
-
-run 1:
-  stage: build
-  script:
-    - pip install -r requirements.txt
-    - pip install flake8
-  only:
-    - tags
-    - dev
-    - master
 
 flake8:
   stage: test
