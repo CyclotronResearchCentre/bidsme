@@ -1,7 +1,7 @@
 image: "python:3.6"
 
 variables:
-  RUN_MAIN: "python3 $$MAIN_DIR/bidsme/bidsme.py"
+  RUN_MAIN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
   RUN_PREP: "$RUN_MAIN prepare"
   RUN_MAP: "$RUN_MAIN map"
   RUN_PROC: "$RUN_MAIN process"
@@ -14,7 +14,7 @@ cache:
     - .cache/pip
 
 before_script: 
-  - export MAIN_DIR="$(pwd)"
+  - export 
   - python --version
   - mkdir -p .cache/pip
   - pip --cache-dir=.cache/pip install -r requirements.txt
