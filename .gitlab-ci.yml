@@ -1,11 +1,7 @@
 image: "python:3.6"
 
 variables:
-  RUN_MAIN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
-  RUN_PREP: "$$RUN_MAIN prepare"
-  RUN_MAP: "$$RUN_MAIN map"
-  RUN_PROC: "$$RUN_MAIN process"
-  RUN_BIDS: "$$RUN_MAIN bidsify"
+  RUN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
   EXAMPLE_DIR: "bidsme_example-master"
 
@@ -30,20 +26,16 @@ flake8:
   stage: test
   script:
     - python -m flake8 bidscoin
-  #only:
-  #  - tags
-  #  - dev
-  #  - master
     
 include_test:
   stage: test
   script:
-    - $RUN_MAIN --help
-    - $RUN_MAIN --version
-    - $RUN_PREP --help
-    - $RUN_MAP --help
-    - $RUN_PROC --help
-    - $RUN_BIDS --help
+    - $RUN --help
+    - $RUN --version
+    - $RUN process --help
+    - $RUN prepare --help
+    - $RUN bidsify --help
+    - $RUN map --help
 
 get_examples:
   stage: get_examples
@@ -59,4 +51,4 @@ example1:
   stage: run_examples
   script:
     - cd $EXAMPLE_DIR/example1
-    - $RUN_PREP source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
+    - $RUN prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
