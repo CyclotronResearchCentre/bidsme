@@ -1,38 +1,51 @@
 image: "python:3.6"
 
-before_script:
-    - python --version
-    - python -m pip install -r requirements.txt
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+before_script: 
+  - python --version
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - python -m pip install -r requirements.txt
 
 stages:
-    - build
-    - test
+  - build
+  - test
 
-job_1:
+run 1:
   stage: build
-  script: 
-    - python --version
-    - python -m pip install -r requirements.txt
-
+  script:
+    - pip install -r requirements.txt
+    - pip install flake8
+  only:
+    - tags
+    - dev
+    - master
 
 flake8:
-    stage: test
-    before_script:
-      - python -m pip install flake8
-    script:
-      - python -m flake8 bidscoin
-    only:
-      - tags
-      - dev
-      - master
+  stage: test
+  script:
+    - python -m flake8 bidscoin
+  only:
+    - tags
+    - dev
+    - master
     
 include_test:
-    stage: test
-    script:
-    - python3 bidsme/bidsme.py --help
-    - python3 bidsme/bidsme.py --version
-    - python3 bidsme/bidsme.py prepare --help
-    - python3 bidsme/bidsme.py map --help
-    - python3 bidsme/bidsme.py process --help
-    - python3 bidsme/bidsme.py bidsify --help
+  stage: test
+  script:
+  - python3 bidsme/bidsme.py --help
+  - python3 bidsme/bidsme.py --version
+  - python3 bidsme/bidsme.py prepare --help
+  - python3 bidsme/bidsme.py map --help
+  - python3 bidsme/bidsme.py process --help
+  - python3 bidsme/bidsme.py bidsify --help
 
