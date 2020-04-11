@@ -33,6 +33,62 @@ from ..base import baseModule
 
 logger = logging.getLogger(__name__)
 
+mri_meta_required_common = []
+mri_meta_recommended_common = [
+        # Scanner hardware
+        "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
+        "StationName", "SoftwareVersions",
+        "MagneticFieldStrength", "ReceiveCoilName",
+        "ReceiveCoilActiveElements",
+        "GradientSetType", "MRTransmitCoilSequence",
+        "MatrixCoilMode", "CoilCombinationMethod",
+        # Sequence Specifics
+        "PulseSequenceType", "ScanningSequence", "SequenceVariant",
+        "ScanOptions", "SequenceName", "PulseSequenceDetails",
+        "NonlinearGradientCorrection",
+        # In-Plane Spatial Encoding
+        "NumberShots", "ParallelReductionFactorInPlane",
+        "ParallelAcquisitionTechnique", "PartialFourier",
+        "PartialFourierDirection", "PhaseEncodingDirection",
+        "EffectiveEchoSpacing", "TotalReadoutTime",
+        # Timing Parameters
+        "EchoTime", "InversionTime", "SliceTiming",
+        "SliceEncodingDirection", "DwellTime",
+        # RF & Contrast
+        "FlipAngle", "MultibandAccelerationFactor",
+        # Slice Acceleration
+        "MultibandAccelerationFactor",
+        # Anatomical landmarks
+        "AnatomicalLandmarkCoordinates",
+        # Institution information
+        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
+        ]
+mri_meta_optional_common = []
+
+mri_meta_required_modality = {
+        "func": ["RepetitionTime", "RepetitionTime", "RepetitionTime"],
+        "fmap": ["IntendedFor"]
+        }
+
+mri_meta_recommended_modality = {
+        "func": ["NumberOfVolumesDiscardedByScanner",
+                 "NumberOfVolumesDiscardedByUser",
+                 "DelayTime",
+                 "AcquisitionDuration",
+                 "DelayAfterTrigger",
+                 "Instructions",
+                 "TaskDescription",
+                 "CogAtlasID",
+                 "CogPOID"],
+        "fmap": ["EchoTime1", "EchoTime2", "Units",
+                 "PhaseEncodingDirection", "TotalReadoutTime"]
+        }
+
+mri_meta_optional_modality = {
+        "anat": ["ContrastBolusIngredient"],
+        }
+
+
 mri_meta_recommended = [
         # Scanner hardware
         "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
@@ -80,6 +136,21 @@ class MRI(baseModule):
         self.metaFields = {key: None for key in
                            mri_meta_recommended
                            }
+        self.metaFields_req["__common__"] = {key: None for key in
+                                             mri_meta_required_common}
+        for mod in mri_meta_required_modality:
+            self.metaFields_req[mod] = {key: None for key in
+                                        mri_meta_required_modality[mod]}
+        self.metaFields_rec["__common__"] = {key: None for key in
+                                             mri_meta_recommended_common}
+        for mod in mri_meta_recommended_modality:
+            self.metaFields_rec[mod] = {key: None for key in
+                                        mri_meta_recommended_modality[mod]}
+        self.metaFields_opt["__common__"] = {key: None for key in
+                                             mri_meta_optional_common}
+        for mod in mri_meta_optional_modality:
+            self.metaFields_opt[mod] = {key: None for key in
+                                        mri_meta_optional_modality[mod]}
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         """

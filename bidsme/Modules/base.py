@@ -63,6 +63,9 @@ class baseModule(object):
                  # json meta variables
                  "metaAuxiliary",
                  "metaFields",
+                 "metaFields_req",
+                 "metaFields_rec",
+                 "metaFields_opt",
                  # tsv meta variables
                  "rec_BIDSvalues",
                  "sub_BIDSvalues"
@@ -118,6 +121,9 @@ class baseModule(object):
         self._bidsSession = None
 
         self.metaFields = dict()
+        self.metaFields_req = dict()
+        self.metaFields_rec = dict()
+        self.metaFields_opt = dict()
         self.metaAuxiliary = dict()
         self.rec_BIDSvalues = self.rec_BIDSfields.GetTemplate()
         self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
