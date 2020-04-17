@@ -66,7 +66,7 @@ mri_meta_recommended_common = [
 mri_meta_optional_common = []
 
 mri_meta_required_modality = {
-        "func": ["RepetitionTime", "RepetitionTime", "RepetitionTime"],
+        "func": ["RepetitionTime", "TaskName"],
         "fmap": ["IntendedFor"]
         }
 
@@ -81,7 +81,7 @@ mri_meta_recommended_modality = {
                  "CogAtlasID",
                  "CogPOID"],
         "fmap": ["EchoTime1", "EchoTime2", "Units",
-                 "PhaseEncodingDirection", "TotalReadoutTime"]
+                 ]
         }
 
 mri_meta_optional_modality = {

@@ -930,6 +930,9 @@ class baseModule(object):
 
         with open(os.path.join(outdir, bidsname + ".json"), "w") as f:
             js_dict = self.exportMeta()
+            js_dict = {key: val
+                       for key, val in js_dict.items()
+                       if val is not None}
             json.dump(js_dict, f, indent=2)
 
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
@@ -1069,33 +1072,145 @@ class baseModule(object):
                          .format(self.Module(), self.Type()))
             raise ValueError("Modality wasn't defined")
 
-        for key, field in self.metaFields.items():
-            if field is not None:
-                if field.name.startswith("<"):
-                    field.value = self.getDynamicField(field.name,
-                                                       field.default)
-                else:
-                    field.value = self.getField(field.name, field.default)
+        mod = self._modality
+        if mod in self.metaFields_req:
+            for key, field in self.metaFields_req[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
+        if mod in self.metaFields_rec:
+            for key, field in self.metaFields_req[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
+        if mod in self.metaFields_opt:
+            for key, field in self.metaFields_opt[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
+        mod = "__common__"
+        if mod in self.metaFields_req:
+            for key, field in self.metaFields_req[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
+        if mod in self.metaFields_rec:
+            for key, field in self.metaFields_rec[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
+        if mod in self.metaFields_opt:
+            for key, field in self.metaFields_opt[mod].items():
+                if field is not None:
+                    if field.name.startswith("<"):
+                        field.value = self.getDynamicField(field.name,
+                                                           field.default)
+                    else:
+                        field.value = self.getField(field.name, field.default)
 
-    def exportMeta(self):
+    def exportMeta(self) -> dict:
         """
         Exports recording metadata into dictionary structure
+
+        The metadata keys are put in order:
+            1. The auxiliary (defined in bidsmap)
+            2. Modality required
+            3. Modality recommended
+            4. Modality optional
+            5. Common required
+            6. Common recommended
+            7. Common optional
+
+        Already existing keys are ignored
+
+        Returns
+        -------
+        dict:
+            resulting dictionary
         """
         exp = dict()
-        for key, field in self.metaAuxiliary.items():
-            if field:
-                if isinstance(field, list):
-                    exp[key] = [f.value for f in field]
-                else:
-                    exp[key] = field.value
-        for key, field in self.metaFields.items():
-            if field:
-                if key not in self.metaAuxiliary:
-                    if isinstance(field, list):
-                        exp[key] = [f.value for f in field]
-                    else:
-                        exp[key] = field.value
+        self.__fillMetaDict(exp, self.metaAuxiliary,
+                            required=False,
+                            ignore_null=True)
+        mod = self._modality
+        if mod in self.metaFields_req:
+            self.__fillMetaDict(exp, self.metaFields_req[mod],
+                                required=True,
+                                ignore_null=False)
+        if mod in self.metaFields_rec:
+            self.__fillMetaDict(exp, self.metaFields_rec[mod],
+                                required=False,
+                                ignore_null=False)
+        if mod in self.metaFields_opt:
+            self.__fillMetaDict(exp, self.metaFields_opt[mod],
+                                required=False,
+                                ignore_null=False)
+        mod = "__common__"
+        if mod in self.metaFields_req:
+            self.__fillMetaDict(exp, self.metaFields_req[mod],
+                                required=True,
+                                ignore_null=False)
+        if mod in self.metaFields_rec:
+            self.__fillMetaDict(exp, self.metaFields_rec[mod],
+                                required=False,
+                                ignore_null=False)
+        if mod in self.metaFields_opt:
+            self.__fillMetaDict(exp, self.metaFields_opt[mod],
+                                required=False,
+                                ignore_null=False)
         return exp
+
+    def __fillMetaDict(self,
+                       exportDict: dict, metaFields: dict,
+                       required: bool, ignore_null: bool) -> None:
+        """
+        Helper function to fill exportDict by values from metaFields dict
+        If key is already filled, it is not updated.
+
+        If required is true, missing values will produce a warning
+
+        Parameters
+        ----------
+        exportDict: dict
+            dictionary to fill
+        metaFields: dict
+            dictionary with betaField as values
+        required: bool
+            switch if given values are required or not
+        ignore_null: bool
+            switch if empty values must be filled
+        """
+        for key, field in metaFields.items():
+            if key in exportDict:
+                continue
+            if not field:
+                if required:
+                    logger.warning("{}: Required field {} not set"
+                                   .format(self.recIdentity(),
+                                           key))
+                if not ignore_null:
+                    exportDict[key] = None
+                continue
+
+            if isinstance(field, list):
+                exportDict[key] = [f.value for f in field]
+            else:
+                exportDict[key] = field.value
 
     #####################################
     # Recording identification methodes #

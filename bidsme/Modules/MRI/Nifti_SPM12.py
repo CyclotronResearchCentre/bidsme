@@ -51,7 +51,9 @@ class Nifti_SPM12(MRI):
                        "B1mapNominalFAValues",
                        "B1mapMixingTime",
                        "RFSpoilingPhaseIncrement",
-                       "MTState"}
+                       "MTState",
+                       "ReceiveCoilActiveElements"
+                       }
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -66,56 +68,86 @@ class Nifti_SPM12(MRI):
         if rec_path:
             self.setRecPath(rec_path)
 
-        self.metaFields["RepetitionTime"]\
-            = MetaField("RepetitionTime", 0.001)
-        self.metaFields["Manufacturer"]\
-            = MetaField("Manufacturer")
-        self.metaFields["ManufacturerModelName"]\
-            = MetaField("ManufacturerModelName")
-        self.metaFields["DeviceSerialNumber"]\
-            = MetaField("DeviceSerialNumber")
-        self.metaFields["StationName"]\
-            = MetaField("StationName")
-        self.metaFields["SoftwareVersions"]\
-            = MetaField("SoftwareVersions")
-        self.metaFields["MagneticFieldStrength"]\
-            = MetaField("MagneticFieldStrength", 1.)
-        self.metaFields["ReceiveCoilActiveElements"]\
-            = MetaField("CSASeriesHeaderInfo/CoilString")
-        self.metaFields["ScanningSequence"]\
-            = MetaField("ScanningSequence")
-        self.metaFields["SequenceVariant"]\
-            = MetaField("SequenceVariant")
-        self.metaFields["ScanOptions"]\
-            = MetaField("ScanOptions", "", "")
-        self.metaFields["SequenceName"]\
-            = MetaField("SequenceName", "", "")
-        self.metaFields["PhaseEncodingDirectionSign"]\
-            = MetaField("PhaseEncodingDirectionSign", 1, 1)
-        self.metaFields["InPlanePhaseEncodingDirection"]\
-            = MetaField("InPlanePhaseEncodingDirection", "")
-        self.metaFields["EchoTime"]\
-            = MetaField("EchoTime", 0.001)
-        self.metaFields["DwellTime"]\
-            = MetaField("Private_0019_1018", 0.000001)
-        self.metaFields["FlipAngle"]\
-            = MetaField("FlipAngle", 1.)
-        self.metaFields["ProtocolName"]\
-            = MetaField("ProtocolName")
-        # self.metaFields["spoilingGradientMoment"]\
-        #     = MetaField("spoilingGradientMoment", 1.)
-        # self.metaFields["spoilingGradientDuration"]\
-        #     = MetaField("spoilingGradientDuration", 0.001)
-        self.metaFields["BandwidthPerPixelRO"]\
-            = MetaField("PixelBandwidth", 1.)
-        self.metaFields["NumberOfMeasurements"]\
-            = MetaField("NumberOfMeasurements", 1, 1)
-        self.metaFields["InstitutionName"]\
-            = MetaField("InstitutionName")
-        self.metaFields["InstitutionAddress"]\
-            = MetaField("InstitutionAddress")
-        self.metaFields["InstitutionalDepartmentName"]\
-            = MetaField("InstitutionalDepartmentName")
+        #####################
+        # Common recomended #
+        #####################
+        recommend = self.metaFields_rec["__common__"]
+        recommend["Manufacturer"] = MetaField("Manufacturer")
+        recommend["ManufacturersModelName"] = MetaField("ManufacturerModelName")
+        recommend["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
+        recommend["StationName"] = MetaField("StationName")
+        recommend["SoftwareVersions"] = MetaField("SoftwareVersions")
+        recommend["MagneticFieldStrength"] = MetaField("MagneticFieldStrength", 1.)
+        recommend["ReceiveCoilName"] = MetaField("ReceiveCoilName")
+        recommend["ReceiveCoilActiveElements"] = MetaField("ReceiveCoilActiveElements")
+        # recommend["GradientSetType"]
+        recommend["MRTransmitCoilSequence"] = MetaField("MRTransmitCoilSequence")
+        # recommend["MatrixCoilMode"]
+        # recommend["CoilCombinationMethod"]
+        # recommend["PulseSequenceType"]
+        recommend["ScanningSequence"] = MetaField("ScanningSequence")
+        recommend["SequenceVariant"] = MetaField("SequenceVariant")
+        recommend["ScanOptions"] = MetaField("ScanOptions")
+        recommend["SequenceName"] = MetaField("SequenceName")
+        # recommend["NumberShots"]
+        # recommend["PulseSequenceDetails"]
+        # recommend["NonlinearGradientCorrection"]
+        # recommend["ParallelReductionFactorInPlane"]
+        # recommend["ParallelAcquisitionTechnique"]
+        recommend["PartialFourier"] = MetaField("PartialFourier")
+        recommend["PartialFourierDirection"] = MetaField("PartialFourierDirection")
+        # recommend["PhaseEncodingDirection"]
+        # recommend["EffectiveEchoSpacing"]
+        # recommend["TotalReadoutTime"]
+        recommend["EchoTime"] = MetaField("EchoTime", 1e-3)
+        recommend["InversionTime"] = MetaField("InversionTime", 1e-3)
+        # recommend["SliceTiming"]
+        # recommend["SliceEncodingDirection"]
+        # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
+        recommend["FlipAngle"] = MetaField("FlopAngle", 1.)
+        # recommend["MultibandAccelerationFactor"]
+        # recommend["NegativeContrast"]
+        # recommend["MultibandAccelerationFactor"]
+        # recommend["AnatomicalLandmarkCoordinates"]
+        recommend["InstitutionName"] = MetaField("InstitutionName")
+        recommend["InstitutionAddress"] = MetaField("InstitutionAddress")
+        recommend["InstitutionalDepartmentName"] = MetaField("InstitutionalDepartmentName")
+
+        #####################
+        # sMRI metafields   #
+        #####################
+        optional = self.metaFields_opt["anat"]
+        # optional["ContrastBolusIngredient"]
+
+        #####################
+        # fMRI metafields   #
+        #####################
+        required = self.metaFields_req["func"]
+        required["RepetitionTime"] = MetaField("RepetitionTime", 1e-3)
+        required["TaskName"] = MetaField("<<bids:task>>")
+
+        recommend = self.metaFields_rec["func"]
+        # recommend["NumberOfVolumesDiscardedByScanner"]
+        # recommend["NumberOfVolumesDiscardedByUser"]
+        # recommend["DelayTime"]
+        # recommend["AcquisitionDuration"]
+        # recommend["DelayAfterTrigger"]
+        # recommend["Instructions"]
+        # recommend["TaskDescription"]
+        # recommend["CogAtlasID"]
+        # recommend["CogPOID"]
+        
+        #####################
+        # fMap metafields   #
+        #####################
+        required = self.metaFields_req["fmap"]
+        # required["IntendedFor"]
+
+        recommend = self.metaFields_rec["fmap"]
+        # recommend["EchoTime1"]
+        # recommend["EchoTime2"]
+        # recommend["Units"]
+
 
     ################################
     # reimplementation of virtuals #
@@ -270,7 +302,7 @@ class Nifti_SPM12(MRI):
         if name == "NumberOfMeasurements":
             value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
         elif name == "PhaseEncodingDirection":
-            value = self._DICOM_CACHE["CSAImageHeaderInfo"]\
+            value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
                     .get("PhaseEncodingDirectionPositive", 0)
             if value == 0:
                 value = -1
@@ -319,6 +351,9 @@ class Nifti_SPM12(MRI):
                 value = "Off"
             else:
                 value = "On"
+        elif name == "ReceiveCoilActiveElements":
+            value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
+                    .get("CoilString", "")
 
         return value
 
