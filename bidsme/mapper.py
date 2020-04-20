@@ -64,14 +64,14 @@ def createmap(recording: Modules.baseModule,
                                    "RecordingEP"))
             continue
         # checking in the current map
-        modality, r_index, r_obj = bidsmap.match_run(recording)
+        modality, r_index, run = bidsmap.match_run(recording)
         if not modality:
             logger.warning("{}/{}: No run found in bidsmap. "
                            "Looking into template"
                            .format(recording.Module(),
                                    recording.recIdentity()))
             # checking in the template map
-            modality, r_index, r_obj = template.match_run(recording, fix=True)
+            modality, r_index, run = template.match_run(recording, fix=True)
             if not modality:
                 logger.error("{}/{}: No compatible run found"
                              .format(recording.Module(),
@@ -80,13 +80,15 @@ def createmap(recording: Modules.baseModule,
                     "provenance": recording.currentFile(),
                     "attributes": recording.attributes})
                 continue
-            r_obj.template = True
+            run.template = True
             modality, r_index, run = bidsmap.add_run(
-                    r_obj,
+                    run,
                     recording.Module(),
                     recording.Type()
                     )
-            plugins.RunPlugin("SequenceEndEP", None, recording)
+        if not run.checked:
+            recording.fillMissingJSON(run)
+    plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
 def mapper(source: str, destination: str,

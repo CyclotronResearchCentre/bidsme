@@ -73,15 +73,19 @@ class Nifti_SPM12(MRI):
         #####################
         recommend = self.metaFields_rec["__common__"]
         recommend["Manufacturer"] = MetaField("Manufacturer")
-        recommend["ManufacturersModelName"] = MetaField("ManufacturerModelName")
+        recommend["ManufacturersModelName"] =\
+            MetaField("ManufacturerModelName")
         recommend["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
         recommend["StationName"] = MetaField("StationName")
         recommend["SoftwareVersions"] = MetaField("SoftwareVersions")
-        recommend["MagneticFieldStrength"] = MetaField("MagneticFieldStrength", 1.)
+        recommend["MagneticFieldStrength"] =\
+            MetaField("MagneticFieldStrength", 1.)
         recommend["ReceiveCoilName"] = MetaField("ReceiveCoilName")
-        recommend["ReceiveCoilActiveElements"] = MetaField("ReceiveCoilActiveElements")
+        recommend["ReceiveCoilActiveElements"] =\
+            MetaField("ReceiveCoilActiveElements")
         # recommend["GradientSetType"]
-        recommend["MRTransmitCoilSequence"] = MetaField("MRTransmitCoilSequence")
+        recommend["MRTransmitCoilSequence"] =\
+            MetaField("MRTransmitCoilSequence")
         # recommend["MatrixCoilMode"]
         # recommend["CoilCombinationMethod"]
         # recommend["PulseSequenceType"]
@@ -95,7 +99,8 @@ class Nifti_SPM12(MRI):
         # recommend["ParallelReductionFactorInPlane"]
         # recommend["ParallelAcquisitionTechnique"]
         recommend["PartialFourier"] = MetaField("PartialFourier")
-        recommend["PartialFourierDirection"] = MetaField("PartialFourierDirection")
+        recommend["PartialFourierDirection"] =\
+            MetaField("PartialFourierDirection")
         # recommend["PhaseEncodingDirection"]
         # recommend["EffectiveEchoSpacing"]
         # recommend["TotalReadoutTime"]
@@ -111,12 +116,13 @@ class Nifti_SPM12(MRI):
         # recommend["AnatomicalLandmarkCoordinates"]
         recommend["InstitutionName"] = MetaField("InstitutionName")
         recommend["InstitutionAddress"] = MetaField("InstitutionAddress")
-        recommend["InstitutionalDepartmentName"] = MetaField("InstitutionalDepartmentName")
+        recommend["InstitutionalDepartmentName"] =\
+            MetaField("InstitutionalDepartmentName")
 
         #####################
         # sMRI metafields   #
         #####################
-        optional = self.metaFields_opt["anat"]
+        # optional = self.metaFields_opt["anat"]
         # optional["ContrastBolusIngredient"]
 
         #####################
@@ -136,7 +142,7 @@ class Nifti_SPM12(MRI):
         # recommend["TaskDescription"]
         # recommend["CogAtlasID"]
         # recommend["CogPOID"]
-        
+
         #####################
         # fMap metafields   #
         #####################
@@ -147,7 +153,6 @@ class Nifti_SPM12(MRI):
         # recommend["EchoTime1"]
         # recommend["EchoTime2"]
         # recommend["Units"]
-
 
     ################################
     # reimplementation of virtuals #

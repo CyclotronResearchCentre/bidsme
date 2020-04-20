@@ -133,9 +133,6 @@ class MRI(baseModule):
 
     def __init__(self):
         super().__init__()
-        self.metaFields = {key: None for key in
-                           mri_meta_recommended
-                           }
         self.metaFields_req["__common__"] = {key: None for key in
                                              mri_meta_required_common}
         for mod in mri_meta_required_modality:

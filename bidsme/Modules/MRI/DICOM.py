@@ -24,6 +24,7 @@
 
 
 from .MRI import MRI
+from bidsMeta import MetaField
 from tools import tools
 
 import os
@@ -53,6 +54,92 @@ class DICOM(MRI):
 
         if rec_path:
             self.setRecPath(rec_path)
+
+        #####################
+        # Common recomended #
+        #####################
+        recommend = self.metaFields_rec["__common__"]
+        recommend["Manufacturer"] = MetaField("Manufacturer")
+        recommend["ManufacturersModelName"] =\
+            MetaField("ManufacturerModelName")
+        recommend["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
+        recommend["StationName"] = MetaField("StationName")
+        recommend["SoftwareVersions"] = MetaField("SoftwareVersions")
+        recommend["MagneticFieldStrength"] =\
+            MetaField("MagneticFieldStrength", 1.)
+        recommend["ReceiveCoilName"] = MetaField("ReceiveCoilName")
+        recommend["ReceiveCoilActiveElements"] =\
+            MetaField("ReceiveCoilActiveElements")
+        # recommend["GradientSetType"]
+        recommend["MRTransmitCoilSequence"] =\
+            MetaField("MRTransmitCoilSequence")
+        # recommend["MatrixCoilMode"]
+        # recommend["CoilCombinationMethod"]
+        # recommend["PulseSequenceType"]
+        recommend["ScanningSequence"] = MetaField("ScanningSequence")
+        recommend["SequenceVariant"] = MetaField("SequenceVariant")
+        recommend["ScanOptions"] = MetaField("ScanOptions")
+        recommend["SequenceName"] = MetaField("SequenceName")
+        # recommend["NumberShots"]
+        # recommend["PulseSequenceDetails"]
+        # recommend["NonlinearGradientCorrection"]
+        # recommend["ParallelReductionFactorInPlane"]
+        # recommend["ParallelAcquisitionTechnique"]
+        recommend["PartialFourier"] = MetaField("PartialFourier")
+        recommend["PartialFourierDirection"] =\
+            MetaField("PartialFourierDirection")
+        # recommend["PhaseEncodingDirection"]
+        # recommend["EffectiveEchoSpacing"]
+        # recommend["TotalReadoutTime"]
+        recommend["EchoTime"] = MetaField("EchoTime", 1e-3)
+        recommend["InversionTime"] = MetaField("InversionTime", 1e-3)
+        # recommend["SliceTiming"]
+        # recommend["SliceEncodingDirection"]
+        # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
+        recommend["FlipAngle"] = MetaField("FlopAngle", 1.)
+        # recommend["MultibandAccelerationFactor"]
+        # recommend["NegativeContrast"]
+        # recommend["MultibandAccelerationFactor"]
+        # recommend["AnatomicalLandmarkCoordinates"]
+        recommend["InstitutionName"] = MetaField("InstitutionName")
+        recommend["InstitutionAddress"] = MetaField("InstitutionAddress")
+        recommend["InstitutionalDepartmentName"] =\
+            MetaField("InstitutionalDepartmentName")
+
+        #####################
+        # sMRI metafields   #
+        #####################
+        # optional = self.metaFields_opt["anat"]
+        # optional["ContrastBolusIngredient"]
+
+        #####################
+        # fMRI metafields   #
+        #####################
+        required = self.metaFields_req["func"]
+        required["RepetitionTime"] = MetaField("RepetitionTime", 1e-3)
+        required["TaskName"] = MetaField("<<bids:task>>")
+
+        recommend = self.metaFields_rec["func"]
+        # recommend["NumberOfVolumesDiscardedByScanner"]
+        # recommend["NumberOfVolumesDiscardedByUser"]
+        # recommend["DelayTime"]
+        # recommend["AcquisitionDuration"]
+        # recommend["DelayAfterTrigger"]
+        # recommend["Instructions"]
+        # recommend["TaskDescription"]
+        # recommend["CogAtlasID"]
+        # recommend["CogPOID"]
+
+        #####################
+        # fMap metafields   #
+        #####################
+        required = self.metaFields_req["fmap"]
+        # required["IntendedFor"]
+
+        recommend = self.metaFields_rec["fmap"]
+        # recommend["EchoTime1"]
+        # recommend["EchoTime2"]
+        # recommend["Units"]
 
     @classmethod
     def _isValidFile(cls, file: str) -> bool:

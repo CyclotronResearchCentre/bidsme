@@ -62,7 +62,6 @@ class baseModule(object):
                  "_recPath",
                  # json meta variables
                  "metaAuxiliary",
-                 "metaFields",
                  "metaFields_req",
                  "metaFields_rec",
                  "metaFields_opt",
@@ -1211,6 +1210,113 @@ class baseModule(object):
                 exportDict[key] = [f.value for f in field]
             else:
                 exportDict[key] = field.value
+
+    def fillMissingJSON(self, run: Run) -> None:
+        """
+        Completes missing values from JSON dictionary in given Run
+
+        Required parameters are filled with '<<placeholder>>';
+        Recommended parameters are filled with '';
+        Optional parameters are filled with None
+
+        Also checks if existing JSON fields are interpretable
+
+        Parameters
+        ----------
+        run: Run
+            Run object with json dictionary to fill
+        """
+        modality = self.Modality()
+        if modality == ignoremodality or modality == unknownmodality:
+            return
+
+        if modality in self.metaFields_req:
+            for key, field in self.metaFields_req[modality].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = "<<placeholder>>"
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = "<<placeholder>>"
+        if modality in self.metaFields_rec:
+            for key, field in self.metaFields_rec[modality].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = ""
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = ""
+        if modality in self.metaFields_opt:
+            for key, field in self.metaFields_opt[modality].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = None
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = None
+        if "__common__" in self.metaFields_req:
+            for key, field\
+                    in self.metaFields_req["__common__"].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = "<<placeholder>>"
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = "<<placeholder>>"
+        if "__common__" in self.metaFields_rec:
+            for key, field\
+                    in self.metaFields_rec["__common__"].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = ""
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = ""
+        if "__common__" in self.metaFields_opt:
+            for key, field\
+                    in self.metaFields_opt["__common__"].items():
+                if key in run.json:
+                    continue
+                if field is None:
+                    run.json[key] = None
+                    continue
+                if field.name.startswith("<"):
+                    val = self.getDynamicField(field.name,
+                                               field.default)
+                else:
+                    val = self.getField(field.name, field.default)
+                if val is None:
+                    run.json[key] = None
 
     #####################################
     # Recording identification methodes #

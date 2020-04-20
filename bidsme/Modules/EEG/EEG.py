@@ -31,46 +31,78 @@ from bidsMeta import BIDSfieldLibrary
 
 logger = logging.getLogger(__name__)
 
-eeg_meta = [
-        # Generic fields
+
+eeg_meta_required_common = [
         "TaskName",
+        ]
+eeg_meta_recommended_common = [
+        "InstitutionName", "InstitutionAddress",
+        "Manufacturer", "ManufacturersModelName",
+        "SoftwareVersions",
         "TaskDescription",
         "Instructions",
-        # Institution information
-        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
-        # Scanner hardware
-        "Manufacturer", "ManufacturersModelName",
-        "DeviceSerialNumber",
-        "CapManufacturer", "CapManufacturersModelName",
-        "SoftwareVersions",
         "CogAtlasID", "CogPOID",
-
-        "EEGReference",
-        "SamplingFrequency",
-        "PowerLineFrequency",
-        "SoftwareFilters",
-
-        "EEGChannelCount", "ECGChannelCount", "EMGChannelCount",
-        "EOGChannelCount",
-        "MiscChannelCount",
-        "TriggerChannelCount",
-
-        "RecordingDuration",
-        "RecordingType",
-        "EpochLength",
-        "HeadCircumference",
-        "EEGPlacementScheme",
-        "EEGGround",
-        "HardwareFilters",
-        "SubjectArtefactDescription",
+        "DeviceSerialNumber",
         ]
+eeg_meta_optional_common = []
+
+eeg_meta_required_modality = {
+        "eeg": ["EEGReference", "SamplingFrequency",
+                "PowerLineFrequency", "SoftwareFilters"],
+        "meg": ["SamplingFrequency", "PowerLineFrequency",
+                "DewarPosition", "SoftwareFilters",
+                "DigitizedLandmarks", "DigitizedHeadPoints"],
+        "ieeg": ["iEEGReference", "SamplingFrequency",
+                 "PowerLineFrequency", "SoftwareFilters"]
+        }
+
+eeg_meta_recommended_modality = {
+        "eeg": ["CapManufacturer", "CapManufacturersModelName",
+                "EEGChannelCount", "ECGChannelCount",
+                "EMGChannelCount", "EOGChannelCount",
+                "MiscChannelCount", "TriggerChannelCount",
+                "RecordingDuration", "RecordingType",
+                "EpochLength", "HeadCircumference",
+                "EEGPlacementScheme", "EEGGround",
+                "HardwareFilters", "SubjectArtefactDescription"],
+        "meg": ["MEGChannelCount", "MEGREFChannelCount",
+                "EEGChannelCount", "ECOGChannelCount",
+                "SEEGChannelCount", "EOGChannelCount",
+                "ECGChannelCount", "EMGChannelCount",
+                "MiscChannelCount", "TriggerChannelCount",
+                "RecordingDuration", "RecordingType",
+                "EpochLength", "ContinuousHeadLocalization",
+                "HeadCoilFrequency", "MaxMovement",
+                "SubjectArtefactDescription",
+                "AssociatedEmptyRoom",
+                "HardwareFilters"],
+        "ieeg": ["DCOffsetCorrection", "HardwareFilters",
+                 "ElectrodeManufacturer", "ElectrodeManufacturersModelName",
+                 "ECOGChannelCount", "SEEGChannelCount",
+                 "EEGChannelCount", "EOGChannelCount",
+                 "ECGChannelCount", "EMGChannelCount",
+                 "MiscChannelCount", "TriggerChannelCount",
+                 "RecordingDuration", "RecordingType",
+                 "EpochLength", "iEEGGround",
+                 "iEEGPlacementScheme", "iEEGElectrodeGroups",
+                 "SubjectArtefactDescription"]
+        }
+
+eeg_meta_optional_modality = {
+        "meg": ["EEGPlacementScheme", "ManufacturersAmplifierModelName",
+                "CapManufacturer", "CapManufacturersModelName",
+                "EEGReference"],
+        "ieeg": ["ElectricalStimulation", "ElectricalStimulationParameters"]
+    }
 
 
 class EEG(baseModule):
     _module = "EEG"
 
     bidsmodalities = {
-            "eeg": ("task", "run")
+            "eeg": ("task", "acq", "run"),
+            "meg": ("task", "acq", "run", "proc"),
+            "ieeg": ("task", "acq", "run")
             }
 
     _chan_BIDS = BIDSfieldLibrary()
@@ -283,6 +315,18 @@ class EEG(baseModule):
 
     def __init__(self):
         super().__init__()
-        self.metaFields = {key: None for key in
-                           eeg_meta
-                           }
+        self.metaFields_req["__common__"] = {key: None for key in
+                                             eeg_meta_required_common}
+        for mod in eeg_meta_required_modality:
+            self.metaFields_req[mod] = {key: None for key in
+                                        eeg_meta_required_modality[mod]}
+        self.metaFields_rec["__common__"] = {key: None for key in
+                                             eeg_meta_recommended_common}
+        for mod in eeg_meta_recommended_modality:
+            self.metaFields_rec[mod] = {key: None for key in
+                                        eeg_meta_recommended_modality[mod]}
+        self.metaFields_opt["__common__"] = {key: None for key in
+                                             eeg_meta_optional_common}
+        for mod in eeg_meta_optional_modality:
+            self.metaFields_opt[mod] = {key: None for key in
+                                        eeg_meta_optional_modality[mod]}
