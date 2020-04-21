@@ -165,6 +165,7 @@ class DICOM(MRI):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
                                        file))
+                return False
             try:
                 with open(file, 'rb') as dcmfile:
                     dcmfile.seek(0x80, 1)
