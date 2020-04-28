@@ -24,10 +24,8 @@
 
 from .MRI import MRI
 from bidsMeta import MetaField
-from tools import tools
 
 import os
-import re
 import logging
 import shutil
 import json
@@ -40,14 +38,17 @@ class headNIFTI(MRI):
     _type = "headNIFTI"
 
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
-                 "manufacturer"]
-    __specialFields = {}
+                 "_header_file",
+                 "manufacturer",
+                 ]
+    __specialFields = {"acq_time"}
 
     def __init__(self, rec_path=""):
         super().__init__()
 
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
+        self._header_file = ""
         self.manufacturer = ""
 
         if rec_path:
@@ -188,30 +189,11 @@ class headNIFTI(MRI):
                 raise
             self._FILE_CACHE = path
             self._HEADER_CACHE = dicomdict
+            self._header_file = header
             self.manufacturer = self.fetField("Manufacturer", "")
 
     def acqTime(self) -> datetime:
-        if "AcquisitionDateTime" in self._DICOM_CACHE:
-            dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
-            return self.__transform(dt_stamp)
-
-        acq = datetime.min
-
-        if "AcquisitionDate" in self._DICOM_CACHE:
-            date_stamp = self.__transform(self._DICOM_CACHE["AcquisitionDate"])
-        else:
-            logger.warning("{}: Acquisition Date not defined"
-                           .format(self.recIdentity()))
-            return acq
-
-        if "AcquisitionDate" in self._DICOM_CACHE:
-            time_stamp = self.__transform(self._DICOM_CACHE["AcquisitionTime"])
-        else:
-            logger.warning("{}: Acquisition Time not defined"
-                           .format(self.recIdentity()))
-            return acq
-        acq = datetime.combine(date_stamp, time_stamp)
-        return acq
+        return self.getAttribute("acq_time")
 
     def dump(self):
         if self._DICOM_CACHE is not None:
@@ -226,7 +208,7 @@ class headNIFTI(MRI):
     def _getField(self, field: list):
         res = None
         try:
-            if field[0] in self.__spetialFields:
+            if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
                 value = self._HEADER_CACHE
@@ -288,7 +270,84 @@ class headNIFTI(MRI):
                            .format(self.recIdentity(),
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
-                     destination)
+        shutil.copy2(self._header_file, destination)
 
+    def _getSubId(self) -> str:
+        return str(self.getField("PatientID"))
 
+    def _getSesId(self) -> str:
+        return ""
+
+    ########################
+    # Additional fonctions #
+    ########################
+    def _adaptMetaField(self, name):
+        if name == "acq_time":
+            if "AcquisitionDateTime" in self._DICOM_CACHE:
+                dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
+                return self.__transform(dt_stamp, "DT")
+
+            acq = datetime.min
+
+            if "AcquisitionDate" in self._DICOM_CACHE:
+                date_stamp = self.__transform(
+                        self._DICOM_CACHE["AcquisitionDate"],
+                        "DA"
+                        )
+            else:
+                logger.warning("{}: Acquisition Date not defined"
+                               .format(self.recIdentity()))
+                return acq
+
+            if "AcquisitionDate" in self._DICOM_CACHE:
+                time_stamp = self.__transform(
+                        self._DICOM_CACHE["AcquisitionTime"],
+                        "DT")
+            else:
+                logger.warning("{}: Acquisition Time not defined"
+                               .format(self.recIdentity()))
+                return acq
+            acq = datetime.combine(date_stamp, time_stamp)
+            return acq
+
+        return None
+
+    def __transform(self, value, VR: str):
+        # Date and time
+        # converted to corresponding datetime subclass
+        if VR == "TM":
+            if "." in value:
+                dt = datetime.strptime(value, "%H%M%S.%f").time()
+            else:
+                dt = datetime.strptime(value, "%H%M%S").time()
+            return dt
+        if VR == "DA":
+            dt = datetime.strptime(value, "%Y%m%d").date()
+            return dt
+        if VR == "DT":
+            value = value.strip()
+            date_string = "%Y%m%d"
+            time_string = "%H%M%S"
+            ms_string = ""
+            uts_string = ""
+            if "." in value:
+                ms_string += ".%f"
+            if "+" in value or "-" in value:
+                uts_string += "%z"
+            if len(value) == 8 or \
+                    (len(value) == 13 and uts_string != ""):
+                logger.warning("{}: Format is DT, but string looks like DA"
+                               .format(value))
+                t = datetime.strptime(value, date_string + uts_string)
+            elif len(value) == 6 or \
+                    (len(value) == 13 and ms_string != ""):
+                logger.warning("{}: Format is DT, but string looks like TM"
+                               .format(value))
+                t = datetime.strptime(value, time_string + ms_string)
+            else:
+                t = datetime.strptime(value, date_string + time_string
+                                      + ms_string + uts_string)
+            if t.tzinfo is not None:
+                t += t.tzinfo.utcoffset(t)
+                t = t.replace(tzinfo=None)
+            return t
