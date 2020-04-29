@@ -28,6 +28,7 @@ import os
 import shutil
 import logging
 import json
+import re
 from datetime import datetime
 from collections import OrderedDict
 
@@ -603,7 +604,19 @@ class baseModule(object):
                     elif prefix == "sub_tsv":
                         result = self.sub_BIDSvalues[query]
                     elif prefix == "rec_tsv":
-                        result = self.sub_BIDSvalues[query]
+                        result = self.rec_BIDSvalues[query]
+                    elif prefix == "fname":
+                        search = re.search("{}-([a-zA-Z0-9]+)".format(query), 
+                                           self.currentFile(False))
+                        if search: 
+                            result = search.group(1)
+                        else:
+                            logger.warning("{}: Can't find '{}' "
+                                           "attribute from '{}'"
+                                           .format(self.recIdentity(),
+                                                   query, 
+                                                   self.currentFile(False)))
+                            result = query
                     else:
                         raise KeyError("Unknown prefix {}".format(prefix))
                 # if field is composed only of one entry
@@ -627,7 +640,8 @@ class baseModule(object):
         if self._bidsSession is not None:
             logger.warning("{}: Resetting BidsSession"
                            .format(self.recIdentity()))
-        self._bidsSession = session
+        self._bidsSession = BidsSession(session.subject, session.session)
+        self._bidsSession.in_path = session.in_path
         self.setSubId()
         self.setSesId()
 
@@ -655,6 +669,12 @@ class baseModule(object):
                                          cleanup=False,
                                          raw=False
                                          )
+        if subid is None:
+            # Undetermined subject Id, extracting from filename,
+            # assuming it bids-formatted
+            res = re.search("sub-([a-zA-Z0-9]+)", self.currentFile(False))
+            if res:
+                subid = res.group(1)
         if subid is None or subid == "":
             logger.error("{}: Unable to determine subject Id from '{}'"
                          .format(self.recIdentity, name))
@@ -683,6 +703,13 @@ class baseModule(object):
                                          cleanup=False,
                                          raw=False
                                          )
+
+        if subid is None:
+            # Undetermined subject Id, extracting from filename,
+            # assuming it bids-formatted
+            res = re.search("ses-([a-zA-Z0-9]+)", self.currentFile(False))
+            if res:
+                subid = res.group(1)
         if subid is None:
             logger.error("{}/{}: Unable to determine session Id from {}"
                          .format(self.recNo(), self.recId(),
@@ -1337,9 +1364,16 @@ class baseModule(object):
         -------
         bool
         """
-        if not pattern:
+        if pattern is None:
             return True
-        attval = self.getAttribute(attribute)
+        if attribute.startswith('<'):
+            attval = self.getDynamicField(attribute)
+        else:
+            attval = self.getAttribute(attribute)
+        if attval is None:
+            logger.critical("{}: Undefined attribute '{}' not authorised"
+                            .format(self.recIdentity(), attribute))
+            raise Exception("Undefined attribute")
         if isinstance(pattern, list):
             for val in pattern:
                 if tools.match_value(attval, val):
@@ -1367,6 +1401,8 @@ class baseModule(object):
             return False
         match_one = False
         match_all = True
+        if not run.attribute:
+            match_one = True
         for attrkey, attrvalue in run.attribute.items():
             if not attrvalue:
                 continue

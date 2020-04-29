@@ -46,7 +46,7 @@ class BidsSession(object):
     __sub_columns = None
     __sub_values = dict()
 
-    def __init__(self):
+    def __init__(self, subject: str=None, session: str=None):
         self.__subject = None
         self.__session = None
         self.in_path = None
@@ -57,6 +57,13 @@ class BidsSession(object):
         if self.__sub_columns is None:
             raise ValueError("Participants tsv not initialized")
         self.sub_values = self.__sub_columns.GetTemplate()
+
+        if subject is not None:
+            self.subject = subject
+            self.lock_subject()
+        if session is not None:
+            self.session = session
+            self.lock_session()
 
     @property
     def subject(self) -> str:

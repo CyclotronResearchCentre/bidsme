@@ -16,7 +16,7 @@
 
 
 Options:
-  version: '2.4.0'
+  version: '1.0.1'
   bidsignore: extra_data/ 
 
 
@@ -298,11 +298,11 @@ EEG:
     eeg:
       - provenance: ~
         suffix: "eeg"
-        attributes:
-          SeriesDescription: '.*'
+        attributes: {}
         bids: !!omap
           - task: "<<placeholder>>"
+          - acq: ~
           - run: ~
         json: !!omap
-          - Task: <<bids:task>>
-          - TaskDescription: ""
+          - TaskName: "<<bids:task>>"
+          - SamplingFrequency: "<SamplingFrequency>"

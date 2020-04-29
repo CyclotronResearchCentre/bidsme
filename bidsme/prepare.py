@@ -40,8 +40,11 @@ logger = logging.getLogger(__name__)
 
 
 def sortsession(outfolder: str,
+                session: BidsSession,
                 recording: object,
                 dry_run: bool) -> None:
+
+    recording.setBidsSession(session)
 
     if plugins.RunPlugin("SequenceEP", recording) < 0:
         logger.warning("Sequence {} discarded by {}"
@@ -54,20 +57,30 @@ def sortsession(outfolder: str,
                         recording.sesId(),
                         len(recording.files)))
 
-    if not dry_run:
-        os.makedirs(outfolder, exist_ok=True)
-
     recording.index = -1
     while recording.loadNextFile():
+        if session.subject is None:
+            recording.getBidsSession().unlock_subject()
+            recording.getBidsSession().subject = None
+        if session.session is None:
+            recording.getBidsSession().unlock_session()
+            recording.getBidsSession().session = None
+
         if plugins.RunPlugin("RecordingEP", recording) < 0:
             logger.warning("Recording {} discarded by {}"
                            .format(recording.recIdentity(),
                                    "RecordingEP"))
             continue
 
+        if session.subject is None:
+            recording.setSubId()
+        if session.session is None:
+            recording.setSesId()
+
         recording.getBidsSession().registerFields(True)
         serie = os.path.join(
                 outfolder,
+                recording.getBidsSession().getPath(True),
                 "{}/{}".format(recording.Module(),
                                recording.recIdentity(index=False)))
         if not dry_run:
@@ -236,6 +249,8 @@ def prepare(source: str, destination: str,
                 sub_prefix + '*')
     else:
         sub_dirs = [source]
+    if not sub_dirs:
+        logger.warning("No subject folders found")
 
     if not data_dirs:
         data_dirs = {}
@@ -267,6 +282,8 @@ def prepare(source: str, destination: str,
                     ses_prefix + '*')
         else:
             ses_dirs = [sub_dir]
+        if not ses_dirs:
+            logger.warning("No session folders found")
 
         for ses_dir in ses_dirs:
             scan.in_path = ses_dir
@@ -320,11 +337,7 @@ def prepare(source: str, destination: str,
                     if not recording or len(recording.files) == 0:
                         logger.warning("unable to load data in folder {}"
                                        .format(rec_dir))
-                    recording.setBidsSession(scan)
-                    scan = recording.getBidsSession()
-                    out_path = os.path.join(destination,
-                                            scan.getPath(True))
-                    sortsession(out_path, recording, dry_run)
+                    sortsession(destination, scan, recording, dry_run)
             plugins.RunPlugin("SessionEndEP", scan)
 
         scan.in_path = sub_dir

@@ -47,11 +47,9 @@ class BrainVision(EEG):
                  "_acqTime",
                  "_chanValues"
                  ]
-    __spetialFields = {"PatientId",
-                       "SessionId",
-                       "RecordingNumber",
-                       "RecordingId",
-                       "SamplingFrequency"
+    __spetialFields = {
+                       "SamplingFrequency",
+                       "SamplingInterval"
                        }
     __fileversion = "Brain Vision Data Exchange Header File Version 1.0"
 
@@ -66,8 +64,6 @@ class BrainVision(EEG):
         self.__markfile = None
         self._acqTime = datetime(1900, 1, 1, 0, 0)
         # Series number and secription is not defined
-        self.setAttribute("SeriesNumber", 0)
-        self.setAttribute("SeriesDescription", "unknown")
 
         self._chan_BIDS.Activate("sampling_frequency")
         self._chan_BIDS.Activate("reference")
@@ -108,7 +104,7 @@ class BrainVision(EEG):
             return True
         return False
 
-    def loadFile(self, path: str) -> None:
+    def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             self.clearCache()
             dirpath, base = os.path.split(path)
@@ -126,13 +122,9 @@ class BrainVision(EEG):
                 raise ValueError("{}: {} DataFile not defined"
                                  .format(self.formatIdentity(),
                                          path))
-            if not self.getField("Common Infos/SamplingInterval"):
+            if not self.getField("SamplingInterval"):
                 raise KeyError("{}: Sampling interval not defined"
                                .format(self.formatIdentity()))
-            self.setAttribute("SamplingInterval",
-                              self.getAttribute(
-                                  "float:Common Infos/SamplingInterval")
-                              )
 
             if not os.path.isfile(self._datafile):
                 raise FileNotFoundError("{}: DataFile {} not found"
@@ -160,7 +152,7 @@ class BrainVision(EEG):
                         val = val.split(",")
                         if val[0].strip() == "New Segment":
                             t = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
-                            dt = timedelta(microseconds=self.getAttribute(
+                            dt = timedelta(microseconds=self.getField(
                                 "SamplingInterval"))
                             dt = int(val[2]) * dt
                             t = t - dt
@@ -171,7 +163,6 @@ class BrainVision(EEG):
                                        .format(self.formatIdentity()))
                     else:
                         self._acqTime = t
-            self.setAttribute("SeriesDescription", base)
 
     def acqTime(self) -> datetime:
         return self._acqTime
@@ -232,12 +223,10 @@ class BrainVision(EEG):
         return value
 
     def recNo(self):
-        return self.getAttribute("RecordingNumber")
+        return self.index
 
     def recId(self):
-        return self.getAttribute("RecordingId",
-                                 os.path.splitext(self.currentFile(False)[0])
-                                 )
+        return os.path.splitext(self.currentFile(True))[0]
 
     def isCompleteRecording(self):
         return True
@@ -329,7 +318,7 @@ class BrainVision(EEG):
                 chanValues["type"] = None
                 chanValues["reference"] = val[1]
                 chanValues["sampling_frequency"] = \
-                    self.getAttribute("SamplingFrequency")
+                    self.getField("SamplingFrequency")
                 chanValues["resolution"] = float(val[2])
                 if len(val) >= 4:
                     chanValues["units"] = val[3]
@@ -389,7 +378,7 @@ class BrainVision(EEG):
                 last_onset = 0
                 last_onset = 0
                 dt = timedelta(
-                        microseconds=self.getAttribute("SamplingInterval"))
+                        microseconds=self.getField("SamplingInterval"))
                 f.write(self._task_BIDS.GetHeader())
                 f.write("\n")
                 for mk, val in self._MRK_CACHE["Marker Infos"].items():
@@ -416,10 +405,10 @@ class BrainVision(EEG):
             self._task_BIDS.DumpDefinitions(dest_vmrk + ".json")
 
     def _getSubId(self) -> str:
-        return self.getAttribute("PatientId")
+        return None
 
     def _getSesId(self) -> str:
-        return self.getAttribute("SessionId")
+        return None
 
     ########################
     # Additional fonctions #
@@ -447,23 +436,8 @@ class BrainVision(EEG):
         return os.path.join(dirpath, name)
 
     def _adaptMetaField(self, field: str):
-        if field == "RecordingNumber":
-            return self.index
-        if field == "RecordingId":
-            return os.path.splitext(self.currentFile(False))[0]
         if field == "SamplingFrequency":
-            return 1e6 / self.getAttribute("SamplingInterval")
-        if field == "RecordingId":
-            return os.path.splitext(self.currentFile(False))[0]
-        if field == "PatientId":
-            recId = os.path.splitext(self.currentFile(False))[0]
-            res = re.search("sub-([a-zA-Z0-9]+)", recId)
-            if res:
-                return res.group(1)
-        if field == "SessionId":
-            recId = os.path.splitext(self.currentFile(False))[0]
-            res = re.search("ses-([a-zA-Z0-9]+)", recId)
-            if res:
-                return res.group(1)
-
+            return 1e6 / self.getField("SamplingInterval")
+        if field == "SamplingInterval":
+            return float(self.getField("Common Infos/SamplingInterval"))
         return None
