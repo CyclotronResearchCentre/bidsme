@@ -15,6 +15,8 @@ from attributes
 are extracted from file name, assumming it is formatted following BIDS 
 (fields `sub` and `ses` respectively)
   - If map attributes dictionary is empty, it will match all recordings
+  - If map attribute is not found in recording, it will fail match
+  - If map attribute is `None` then it will match all values
   - BidsSession: BidsSession class can be initialized with subject and 
 session values. If these values are set, corresponding attributes will 
 be locked

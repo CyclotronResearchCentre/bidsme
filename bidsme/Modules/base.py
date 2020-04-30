@@ -606,15 +606,15 @@ class baseModule(object):
                     elif prefix == "rec_tsv":
                         result = self.rec_BIDSvalues[query]
                     elif prefix == "fname":
-                        search = re.search("{}-([a-zA-Z0-9]+)".format(query), 
+                        search = re.search("{}-([a-zA-Z0-9]+)".format(query),
                                            self.currentFile(False))
-                        if search: 
+                        if search:
                             result = search.group(1)
                         else:
                             logger.warning("{}: Can't find '{}' "
                                            "attribute from '{}'"
                                            .format(self.recIdentity(),
-                                                   query, 
+                                                   query,
                                                    self.currentFile(False)))
                             result = query
                     else:
@@ -1364,16 +1364,14 @@ class baseModule(object):
         -------
         bool
         """
-        if pattern is None:
-            return True
         if attribute.startswith('<'):
             attval = self.getDynamicField(attribute)
         else:
             attval = self.getAttribute(attribute)
         if attval is None:
-            logger.critical("{}: Undefined attribute '{}' not authorised"
-                            .format(self.recIdentity(), attribute))
-            raise Exception("Undefined attribute")
+            return False
+        if pattern is None:
+            return True
         if isinstance(pattern, list):
             for val in pattern:
                 if tools.match_value(attval, val):

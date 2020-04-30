@@ -46,7 +46,7 @@ class BidsSession(object):
     __sub_columns = None
     __sub_values = dict()
 
-    def __init__(self, subject: str=None, session: str=None):
+    def __init__(self, subject: str = None, session: str = None):
         self.__subject = None
         self.__session = None
         self.in_path = None
