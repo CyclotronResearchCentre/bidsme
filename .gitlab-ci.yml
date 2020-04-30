@@ -73,6 +73,10 @@ example1:
 
 badges:
   stage: decoration
+  artifacts:
+    paths:
+        - ver.svg
+        - bids.svg
   before_script:
     - pip --cache-dir=.cache/pip install anybadge
   script:
