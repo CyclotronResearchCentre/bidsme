@@ -23,6 +23,7 @@ before_script:
   - pip --cache-dir=.cache/pip install -r requirements.txt
   - pip --cache-dir=.cache/pip install flake8
   - pip --cache-dir=.cache/pip install xlrd
+  - pip --cache-dir=.cache/pip install anybadge
 
 stages:
   - test
@@ -71,15 +72,25 @@ example1:
   <<: *only_branches
 
 
-badges:
+badges_dev:
   stage: decoration
   artifacts:
     paths:
         - ver.svg
         - bids.svg
-  before_script:
-    - pip --cache-dir=.cache/pip install anybadge
   script:
     - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
     - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
-  <<: *only_branches
+  only:
+    - dev
+    - master
+    
+badges_tag:
+  stage: decoration
+  artefacts:
+    paths:
+      - tag.svg
+  script:
+    - anybadge -o --value=$CI_COMMIT_REF_NAME --label=tag --file=tag.svg --color=blue
+  only:
+    - tags
