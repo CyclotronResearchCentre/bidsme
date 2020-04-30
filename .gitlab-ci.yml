@@ -76,6 +76,6 @@ badges:
   before_script:
     - pip --cache-dir=.cache/pip install anybadge
   script:
-    - anybadge -r --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
-    - anybadge -r --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
+    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
+    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
   <<: *only_branches
