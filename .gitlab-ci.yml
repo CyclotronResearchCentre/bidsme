@@ -87,7 +87,7 @@ badges_dev:
     
 badges_tag:
   stage: decoration
-  artefacts:
+  artifacts:
     paths:
       - tag.svg
   script:
