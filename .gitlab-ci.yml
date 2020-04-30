@@ -28,6 +28,7 @@ stages:
   - test
   - get_examples
   - run_examples
+  - decoration
 
 flake8:
   stage: test
@@ -60,7 +61,6 @@ get_examples:
 example1:
   stage: run_examples
   script:
-    - ls
     - cd $EXAMPLE_DIR/example1
     - $RUN prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
     - mkdir -p bids/code/bidsme
@@ -68,4 +68,14 @@ example1:
     - $RUN map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
     - $RUN process renamed/ bids/ --plugin resources/plugins/process_plugin.py
     - $RUN bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
+  <<: *only_branches
+
+
+badges:
+  stage: decoration
+  before_script:
+    - pip --cache-dir=.cache/pip install anybadge
+  script:
+    - anybadge -r --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
+    - anybadge -r --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
   <<: *only_branches
