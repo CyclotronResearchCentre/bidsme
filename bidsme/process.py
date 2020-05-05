@@ -216,14 +216,19 @@ def process(source: str, destination: str,
                        "not found in '{}'".format(destination))
 
     # Get the bidsmap heuristics from the bidsmap YAML-file
-    bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
-    logger.info("loading bidsmap {}".format(bidsmapfile))
-    bidsmap = Bidsmap(bidsmapfile)
-
-    if not bidsmap:
+    fname = paths.findFile(bidsmapfile,
+                           bidscodefolder,
+                           paths.local,
+                           paths.config
+                           )
+    if not fname:
         logger.critical('Bidsmap file {} not found.'
                         .format(bidsmapfile))
         raise FileNotFoundError(bidsmapfile)
+    else:
+        bidsmapfile = fname
+    logger.info("loading bidsmap {}".format(bidsmapfile))
+    bidsmap = Bidsmap(bidsmapfile)
 
     ntotal, ntemplate, nunchecked = bidsmap.countRuns()
     logger.debug("Map contains {} runs".format(ntotal))

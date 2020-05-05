@@ -28,6 +28,7 @@ import os
 import logging
 import pandas
 
+from tools import paths
 from tools import tools
 import plugins
 
@@ -207,11 +208,17 @@ def bidsify(source: str, destination: str,
                        "not found in '{}'".format(destination))
 
     # Get the bidsmap heuristics from the bidsmap YAML-file
-    bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
-    if not os.path.isfile(bidsmapfile):
+    fname = paths.findFile(bidsmapfile,
+                           bidscodefolder,
+                           paths.local,
+                           paths.config
+                           )
+    if not fname:
         logger.critical('Bidsmap file {} not found.'
                         .format(bidsmapfile))
         raise FileNotFoundError(bidsmapfile)
+    else:
+        bidsmapfile = fname
     logger.info("loading bidsmap {}".format(bidsmapfile))
     bidsmap = Bidsmap(bidsmapfile)
 

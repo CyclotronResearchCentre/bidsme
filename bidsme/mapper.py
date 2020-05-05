@@ -184,9 +184,10 @@ def mapper(source: str, destination: str,
                        .format(map_template))
     template = bidsmap.Bidsmap(fname)
     fname = paths.findFile(bidsmapfile,
+                           bidscodefolder,
                            paths.local,
-                           paths.config,
-                           bidscodefolder)
+                           paths.config
+                           )
     if not fname:
         bidsmapfile = os.path.join(bidscodefolder, bidsmapfile)
     else:
@@ -334,8 +335,6 @@ def mapper(source: str, destination: str,
                     createmap(recording, bidsmap_new, template, bidsmap_unk)
 
     if not dry_run:
-        bidsmapfile = os.path.join(bidscodefolder, 'bidsmap.yaml')
-
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)
 

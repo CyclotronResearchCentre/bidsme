@@ -15,16 +15,9 @@
 # --------------------------------------------------------------------------------
 
 
-Options:
-  version: '1.0.1'
-  bidsignore: extra_data/ 
+__bids__: '1.2.0'
 
-
-PlugIns:
-  path: ~
-  options: ~
-
-Templates:
+__templates__:
   # sMRI
   - &mri_bids_anat !!omap
     # [_ce-<label>][_rec-<label>][_run-<index>]_<modality_label>.nii[.gz]

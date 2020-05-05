@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class Bidsmap(object):
     __slots__ = ["Modules",
                  "filename",
-                 "version", "bidsignore",
+                 "version"
                  ]
 
     def __init__(self, yamlfile='bidsmap.yaml'):
@@ -51,8 +51,7 @@ class Bidsmap(object):
         yamlfile: str
             YAML file to load
         """
-        self.version = info.version()
-        self.bidsignore = list()
+        self.version = info.bidsversion()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
                         for mod, types in Modules.types_list.items()
@@ -76,13 +75,13 @@ class Bidsmap(object):
                 logger.error("{}: {}".format(err[0], err[1]))
                 raise
 
-        if 'version' in yaml_map['Options']:
-            ver = yaml_map['Options']['version']
+        if '__bids__' in yaml_map:
+            ver = yaml_map['__bids__']
         else:
             ver = 'Unknown'
 
         if self.version != ver:
-            logger.warning('BIDScoiner version conflict: '
+            logger.warning('BIDS version conflict: '
                            '{} was created using version {}, '
                            'but this is version {}'
                            .format(yamlfile, ver, info.version())
@@ -263,8 +262,7 @@ class Bidsmap(object):
         # TODO: use ruamel dump class ability
         # building dictionary
         d = dict()
-        d['Options'] = {"version": self.version,
-                        "bidsignore": self.bidsignore}
+        d["__bids__"] = self.version
 
         # Modules
         for m_name, module in self.Modules.items():

@@ -3,6 +3,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - `participants.tsv` wasn't filled in preparation step
+
+### Changed
+  - `map`, `process` and `bidsify` looks for given bidsmap file first in order: 
+in destination code folder, local folder, and user configuration folder
+  - in bidsmap `Options` dictionary is removed, and `version` entry is replaced
+by `__bids__`, that refers to version of BIDS and no more to version of software,
+the `bidsignore` is dropped
+
 ## [1.0.2] - 2020-04-30
 
 ### Added

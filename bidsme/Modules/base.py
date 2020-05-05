@@ -642,6 +642,9 @@ class baseModule(object):
                            .format(self.recIdentity()))
         self._bidsSession = BidsSession(session.subject, session.session)
         self._bidsSession.in_path = session.in_path
+        self._bidsSession.sub_values = {key:val 
+                                        for key, val 
+                                        in session.sub_values.items()}
         self.setSubId()
         self.setSesId()
 
