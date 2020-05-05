@@ -3,7 +3,6 @@ image: "python:3.6"
 # run on branches
 .only_branches: &only_branches
   only:
-    - tags
     - master
     - dev
     - cli
