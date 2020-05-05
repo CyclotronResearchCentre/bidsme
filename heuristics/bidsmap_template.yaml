@@ -33,8 +33,7 @@ __templates__:
     attributes: {}
     bids:
       <<: *mri_bids_anat
-    json:
-      ContrastBolusIngredient: <ContrastBolusIngredient>
+    json: {}
   # sMRI for MPM
   - &mri_bids_anat_mpm !!omap
     - acq: ~
@@ -45,7 +44,6 @@ __templates__:
     - echo: <EchoNumbers>
     - mod: ~
   - &mri_json_anat_mpm !!omap
-    - ContrastBolusIngredient: <ContrastBolusIngredient>
     - RepetitionTime: <RepetitionTime>
     - FlipAngle: <FlipAngle>
     - RFSpoilingPhaseIncrement: <RFSpoilingPhaseIncrement>
@@ -78,16 +76,7 @@ __templates__:
       <<: *mri_bids_func
     json:
       TaskName: <<bids:task>>
-      Instructions: <<placeholder>>
-      TaskDescription: <<placeholder>>
-      CogAtlasID: <<placeholder>>
-      CogPOID: <<placeholder>>
       RepetitionTime: <RepetitionTime>
-      SliceTiming: <<placeholder>>
-      DelayTime: <<placeholder>>
-      NumberOfVolumesDiscardedByScanner: <<placeholder>>
-      NumberOfVolumesDiscardedByUser: <<placeholder>>
-      DelayAfterTrigger: <<placeholder>>
 
   # diffusion MRI
   - &mri_bids_dwi !!omap

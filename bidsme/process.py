@@ -26,6 +26,7 @@ import os
 import logging
 import pandas
 
+from tools import paths
 from tools import tools
 import plugins
 
