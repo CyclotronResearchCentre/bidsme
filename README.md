@@ -40,7 +40,15 @@ Additional formats can be implemented following instructions [here](#new_formats
 The mapping information is stored as key-value pairs in the human readable and 
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
-## <a name="intrface"></a> The BIDSme interface
+
+## <a name="requirements"></a> Requirements
+- python >= 3.6
+- pandas
+- ruamel.yaml>=0.15.35
+- coloredlogs
+- pydicom >= 1.4.2
+
+## <a name="interface"></a> The BIDSme interface
 
 All interactions with BIDSme occurs from command-line interface, by a master script `bidsme.py`.
 
