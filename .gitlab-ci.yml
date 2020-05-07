@@ -33,7 +33,7 @@ stages:
 flake8:
   stage: test
   script:
-    - python -m flake8 bidscoin
+    - python -m flake8 bidsme
   <<: *only_branches
     
 include_test:
@@ -83,3 +83,4 @@ badges:
   only:
     - dev
     - master
+    - tag
