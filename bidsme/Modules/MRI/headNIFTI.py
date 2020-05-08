@@ -95,7 +95,7 @@ class headNIFTI(MRI):
         # recommend["SliceTiming"]
         # recommend["SliceEncodingDirection"]
         # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
-        recommend["FlipAngle"] = MetaField("FlopAngle", 1.)
+        recommend["FlipAngle"] = MetaField("FlipAngle", 1.)
         # recommend["MultibandAccelerationFactor"]
         # recommend["NegativeContrast"]
         # recommend["MultibandAccelerationFactor"]
@@ -190,17 +190,17 @@ class headNIFTI(MRI):
             self._FILE_CACHE = path
             self._HEADER_CACHE = dicomdict
             self._header_file = header
-            self.manufacturer = self.fetField("Manufacturer", "")
+            self.manufacturer = self.getField("Manufacturer", "")
 
     def acqTime(self) -> datetime:
         return self.getAttribute("acq_time")
 
     def dump(self):
-        if self._DICOM_CACHE is not None:
-            return str(self._DICOM_CACHE)
+        if self._HEADER_CACHE is not None:
+            return str(self._HEADER_CACHE)
         elif len(self.files) > 0:
             self.loadFile(0)
-            return str(self._DICOM_CACHE)
+            return str(self._HEADER_CACHE)
         else:
             logger.error("No defined files")
             return "No defined files"
@@ -283,15 +283,15 @@ class headNIFTI(MRI):
     ########################
     def _adaptMetaField(self, name):
         if name == "acq_time":
-            if "AcquisitionDateTime" in self._DICOM_CACHE:
-                dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
+            if "AcquisitionDateTime" in self._HEADER_CACHE:
+                dt_stamp = self._HEADER_CACHE["AcquisitionDateTime"]
                 return self.__transform(dt_stamp, "DT")
 
             acq = datetime.min
 
-            if "AcquisitionDate" in self._DICOM_CACHE:
+            if "AcquisitionDate" in self._HEADER_CACHE:
                 date_stamp = self.__transform(
-                        self._DICOM_CACHE["AcquisitionDate"],
+                        self._HEADER_CACHE["AcquisitionDate"],
                         "DA"
                         )
             else:
@@ -299,10 +299,10 @@ class headNIFTI(MRI):
                                .format(self.recIdentity()))
                 return acq
 
-            if "AcquisitionDate" in self._DICOM_CACHE:
+            if "AcquisitionTime" in self._HEADER_CACHE:
                 time_stamp = self.__transform(
-                        self._DICOM_CACHE["AcquisitionTime"],
-                        "DT")
+                        self._HEADER_CACHE["AcquisitionTime"],
+                        "TM")
             else:
                 logger.warning("{}: Acquisition Time not defined"
                                .format(self.recIdentity()))
@@ -317,17 +317,18 @@ class headNIFTI(MRI):
         # converted to corresponding datetime subclass
         if VR == "TM":
             if "." in value:
-                dt = datetime.strptime(value, "%H%M%S.%f").time()
+                dt = datetime.strptime(value, "%H:%M:%S.%f").time()
             else:
-                dt = datetime.strptime(value, "%H%M%S").time()
+                dt = datetime.strptime(value, "%H:%M:%S").time()
             return dt
         if VR == "DA":
-            dt = datetime.strptime(value, "%Y%m%d").date()
+            dt = datetime.strptime(value, "%Y-%m-%d").date()
             return dt
         if VR == "DT":
             value = value.strip()
-            date_string = "%Y%m%d"
-            time_string = "%H%M%S"
+            date_string = "%Y-%m-%d"
+            time_string = "%H:%M:%S"
+            sep_string = "T"
             ms_string = ""
             uts_string = ""
             if "." in value:
@@ -345,8 +346,8 @@ class headNIFTI(MRI):
                                .format(value))
                 t = datetime.strptime(value, time_string + ms_string)
             else:
-                t = datetime.strptime(value, date_string + time_string
-                                      + ms_string + uts_string)
+                t = datetime.strptime(value, date_string + sep_string 
+                                      + time_string + ms_string + uts_string)
             if t.tzinfo is not None:
                 t += t.tzinfo.utcoffset(t)
                 t = t.replace(tzinfo=None)

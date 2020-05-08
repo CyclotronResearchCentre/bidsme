@@ -96,7 +96,7 @@ class DICOM(MRI):
         # recommend["SliceTiming"]
         # recommend["SliceEncodingDirection"]
         # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
-        recommend["FlipAngle"] = MetaField("FlopAngle", 1.)
+        recommend["FlipAngle"] = MetaField("FlipAngle", 1.)
         # recommend["MultibandAccelerationFactor"]
         # recommend["NegativeContrast"]
         # recommend["MultibandAccelerationFactor"]

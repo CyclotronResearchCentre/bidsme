@@ -109,7 +109,7 @@ class Nifti_SPM12(MRI):
         # recommend["SliceTiming"]
         # recommend["SliceEncodingDirection"]
         # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
-        recommend["FlipAngle"] = MetaField("FlopAngle", 1.)
+        recommend["FlipAngle"] = MetaField("FlipAngle", 1.)
         # recommend["MultibandAccelerationFactor"]
         # recommend["NegativeContrast"]
         # recommend["MultibandAccelerationFactor"]
@@ -162,6 +162,17 @@ class Nifti_SPM12(MRI):
         """
         Checks whether a file is a NII file with a valid json dump,
         produced by hMRI package of SPM12
+
+        Parameters
+        ----------
+        file: str
+            path to file to test
+
+        Returns
+        -------
+        bool:
+            True if file is identified as NIFTI
+
         """
         if os.path.isfile(file) and file.endswith(".nii"):
             if os.path.basename(file).startswith('.'):
