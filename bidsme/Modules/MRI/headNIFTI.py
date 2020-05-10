@@ -346,7 +346,7 @@ class headNIFTI(MRI):
                                .format(value))
                 t = datetime.strptime(value, time_string + ms_string)
             else:
-                t = datetime.strptime(value, date_string + sep_string 
+                t = datetime.strptime(value, date_string + sep_string
                                       + time_string + ms_string + uts_string)
             if t.tzinfo is not None:
                 t += t.tzinfo.utcoffset(t)
