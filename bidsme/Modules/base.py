@@ -562,6 +562,10 @@ class baseModule(object):
 
     def getDynamicField(self, field: str,
                         cleanup: bool = True, raw: bool = False):
+        """
+        Dynamically retrieves metadata field from recording
+
+        """
         if not field or not isinstance(field, str):
             return field
         res = ""
@@ -1105,52 +1109,34 @@ class baseModule(object):
         if mod in self.metaFields_req:
             for key, field in self.metaFields_req[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
         if mod in self.metaFields_rec:
             for key, field in self.metaFields_req[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
         if mod in self.metaFields_opt:
             for key, field in self.metaFields_opt[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
         mod = "__common__"
         if mod in self.metaFields_req:
             for key, field in self.metaFields_req[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
         if mod in self.metaFields_rec:
             for key, field in self.metaFields_rec[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
         if mod in self.metaFields_opt:
             for key, field in self.metaFields_opt[mod].items():
                 if field is not None:
-                    if field.name.startswith("<"):
-                        field.value = self.getDynamicField(field.name,
-                                                           field.default)
-                    else:
-                        field.value = self.getField(field.name, field.default)
+                    field.value = self.__getMetaFieldSecure(field,
+                                                            field.default)
 
     def exportMeta(self) -> dict:
         """
@@ -1264,89 +1250,55 @@ class baseModule(object):
             for key, field in self.metaFields_req[modality].items():
                 if key in run.json:
                     continue
-                if field is None:
-                    run.json[key] = "<<placeholder>>"
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = "<<placeholder>>"
         if modality in self.metaFields_rec:
             for key, field in self.metaFields_rec[modality].items():
                 if key in run.json:
                     continue
-                if field is None:
-                    run.json[key] = ""
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = ""
         if modality in self.metaFields_opt:
             for key, field in self.metaFields_opt[modality].items():
                 if key in run.json:
                     continue
-                if field is None:
-                    run.json[key] = None
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = None
         if "__common__" in self.metaFields_req:
             for key, field\
                     in self.metaFields_req["__common__"].items():
                 if key in run.json:
                     continue
-                if field is None:
-                    run.json[key] = "<<placeholder>>"
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = "<<placeholder>>"
         if "__common__" in self.metaFields_rec:
             for key, field\
                     in self.metaFields_rec["__common__"].items():
                 if key in run.json:
                     continue
-                if field is None:
-                    run.json[key] = ""
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = ""
         if "__common__" in self.metaFields_opt:
             for key, field\
                     in self.metaFields_opt["__common__"].items():
                 if key in run.json:
                     continue
-                if field is None:
+                if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = None
-                    continue
-                if field.name.startswith("<"):
-                    val = self.getDynamicField(field.name,
-                                               field.default)
-                else:
-                    val = self.getField(field.name, field.default)
-                if val is None:
-                    run.json[key] = None
+
+    def __getMetaFieldSecure(self, field: MetaField, fallback):
+        if field is None:
+            return fallback
+        try:
+            if field.name.startswith("<"):
+                val = self.getDynamicField(field.name, raw=True, cleanup=False)
+            else:
+                val = self.getField(field.name, field.default)
+        except Exception:
+            return fallback
+        if val is None:
+            return fallback
+        return val
 
     #####################################
     # Recording identification methodes #

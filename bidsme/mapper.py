@@ -29,7 +29,6 @@ import pandas
 
 from tools import paths
 import tools.tools as tools
-from tools.yaml import yaml
 import bidsmap
 import plugins
 
@@ -76,9 +75,11 @@ def createmap(recording: Modules.baseModule,
                 logger.error("{}/{}: No compatible run found"
                              .format(recording.Module(),
                                      recording.recIdentity()))
-                bidsmap_unk[recording.Module()][recording.Type()].append({
-                    "provenance": recording.currentFile(),
-                    "attributes": recording.attributes})
+                bidsmap_unk.add_run(
+                        run,
+                        recording.Module(),
+                        recording.Type()
+                        )
                 continue
             run.template = True
             modality, r_index, run = bidsmap.add_run(
@@ -87,6 +88,8 @@ def createmap(recording: Modules.baseModule,
                     recording.Type()
                     )
         if not run.checked:
+            if not run.entity:
+                run.genEntities(recording.bidsmodalities.get(modality, []))
             recording.fillMissingJSON(run)
     plugins.RunPlugin("SequenceEndEP", None, recording)
 
@@ -167,12 +170,6 @@ def mapper(source: str, destination: str,
     bidscodefolder = os.path.join(destination, 'code', 'bidsme')
     os.makedirs(bidscodefolder, exist_ok=True)
 
-    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
-
-    # removing old unknown files
-    if os.path.isfile(bidsunknown):
-        os.remove(bidsunknown)
-
     # Get the heuristics for filling the new bidsmap
     logger.info("loading template bidsmap {}".format(map_template))
     fname = paths.findFile(map_template,
@@ -183,6 +180,7 @@ def mapper(source: str, destination: str,
         logger.warning("Unable to find template map {}"
                        .format(map_template))
     template = bidsmap.Bidsmap(fname)
+
     fname = paths.findFile(bidsmapfile,
                            bidscodefolder,
                            paths.local,
@@ -193,8 +191,14 @@ def mapper(source: str, destination: str,
     else:
         bidsmapfile = fname
     logger.info("loading working bidsmap {}".format(bidsmapfile))
-
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
+
+    logger.debug("Creating bidsmap for unknown modalities")
+    # removing old unknown files
+    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
+    if os.path.isfile(bidsunknown):
+        os.remove(bidsunknown)
+    bidsmap_unk = bidsmap.Bidsmap(bidsunknown)
 
     ###############
     # Plugin setup
@@ -205,11 +209,6 @@ def mapper(source: str, destination: str,
                            destination=destination,
                            dry=True,
                            **plugin_opt)
-
-    logger.debug("Creating bidsmap for unknown modalities")
-    bidsmap_unk = {mod: {t.__name__: list()
-                         for t in types}
-                   for mod, types in Modules.selector.types_list.items()}
 
     ###############################
     # Checking participants list
@@ -348,16 +347,10 @@ def mapper(source: str, destination: str,
                        .format(nunchecked))
 
     # Scanning unknowing and exporting them to yaml file
-    d = dict()
-    for mod in bidsmap_unk:
-        for t in bidsmap_unk[mod]:
-            if bidsmap_unk[mod][t]:
-                if mod not in d:
-                    d[mod] = dict()
-                d[mod][t] = bidsmap_unk[mod][t]
-    if len(d) > 0:
-        logger.error("Was unable to identify several recordings. "
-                     "See {} for details".format(bidsunknown))
+    unkn_recordings = bidsmap_unk.countRuns()[0]
+    if unkn_recordings > 0:
+        logger.error("Was unable to identify {} recordings. "
+                     "See {} for details"
+                     .format(unkn_recordings, bidsunknown))
         if not dry_run:
-            with open(bidsunknown, 'w') as stream:
-                yaml.dump(d, stream)
+            bidsmap_unk.save(bidsunknown)

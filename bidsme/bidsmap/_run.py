@@ -384,3 +384,17 @@ class Run(object):
         d["json"] = self.json
 
         return d
+
+    def genEntities(self, entities: list):
+        """
+        Completes the existing entities by entities from list
+        All added values will be set to None
+
+        Parameters
+        ----------
+        entities: list
+            list of strings with names of entities to add
+        """
+        for ent in entities:
+            if ent not in self.entity:
+                self.entity[ent] = None

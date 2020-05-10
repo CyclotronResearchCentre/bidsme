@@ -124,7 +124,7 @@ class MRI(baseModule):
     _module = "MRI"
 
     bidsmodalities = {
-            "anat": ("acq", "ce", "rec", "mod", "run"),
+            "anat": ("acq", "ce", "rec", "run", "mod"),
             "func": ("task", "acq", "ce", "dir", "rec", "run", "echo"),
             "dwi": ("acq", "dir", "run"),
             "fmap": ("acq", "ce", "dir", "run"),

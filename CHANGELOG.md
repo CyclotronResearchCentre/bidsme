@@ -6,9 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
   - MRI: fixed misspell in `FlipAngle` metafield
   - Hidden files wasn't skipped prpoerly
+  - MRI: fixed order of entities for `anat` modality
+  - map: crash if `<<bids:xxx>>` used if corresponding entity not set
 
 ### Added
   - MRI: headNIFTI -- NIFTI file format with bidsme-extracted DICOM-header
+
+### Changed
+  - map: `unknown.yaml` file now replicates standard `bidsmap.yaml` structure with
+the only modality `__unknown__`. Copiyng directly from `unknown.yaml`, and filling
+attributes, bids and suffix should now suffice for bidsmap
+  - map: If bids section is empty for matched run, it will be filled by predefined
+entities, provide the modality is defined in Bids standard
+
 
 ## [1.0.3] - 2020-05-05
 
