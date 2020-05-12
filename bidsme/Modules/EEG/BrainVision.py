@@ -217,7 +217,7 @@ class BrainVision(EEG):
             elif det == "unit":
                 return val[3]
 
-        logger.warning("{}/{}: Unknown field prefix {}"
+        logger.warning("{}: Unknown field prefix {}"
                        .format(self.formatIdentity(),
                                prefix))
         return value

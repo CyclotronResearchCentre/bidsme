@@ -133,8 +133,7 @@ class genNIFTI(MRI):
                 header_size = 510
                 if path.endswith(".hdr"):
                     logger.error("{}:{} .hdr/.img cannot be NIFTI-2"
-                                 .format(self(self.formatIdentity(),
-                                              path)))
+                                 .format(self.formatIdentity(), path))
                     raise Exception("Corrupted file")
 
             # confirming endiannes and type

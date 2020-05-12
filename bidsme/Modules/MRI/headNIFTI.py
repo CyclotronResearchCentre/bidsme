@@ -237,7 +237,7 @@ class headNIFTI(MRI):
         elif prefix == "":
             return value
         else:
-            logger.warning("{}/{}: Unknown field prefix {}"
+            logger.warning("{}: Unknown field prefix {}"
                            .format(self.formatIdentity(),
                                    prefix))
         return value

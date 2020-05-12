@@ -143,9 +143,9 @@ if __name__ == "__main__":
             code = 1
         exc_type, exc_value, exc_traceback = os.sys.exc_info()
         tr = traceback.extract_tb(exc_traceback)
-        for l in tr:
+        for line in tr:
             logger.error("{}({}) in {}: "
-                         .format(l[0], l[1], l[2]))
+                         .format(line[0], line[1], line[2]))
         logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
         logger.info("Command: {}".format(os.sys.argv))
 
