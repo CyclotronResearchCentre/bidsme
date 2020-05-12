@@ -323,6 +323,9 @@ class baseModule(object):
         FileNotFoundError
             If path is not a file
         """
+        if os.path.isdir(file):
+            logger.warning("File {} is a directory".format(file))
+            return False
         if not os.path.isfile(file):
             raise FileNotFoundError("File {} not found or not a file"
                                     .format(file))

@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - prepare: now directories in folder with data files will no longer crash,
+but still produce warning
+
+
 ## [1.1.0] - 2020-05-10
 
 ### Fixed
