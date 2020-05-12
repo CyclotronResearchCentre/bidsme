@@ -179,9 +179,9 @@ class Bidsmap(object):
         for modality, r_list in d.items():
             for idx, run in enumerate(r_list):
                 if recording.match_run(run):
-                    recording.setLabels(run)
                     if check_multiple:
                         if res_mod is None:
+                            recording.setLabels(run)
                             res_mod = modality
                             res_index = idx
                             res_run = run
@@ -198,6 +198,7 @@ class Bidsmap(object):
                                            .format(res_mod, res_index,
                                                    modality, idx))
                     else:
+                        recording.setLabels(run)
                         break
         if res_mod and res_mod != d[res_mod][res_index].modality:
             logger.warning("Run {}/{}/{} mismach modality {}"

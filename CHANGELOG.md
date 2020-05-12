@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
   - prepare: now directories in folder with data files will no longer crash,
 but still produce warning
+  - map: in case of multiple checked runs, now the first one is used to set up
+modality and labels
 
 
 ## [1.1.0] - 2020-05-10
