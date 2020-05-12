@@ -378,7 +378,7 @@ class Run(object):
         d["checked"] = self.checked
         d["suffix"] = self.suffix
         d["attributes"] = {k: v for k, v in self.attribute.items()
-                           if empty_attributes or v
+                           if empty_attributes or v is not None
                            }
         d["bids"] = self.entity
         d["json"] = self.json

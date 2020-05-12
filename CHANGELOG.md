@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 but still produce warning
   - map: in case of multiple checked runs, now the first one is used to set up
 modality and labels
+  - map: bug where 0 or '' values to check are not retained for bidsmap file
 
 
 ## [1.1.0] - 2020-05-10

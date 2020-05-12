@@ -1360,7 +1360,7 @@ class baseModule(object):
         if not run.attribute:
             match_one = True
         for attrkey, attrvalue in run.attribute.items():
-            if not attrvalue:
+            if attrvalue is None:
                 continue
             res = self.matchAttribute(attrkey, attrvalue)
             match_one = match_one or res
