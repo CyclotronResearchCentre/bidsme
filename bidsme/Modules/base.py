@@ -1323,7 +1323,9 @@ class baseModule(object):
         bool
         """
         if attribute.startswith('<'):
-            attval = self.getDynamicField(attribute)
+            attval = self.getDynamicField(attribute,
+                                          cleanup=False,
+                                          raw=True)
         else:
             attval = self.getAttribute(attribute)
         if attval is None:

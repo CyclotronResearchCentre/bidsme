@@ -9,6 +9,7 @@ but still produce warning
   - map: in case of multiple checked runs, now the first one is used to set up
 modality and labels
   - map: bug where 0 or '' values to check are not retained for bidsmap file
+  - bug during attribute checking where retrieved attribute was cleaned
 
 
 ## [1.1.0] - 2020-05-10
