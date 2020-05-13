@@ -11,6 +11,8 @@ modality and labels
   - map: bug where 0 or '' values to check are not retained for bidsmap file
   - bug during attribute checking where retrieved attribute was cleaned
 
+### Changed
+  - meta-fileds are not longer checked for pre-defined value if present in bidsmap
 
 ## [1.1.0] - 2020-05-10
 

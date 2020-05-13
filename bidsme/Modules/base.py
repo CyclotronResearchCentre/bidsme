@@ -1098,7 +1098,7 @@ class baseModule(object):
             tags_list.append(tools.cleanup_value(self.suffix))
         return "_".join(tags_list)
 
-    def generateMeta(self):
+    def generateMeta(self) -> dict:
         """
         Fills standard meta values. Must be called before exporting
         these meta-data into json
@@ -1111,33 +1111,33 @@ class baseModule(object):
         mod = self._modality
         if mod in self.metaFields_req:
             for key, field in self.metaFields_req[mod].items():
-                if field is not None:
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         if mod in self.metaFields_rec:
-            for key, field in self.metaFields_req[mod].items():
-                if field is not None:
+            for key, field in self.metaFields_rec[mod].items():
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         if mod in self.metaFields_opt:
             for key, field in self.metaFields_opt[mod].items():
-                if field is not None:
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         mod = "__common__"
         if mod in self.metaFields_req:
             for key, field in self.metaFields_req[mod].items():
-                if field is not None:
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         if mod in self.metaFields_rec:
             for key, field in self.metaFields_rec[mod].items():
-                if field is not None:
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         if mod in self.metaFields_opt:
             for key, field in self.metaFields_opt[mod].items():
-                if field is not None:
+                if field is not None and key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
 
