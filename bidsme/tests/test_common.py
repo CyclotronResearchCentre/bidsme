@@ -1,0 +1,106 @@
+###############################################################################
+# test_common.py defines unit tests for common.py functions
+###############################################################################
+# Copyright (c) 2019-2020, University of Liège
+# Author: Nikita Beliy
+# Owner: Liege University https://www.uliege.be
+# Credits: [Nikita Beliy]
+# Maintainer: Nikita Beliy
+# Email: Nikita.Beliy@uliege.be
+# Status: developpement
+###############################################################################
+# This file is part of BIDSme
+# BIDSme is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# eegBidsCreator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
+##############################################################################
+
+import unittest
+from  Modules import exceptions
+
+from Modules.common import action_value
+
+
+
+class TestActionValue(unittest.TestCase):
+    def testInt(self):
+        self.assertEqual(action_value("2", "int"), 2)
+        self.assertEqual(action_value("2", "int"), 2)
+        self.assertEqual(action_value(2, "int"), 2)
+        self.assertEqual(action_value(2.5, "int"), 2)
+        with self.assertRaises(TypeError):
+            action_value(None, "int")
+        with self.assertRaises(ValueError):
+            action_value("2.5", "int")
+
+    def testFloat(self):
+        self.assertEqual(action_value("2", "float"), 2)
+        self.assertEqual(action_value("2.5", "float"), 2.5)
+        self.assertEqual(action_value(2, "float"), 2)
+        self.assertEqual(action_value(2.5, "float"), 2.5)
+        with self.assertRaises(TypeError):
+            action_value(None, "float")
+        with self.assertRaises(ValueError):
+            action_value("a2.5", "float")
+
+    def testString(self):
+        self.assertEqual(action_value("abc", "str"), "abc")
+        self.assertEqual(action_value(2, "str"), "2")
+        self.assertEqual(action_value(None, "str"), "None")
+
+    def testFormat(self):
+        self.assertEqual(action_value("abc", "format"), "abc")
+        self.assertEqual(action_value("abc", "format >8"), "     abc")
+        self.assertEqual(action_value(3, "format >8"), "       3")
+        self.assertEqual(action_value(3.555, "format >.0f"), "4")
+
+    def testScale(self):
+        self.assertEqual(action_value(3, "scale2"), 300)
+        self.assertEqual(action_value(3, "scale-2"), 0.03)
+        with self.assertRaises(TypeError):
+            action_value("3", "scale2")
+        with self.assertRaises(ValueError):
+            action_value(3, "scale-2.5")
+        with self.assertRaises(ValueError):
+            action_value(3, "scale")
+
+    def testMult(self):
+        self.assertEqual(action_value(3, "mult2"), 6)
+        self.assertEqual(action_value(3, "mult-2.5"), -7.5)
+        with self.assertRaises(ValueError):
+            action_value(3, "mult")
+        with self.assertRaises(TypeError):
+            action_value("3", "mult2")
+
+    def testDiv(self):
+        self.assertEqual(action_value(6, "div2"), 3)
+        self.assertEqual(action_value(-7.5, "div-2.5"), 3)
+        with self.assertRaises(ValueError):
+            action_value(3, "div")
+        with self.assertRaises(TypeError):
+            action_value("3", "div2")
+
+    def testRound(self):
+        self.assertEqual(action_value(6, "round2"), 6)
+        self.assertEqual(action_value(-7.5, "round2"), -7.5)
+        self.assertEqual(action_value(7.1234, "round2"), 7.12)
+        self.assertEqual(action_value(7.1234, "round"), 7)
+        self.assertTrue(isinstance(action_value(7.1234, "round"), int))
+        self.assertTrue(isinstance(action_value(7.1234, "round0"), float))
+        with self.assertRaises(TypeError):
+            action_value("3", "round2")
+
+    def testInvalid(self):
+        self.assertRaises(exceptions.InvalidActionError,
+                          action_value, 0, "abcde")
+
+
+if __name__ == '__main__':
+    unittest.main()
