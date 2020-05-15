@@ -112,17 +112,25 @@ def action_value(value: object, action: str) -> object:
     raise InvalidActionError(action)
 
 
-def retrieveFormDict(field: list, dictionary: dict) -> object:
+def retrieveFormDict(path: list, dictionary: dict,
+                     fail_on_not_found: bool = True,
+                     fail_on_last_not_found: bool = True
+                     ) -> object:
     """
     retrieves value given by path stored in field from dictionary
     Use if retrieved metadata is stored in standard python dict
 
     Parameters
     ----------
-    field: list
+    path: list
         splitted path to needed value
     dictionary: dict
         dict from which value is retrieved
+    fail_on_not_found: bool
+        if True raises KeyError if given path is not valid,
+        returns None elsewere
+    fail_on_last_not_found: bool
+        same as fail_on_not_found, except for only last element of path
 
     Returns
     -------
@@ -134,27 +142,29 @@ def retrieveFormDict(field: list, dictionary: dict) -> object:
     Raises
     ------
     KeyError:
-        if unable to retrieve
+        if path is not valid
     """
     value = dictionary
     count = 0
     try:
-        for f in field:
+        for f in path:
             count += 1
             if isinstance(value, list):
                 value = value[int(f)]
             elif isinstance(value, dict):
                 value = value[f]
-            else:
-                break
     except KeyError as e:
-        if count == len(field):
+        if not fail_on_not_found:
+            return None
+        if not fail_on_last_not_found and count == len(path):
             return None
         raise KeyError("{}: key error {}"
-                       .format(field[0:count], e))
-    except IndexError as e:
-        if count == len(field):
+                       .format(path[0:count], e))
+    except IndexError:
+        if not fail_on_not_found:
+            return None
+        if not fail_on_last_not_found and count == len(path):
             return None
         raise KeyError("{}: key error {}"
-                       .format(field[0:count], f))
+                       .format(path[0:count], f))
     return value

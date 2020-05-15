@@ -242,7 +242,8 @@ class Nifti_SPM12(MRI):
             if field[0] in self.__spetialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                res = retrieveFormDict(field, self._DICOMDICT_CACHE)
+                res = retrieveFormDict(field, self._DICOMDICT_CACHE,
+                                       fail_on_last_not_found=False)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))

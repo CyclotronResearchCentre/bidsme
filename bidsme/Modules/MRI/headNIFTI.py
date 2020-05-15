@@ -212,7 +212,8 @@ class headNIFTI(MRI):
             if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                res = retrieveFormDict(field, self._HEADER_CACHE)
+                res = retrieveFormDict(field, self._HEADER_CACHE,
+                                       fail_on_last_not_found=False)
         except Exception:
             logger.warning("{}: Could not parse '{}'"
                            .format(self.currentFile(False), field))

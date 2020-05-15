@@ -107,27 +107,36 @@ class TestActionValue(unittest.TestCase):
 
 
 class TestRetrieveFromDict(unittest.TestCase):
-    def testRetrieval(self):
-        d = {"a": "val1",
-             "b": ["list1", "list2"],
-             "d": {"d1": "vald1",
-                   "d2": ["listd11", "listd12"]},
-             "e": [{"e1": "vale1",
-                    "e2": ["vale21", "vale22", "vale23"],
-                    }]
-             }
-        self.assertEqual(retrieveFormDict(["a"], d), "val1")
-        self.assertEqual(retrieveFormDict(["b", 0], d), "list1")
-        self.assertEqual(retrieveFormDict(["d", "d1"], d), "vald1")
-        self.assertEqual(retrieveFormDict(["d", "d2", 0], d), "listd11")
-        self.assertEqual(retrieveFormDict(["e", 0, "e2", 2], d), "vale23")
-        self.assertIsNone(retrieveFormDict(["e", 0, "e2", 8], d))
-        self.assertIsNone(retrieveFormDict([0], d))
 
+    d = {"a": "val1",
+         "b": ["list1", "list2"],
+         "d": {"d1": "vald1",
+               "d2": ["listd11", "listd12"]},
+         "e": [{"e1": "vale1",
+                "e2": ["vale21", "vale22", "vale23"],
+                }]
+         }
+
+    def testRetrievalSuccess(self):
+        self.assertEqual(retrieveFormDict(["a"], self.d), "val1")
+        self.assertEqual(retrieveFormDict(["b", 0], self.d), "list1")
+        self.assertEqual(retrieveFormDict(["d", "d1"], self.d), "vald1")
+        self.assertEqual(retrieveFormDict(["d", "d2", 0], self.d), "listd11")
+        self.assertEqual(retrieveFormDict(["e", 0, "e2", 2], self.d), "vale23")
+
+    def testRetrievalFail(self):
+        self.assertIsNone(retrieveFormDict(["e", 0, "e2", 8], self.d,
+                                           fail_on_last_not_found=False))
+        self.assertIsNone(retrieveFormDict(["f"], self.d,
+                                           fail_on_last_not_found=False))
         with self.assertRaisesRegex(KeyError, ": key error 0"):
-            retrieveFormDict([0, 0], d)
-        with self.assertRaisesRegex(KeyError, ": key error 'f'"):
-            retrieveFormDict(["f", 10], d)
+            retrieveFormDict([0, 0], self.d)
+        self.assertIsNone(retrieveFormDict([0, 0], self.d,
+                          fail_on_not_found=False))
+        with self.assertRaisesRegex(KeyError, ": key error 10"):
+            retrieveFormDict(["e", 10], self.d)
+        self.assertIsNone(retrieveFormDict(["e", 10], self.d,
+                          fail_on_not_found=False))
 
 
 if __name__ == '__main__':
