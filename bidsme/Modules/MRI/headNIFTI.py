@@ -22,6 +22,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+from ..common import retrieveFormDict
 from .MRI import MRI
 from bidsMeta import MetaField
 
@@ -211,36 +212,12 @@ class headNIFTI(MRI):
             if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                value = self._HEADER_CACHE
-                for f in field:
-                    if isinstance(value, list):
-                        value = value[int(f)]
-                    elif isinstance(value, dict):
-                        value = value.get(f, None)
-                    else:
-                        break
-                res = value
+                res = retrieveFormDict(field, self._HEADER_CACHE)
         except Exception:
             logger.warning("{}: Could not parse '{}'"
                            .format(self.currentFile(False), field))
             res = None
         return res
-
-    def _transformField(self, value, prefix: str):
-        if prefix.startswith("scale"):
-            exp = prefix[len("scale"):]
-            if exp:
-                exp = int(exp)
-            else:
-                exp = 3
-            return value / 10 ** exp
-        elif prefix == "":
-            return value
-        else:
-            logger.warning("{}: Unknown field prefix {}"
-                           .format(self.formatIdentity(),
-                                   prefix))
-        return value
 
     def recNo(self):
         return self.getField("SeriesNumber", 0)

@@ -31,10 +31,11 @@ def action_value(value: object, action: str) -> object:
     retuns the outcome
 
     Accepted actions:
+        "": no action, return value
         int: cast value to int
         float: cast value to float
         str: cast value to string
-        format<parameters>: apply python3 formatting 
+        format<parameters>: apply python3 formatting
             mini-language to value, {:<parameters>}.format(value)
         scale<int>: apply a 10-based scale to value,
             value ** <int>
@@ -63,9 +64,11 @@ def action_value(value: object, action: str) -> object:
     ValueError:
         if value is invalid for action
     """
-    
+    if action == "":
+        return value
+
     # type casting
-    if action =="int":
+    if action == "int":
         return int(value)
     if action == "float":
         return float(value)
@@ -107,3 +110,51 @@ def action_value(value: object, action: str) -> object:
             return round(value, par)
 
     raise InvalidActionError(action)
+
+
+def retrieveFormDict(field: list, dictionary: dict) -> object:
+    """
+    retrieves value given by path stored in field from dictionary
+    Use if retrieved metadata is stored in standard python dict
+
+    Parameters
+    ----------
+    field: list
+        splitted path to needed value
+    dictionary: dict
+        dict from which value is retrieved
+
+    Returns
+    -------
+    object:
+        retrieved value
+    None:
+        if value don't exists in valid path
+
+    Raises
+    ------
+    KeyError:
+        if unable to retrieve
+    """
+    value = dictionary
+    count = 0
+    try:
+        for f in field:
+            count += 1
+            if isinstance(value, list):
+                value = value[int(f)]
+            elif isinstance(value, dict):
+                value = value[f]
+            else:
+                break
+    except KeyError as e:
+        if count == len(field):
+            return None
+        raise KeyError("{}: key error {}"
+                       .format(field[0:count], e))
+    except IndexError as e:
+        if count == len(field):
+            return None
+        raise KeyError("{}: key error {}"
+                       .format(field[0:count], f))
+    return value

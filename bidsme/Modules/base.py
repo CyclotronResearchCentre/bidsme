@@ -41,6 +41,7 @@ from bidsmap import Run
 from bids import BidsSession
 
 from ._constants import ignoremodality, unknownmodality
+from .common import action_value
 
 logger = logging.getLogger(__name__)
 
@@ -293,12 +294,13 @@ class baseModule(object):
         prefix:
             identification of transformation
         """
-        if prefix != "":
-            logger.warning("{}/{}: Undefined field prefix {}"
-                           .format(self.Module(),
-                                   self.Type(),
-                                   prefix))
-        return value
+        try:
+            return action_value(value, prefix)
+        except Exception as e:
+            logger.error("{}: Invalid field prefix {}: {}"
+                         .format(self.formatIdentity(),
+                                 prefix, e))
+            raise
 
     ##################
     # Class methodes #

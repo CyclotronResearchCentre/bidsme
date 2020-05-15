@@ -23,7 +23,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-
+from ..common import retrieveFormDict
 from .MRI import MRI
 from tools import tools
 
@@ -184,15 +184,7 @@ class genNIFTI(MRI):
             if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                value = self._NIFTI_CACHE
-                for ind, f in enumerate(field):
-                    if isinstance(value, list):
-                        value = value[int(f)]
-                        continue
-                    if isinstance(value, dict):
-                        value = value[f]
-                    raise Exception("Not iterable")
-                res = value
+                res = retrieveFormDict(field, self._NIFTI_CACHE)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))

@@ -22,6 +22,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+
 class InvalidActionError(Exception):
     """
     Raises if name of an action for dynamic field retrieval is invalid

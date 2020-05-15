@@ -23,7 +23,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-
+from ..common import action_value
 from .EEG import EEG
 from bidsMeta import MetaField
 
@@ -199,13 +199,7 @@ class BrainVision(EEG):
         return res
 
     def _transformField(self, value, prefix: str):
-        if prefix == "":
-            return value
-        elif prefix == "int":
-            return int(value)
-        elif prefix == "float":
-            return float(value)
-        elif prefix.startswith("ch_"):
+        if prefix.startswith("ch_"):
             det = prefix[len("ch_"):]
             val = value.split(',')
             if det == "name":
@@ -217,10 +211,13 @@ class BrainVision(EEG):
             elif det == "unit":
                 return val[3]
 
-        logger.warning("{}: Unknown field prefix {}"
-                       .format(self.formatIdentity(),
-                               prefix))
-        return value
+        try:
+            return action_value(value, prefix)
+        except Exception as e:
+            logger.error("{}: Invalid field prefix {}:{}"
+                         .format(self.formatIdentity(),
+                                 prefix, e))
+            raise
 
     def recNo(self):
         return self.index

@@ -11,6 +11,14 @@ modality and labels
   - map: bug where 0 or '' values to check are not retained for bidsmap file
   - bug during attribute checking where retrieved attribute was cleaned
 
+### Added
+  - Modules: `common.py` file with often used functions for modules implementations
+  - `common.py`: `action_value` function that apply a given action to value,
+used for transformation of metadata from headers
+  - `common.py`: `retrieveFormDict` function that implements search of value
+from path in standard dictionary
+  - unittests for `common.py`
+
 ### Changed
   - meta-fileds are not longer checked for pre-defined value if present in bidsmap
 

@@ -25,6 +25,8 @@
 
 
 from .MRI import MRI
+from ..common import action_value
+from ..common import retrieveFormDict
 from bidsMeta import MetaField
 from tools import tools
 
@@ -240,36 +242,26 @@ class Nifti_SPM12(MRI):
             if field[0] in self.__spetialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                value = self._DICOMDICT_CACHE
-                for f in field:
-                    if isinstance(value, list):
-                        value = value[int(f)]
-                    elif isinstance(value, dict):
-                        value = value.get(f, None)
-                    else:
-                        break
-                res = value
-        except Exception:
-            logger.warning("{}: Could not parse '{}'"
-                           .format(self.currentFile(False), field))
+                res = retrieveFormDict(field, self._DICOMDICT_CACHE)
+        except Exception as e:
+            logger.warning("{}: Could not parse '{}' for {}"
+                           .format(self.currentFile(False), field, e))
             res = None
         return res
 
     def _transformField(self, value, prefix: str):
-        if prefix.startswith("time"):
-            exp = prefix[len("time"):]
-            if exp:
-                exp = int(exp)
-            else:
-                exp = 3
-            return value / 10 ** exp
+        if prefix == "time":
+            return value / 1000
         elif prefix == "":
             return value
-        else:
-            logger.warning("{}: Unknown field prefix {}"
-                           .format(self.formatIdentity(),
-                                   prefix))
-        return value
+
+        try:
+            return action_value(value, prefix)
+        except Exception as e:
+            logger.error("{}: Invalid field prefix {}: {}"
+                         .format(self.formatIdentity(),
+                                 prefix, e))
+            raise
 
     def recNo(self):
         return self.getField("SeriesNumber", 0)

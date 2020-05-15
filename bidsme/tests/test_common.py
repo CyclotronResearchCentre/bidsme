@@ -23,13 +23,17 @@
 ##############################################################################
 
 import unittest
-from  Modules import exceptions
+from Modules import exceptions
 
 from Modules.common import action_value
-
+from Modules.common import retrieveFormDict
 
 
 class TestActionValue(unittest.TestCase):
+    def testEmpty(self):
+        self.assertEqual(action_value("2", ""), "2")
+        self.assertEqual(action_value(2, ""), 2)
+
     def testInt(self):
         self.assertEqual(action_value("2", "int"), 2)
         self.assertEqual(action_value("2", "int"), 2)
@@ -100,6 +104,30 @@ class TestActionValue(unittest.TestCase):
     def testInvalid(self):
         self.assertRaises(exceptions.InvalidActionError,
                           action_value, 0, "abcde")
+
+
+class TestRetrieveFromDict(unittest.TestCase):
+    def testRetrieval(self):
+        d = {"a": "val1",
+             "b": ["list1", "list2"],
+             "d": {"d1": "vald1",
+                   "d2": ["listd11", "listd12"]},
+             "e": [{"e1": "vale1",
+                    "e2": ["vale21", "vale22", "vale23"],
+                    }]
+             }
+        self.assertEqual(retrieveFormDict(["a"], d), "val1")
+        self.assertEqual(retrieveFormDict(["b", 0], d), "list1")
+        self.assertEqual(retrieveFormDict(["d", "d1"], d), "vald1")
+        self.assertEqual(retrieveFormDict(["d", "d2", 0], d), "listd11")
+        self.assertEqual(retrieveFormDict(["e", 0, "e2", 2], d), "vale23")
+        self.assertIsNone(retrieveFormDict(["e", 0, "e2", 8], d))
+        self.assertIsNone(retrieveFormDict([0], d))
+
+        with self.assertRaisesRegex(KeyError, ": key error 0"):
+            retrieveFormDict([0, 0], d)
+        with self.assertRaisesRegex(KeyError, ": key error 'f'"):
+            retrieveFormDict(["f", 10], d)
 
 
 if __name__ == '__main__':

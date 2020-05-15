@@ -261,21 +261,6 @@ class DICOM(MRI):
     def isCompleteRecording(self):
         return True
 
-    def _transformField(self, value, prefix: str):
-        if prefix.startswith("time"):
-            exp = prefix[len("time"):]
-            if exp:
-                exp = int(exp)
-            else:
-                exp = 3
-            return value / 10 ** exp
-        elif prefix == "":
-            return value
-        else:
-            logger.warning("{}: Unknown field prefix {}"
-                           .format(self.formatIdentity(),
-                                   prefix))
-
     def clearCache(self) -> None:
         del self._DICOM_CACHE
         self._DICOM_CACHE = None
