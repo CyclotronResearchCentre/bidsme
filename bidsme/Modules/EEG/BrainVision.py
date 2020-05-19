@@ -57,7 +57,7 @@ class BrainVision(EEG):
         from configparser import ConfigParser
         super().__init__()
 
-        self._CACHE = ConfigParser(allow_no_value=True)
+        self._CACHE = ConfigParser(allow_no_value=True, strict=False)
         self._MRK_CACHE = ConfigParser()
         self._FILE_CACHE = ""
         self._datafile = None
@@ -112,7 +112,8 @@ class BrainVision(EEG):
 
             with open(path, "r", encoding="utf-8") as f:
                 f.readline()
-                self._CACHE.read_file(f, source=path)
+                self._CACHE.read_file(self._readline_generator(f),
+                                      source=path)
 
             self._datafile = self._genPath(
                     dirpath,
@@ -230,7 +231,7 @@ class BrainVision(EEG):
 
     def clearCache(self) -> None:
         from configparser import ConfigParser
-        self._CACHE = ConfigParser(allow_no_value=True)
+        self._CACHE = ConfigParser()
         self._MRK_CACHE = ConfigParser()
         self._FILE_CACHE = ""
 
@@ -405,7 +406,7 @@ class BrainVision(EEG):
         return None
 
     def _getSesId(self) -> str:
-        return None
+        return ""
 
     ########################
     # Additional fonctions #
@@ -438,3 +439,12 @@ class BrainVision(EEG):
         if field == "SamplingInterval":
             return float(self.getField("Common Infos/SamplingInterval"))
         return None
+
+    def _readline_generator(self, fp):
+        line = fp.readline()
+        while line:
+            if '[Comment]' in line:
+                break
+            else:
+                yield line
+                line = fp.readline()
