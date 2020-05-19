@@ -110,10 +110,8 @@ class BrainVision(EEG):
             dirpath, base = os.path.split(path)
             base = os.path.splitext(base)[0]
 
-            
             with open(path, "r", encoding="utf-8") as f:
                 f.readline()
-                # self._CACHE.read_file(f, source=path)
                 self._CACHE.read_file(self._readline_generator(f),
                                       source=path)
 
@@ -450,5 +448,3 @@ class BrainVision(EEG):
             else:
                 yield line
                 line = fp.readline()
-
-
