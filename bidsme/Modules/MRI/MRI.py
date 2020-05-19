@@ -31,123 +31,22 @@ from tools import tools
 
 from ..base import baseModule
 
+from . import _MRI_bids_meta
+
 logger = logging.getLogger(__name__)
-
-mri_meta_required_common = []
-mri_meta_recommended_common = [
-        # Scanner hardware
-        "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
-        "StationName", "SoftwareVersions",
-        "MagneticFieldStrength", "ReceiveCoilName",
-        "ReceiveCoilActiveElements",
-        "GradientSetType", "MRTransmitCoilSequence",
-        "MatrixCoilMode", "CoilCombinationMethod",
-        # Sequence Specifics
-        "PulseSequenceType", "ScanningSequence", "SequenceVariant",
-        "ScanOptions", "SequenceName", "PulseSequenceDetails",
-        "NonlinearGradientCorrection",
-        # In-Plane Spatial Encoding
-        "NumberShots", "ParallelReductionFactorInPlane",
-        "ParallelAcquisitionTechnique", "PartialFourier",
-        "PartialFourierDirection", "PhaseEncodingDirection",
-        "EffectiveEchoSpacing", "TotalReadoutTime",
-        # Timing Parameters
-        "EchoTime", "InversionTime", "SliceTiming",
-        "SliceEncodingDirection", "DwellTime",
-        # RF & Contrast
-        "FlipAngle", "MultibandAccelerationFactor",
-        # Slice Acceleration
-        "MultibandAccelerationFactor",
-        # Anatomical landmarks
-        "AnatomicalLandmarkCoordinates",
-        # Institution information
-        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
-        ]
-mri_meta_optional_common = []
-
-mri_meta_required_modality = {
-        "func": ["RepetitionTime", "TaskName"],
-        "fmap": ["IntendedFor"]
-        }
-
-mri_meta_recommended_modality = {
-        "func": ["NumberOfVolumesDiscardedByScanner",
-                 "NumberOfVolumesDiscardedByUser",
-                 "DelayTime",
-                 "AcquisitionDuration",
-                 "DelayAfterTrigger",
-                 "Instructions",
-                 "TaskDescription",
-                 "CogAtlasID",
-                 "CogPOID"],
-        "fmap": ["EchoTime1", "EchoTime2", "Units",
-                 ]
-        }
-
-mri_meta_optional_modality = {
-        "anat": ["ContrastBolusIngredient"],
-        }
-
-
-mri_meta_recommended = [
-        # Scanner hardware
-        "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
-        "StationName", "SoftwareVersions",
-        "MagneticFieldStrength", "ReceiveCoilName",
-        "ReceiveCoilActiveElements",
-        "GradientSetType", "MRTransmitCoilSequence",
-        "MatrixCoilMode", "CoilCombinationMethod",
-        # Sequence Specifics
-        "PulseSequenceType", "ScanningSequence", "SequenceVariant",
-        "ScanOptions", "SequenceName", "PulseSequenceDetails",
-        "NonlinearGradientCorrection",
-        # In-Plane Spatial Encoding
-        "NumberShots", "ParallelReductionFactorInPlane",
-        "ParallelAcquisitionTechnique", "PartialFourier",
-        "PartialFourierDirection", "PhaseEncodingDirection",
-        "EffectiveEchoSpacing", "TotalReadoutTime",
-        # Timing Parameters
-        "EchoTime", "InversionTime", "SliceTiming",
-        "SliceEncodingDirection", "DwellTime",
-        # RF & Contrast
-        "FlipAngle", "MultibandAccelerationFactor",
-        # Slice Acceleration
-        "MultibandAccelerationFactor",
-        # Anatomical landmarks
-        "AnatomicalLandmarkCoordinates",
-        # Institution information
-        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
-        ]
 
 
 class MRI(baseModule):
     _module = "MRI"
 
-    bidsmodalities = {
-            "anat": ("acq", "ce", "rec", "run", "mod"),
-            "func": ("task", "acq", "ce", "dir", "rec", "run", "echo"),
-            "dwi": ("acq", "dir", "run"),
-            "fmap": ("acq", "ce", "dir", "run"),
-            "beh": ("task")
-            }
+    bidsmodalities = _MRI_bids_meta.modalities
+
+    __slots__ = ["manufacturer"]
 
     def __init__(self):
         super().__init__()
-        self.metaFields_req["__common__"] = {key: None for key in
-                                             mri_meta_required_common}
-        for mod in mri_meta_required_modality:
-            self.metaFields_req[mod] = {key: None for key in
-                                        mri_meta_required_modality[mod]}
-        self.metaFields_rec["__common__"] = {key: None for key in
-                                             mri_meta_recommended_common}
-        for mod in mri_meta_recommended_modality:
-            self.metaFields_rec[mod] = {key: None for key in
-                                        mri_meta_recommended_modality[mod]}
-        self.metaFields_opt["__common__"] = {key: None for key in
-                                             mri_meta_optional_common}
-        for mod in mri_meta_optional_modality:
-            self.metaFields_opt[mod] = {key: None for key in
-                                        mri_meta_optional_modality[mod]}
+        self.resetMetaFields()
+        self.manufacturer = None
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         """
@@ -187,3 +86,94 @@ class MRI(baseModule):
             else:
                 logger.warning("{} missing bval file for diffusion recording"
                                .format(self.recIdentity()))
+
+    def setManufacturer(self, line: str) -> bool:
+        """
+        Sets manufacturer accordingly to retrieved key line
+        Returns true if manufacturer changes
+
+        Actual manufacturer:
+            Siemens
+            Phillips
+            Unknown
+
+        Parameters
+        ----------
+        line: str
+            key line used to determine manufacturer
+
+        Returns
+        -------
+        bool:
+            True if manufacturer value changes
+        """
+        if line is None:
+            manufacturer = "Unknown"
+        else:
+            lin = line.lower()
+
+            if "siemens" in lin:
+                manufacturer = "Siemens"
+            elif "phillips" in lin:
+                manufacturer = "Phillips"
+            else:
+                manufacturer = "Unknown"
+
+        if self.manufacturer is None:
+            # First time initialisation
+            self.manufacturer = manufacturer
+            return True
+
+        if manufacturer == self.manufacturer:
+            return False
+        else:
+            self.manufacturer = manufacturer
+            return True
+
+    def resetMetaFields(self) -> None:
+        """
+        Resets currently defined meta fields dictionaries
+        """
+        self.metaFields_req["__common__"] = {
+                key: None for key in
+                _MRI_bids_meta.required_common}
+        for mod in _MRI_bids_meta.required_modality:
+            self.metaFields_req[mod] = {
+                key: None for key in
+                _MRI_bids_meta.required_modality[mod]}
+        self.metaFields_rec["__common__"] = {
+                key: None for key in
+                _MRI_bids_meta.recommended_common}
+        for mod in _MRI_bids_meta.recommended_modality:
+            self.metaFields_rec[mod] = {
+                key: None for key in
+                _MRI_bids_meta.recommended_modality[mod]}
+        self.metaFields_opt["__common__"] = {
+                key: None for key in
+                _MRI_bids_meta.optional_common}
+        for mod in _MRI_bids_meta.optional_modality:
+            self.metaFields_opt[mod] = {
+                key: None for key in
+                _MRI_bids_meta.optional_modality[mod]}
+
+    def testMetaFields(self):
+        """
+        Test all metafields and removes if not found in file header
+        """
+        for metaFields in (self.metaFields_req,
+                           self.metaFields_rec,
+                           self.metaFields_opt):
+            for mod in metaFields:
+                for key, field in metaFields[mod].items():
+                    if field is None or "<<" in field.name:
+                        continue
+                    res = None
+                    try:
+                        res = self.getDynamicField(field.name,
+                                                   raw=True,
+                                                   cleanup=False)
+                    except Exception:
+                        metaFields[mod][key] = None
+                        pass
+                    if res is None:
+                        metaFields[mod][key] = None

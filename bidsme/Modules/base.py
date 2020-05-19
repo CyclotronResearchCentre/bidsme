@@ -121,7 +121,6 @@ class baseModule(object):
         self._modality = unknownmodality
         self._bidsSession = None
 
-        self.metaFields = dict()
         self.metaFields_req = dict()
         self.metaFields_rec = dict()
         self.metaFields_opt = dict()
@@ -571,7 +570,7 @@ class baseModule(object):
         Dynamically retrieves metadata field from recording
 
         """
-        if not field or not isinstance(field, str):
+        if not isinstance(field, str) or field == "":
             return field
         res = ""
         start = 0
@@ -601,7 +600,10 @@ class baseModule(object):
                                        "attribute from '{}'"
                                        .format(self.recIdentity(),
                                                query, field))
-                        result = query
+                        if not raw:
+                            result = query
+                        else:
+                            result = None
                 else:
                     prefix = ""
                     if ":" in query:
@@ -625,7 +627,10 @@ class baseModule(object):
                                            .format(self.recIdentity(),
                                                    query,
                                                    self.currentFile(False)))
-                            result = query
+                            if not raw:
+                                result = query
+                            else:
+                                result = None
                     else:
                         raise KeyError("Unknown prefix {}".format(prefix))
                 # if field is composed only of one entry
@@ -1010,7 +1015,7 @@ class baseModule(object):
             Matching Run containing bids tags
         """
 
-        self._suffix = ""
+        self.suffix = ""
         self._modality = unknownmodality
         self.labels = OrderedDict()
         if not run:

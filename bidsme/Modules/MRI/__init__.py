@@ -1,6 +1,7 @@
 from .DICOM import DICOM
-from .Nifti_SPM12 import Nifti_SPM12
-from .genNIFTI import genNIFTI
-from .headNIFTI import headNIFTI
+from .hmriNIFTI import hmriNIFTI
+from .bidsmeNIFTI import bidsmeNIFTI
+from .jsonNIFTI import jsonNIFTI
+from .NIFTI import NIFTI
 
-__all__ = ["DICOM", "Nifti_SPM12", "genNIFTI", "headNIFTI"]
+__all__ = ["DICOM", "hmriNIFTI", "bidsmeNIFTI", "jsonNIFTI", "NIFTI"]

@@ -26,8 +26,9 @@
 
 from . import MRI, EEG
 
-types_list = {"MRI": (MRI.Nifti_SPM12, MRI.headNIFTI, MRI.genNIFTI,
-                      MRI.DICOM,),
+types_list = {"MRI": (MRI.hmriNIFTI, MRI.bidsmeNIFTI,
+                      MRI.jsonNIFTI, MRI.NIFTI,
+                      MRI.DICOM),
               "EEG": (EEG.BrainVision,)}
 
 

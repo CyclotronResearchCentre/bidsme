@@ -1,5 +1,5 @@
 ###############################################################################
-# Nifti_SPM12.py provides the implementation of MRI class for Nifti file format
+# hmriNIFTI.py provides the implementation of MRI class for Nifti file format
 # as created by SPM12 (hMRI tollbox)
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
@@ -29,6 +29,7 @@ from ..common import action_value
 from ..common import retrieveFormDict
 from bidsMeta import MetaField
 from tools import tools
+from . import _hmriNIFTI
 
 import os
 import logging
@@ -40,11 +41,10 @@ from datetime import datetime, timedelta
 logger = logging.getLogger(__name__)
 
 
-class Nifti_SPM12(MRI):
-    _type = "Nifti_SPM12"
+class hmriNIFTI(MRI):
+    _type = "hmriNIFTI"
 
     __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE",
-                 "isSiemens",
                  "__csas", "__phoenix",
                  "__adFree", "__alFree", "__seqName"]
 
@@ -62,99 +62,14 @@ class Nifti_SPM12(MRI):
 
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
-        self.isSiemens = False
         self.__alFree = list()
         self.__adFree = list()
+        self.__csas = dict()
+        self.__phoenix = dict()
         self.__seqName = ""
 
         if rec_path:
             self.setRecPath(rec_path)
-
-        #####################
-        # Common recomended #
-        #####################
-        recommend = self.metaFields_rec["__common__"]
-        recommend["Manufacturer"] = MetaField("Manufacturer")
-        recommend["ManufacturersModelName"] =\
-            MetaField("ManufacturerModelName")
-        recommend["DeviceSerialNumber"] = MetaField("DeviceSerialNumber")
-        recommend["StationName"] = MetaField("StationName")
-        recommend["SoftwareVersions"] = MetaField("SoftwareVersions")
-        recommend["MagneticFieldStrength"] =\
-            MetaField("MagneticFieldStrength", 1.)
-        recommend["ReceiveCoilName"] = MetaField("ReceiveCoilName")
-        recommend["ReceiveCoilActiveElements"] =\
-            MetaField("ReceiveCoilActiveElements")
-        # recommend["GradientSetType"]
-        recommend["MRTransmitCoilSequence"] =\
-            MetaField("MRTransmitCoilSequence")
-        # recommend["MatrixCoilMode"]
-        # recommend["CoilCombinationMethod"]
-        # recommend["PulseSequenceType"]
-        recommend["ScanningSequence"] = MetaField("ScanningSequence")
-        recommend["SequenceVariant"] = MetaField("SequenceVariant")
-        recommend["ScanOptions"] = MetaField("ScanOptions")
-        recommend["SequenceName"] = MetaField("SequenceName")
-        # recommend["NumberShots"]
-        # recommend["PulseSequenceDetails"]
-        # recommend["NonlinearGradientCorrection"]
-        # recommend["ParallelReductionFactorInPlane"]
-        # recommend["ParallelAcquisitionTechnique"]
-        recommend["PartialFourier"] = MetaField("PartialFourier")
-        recommend["PartialFourierDirection"] =\
-            MetaField("PartialFourierDirection")
-        # recommend["PhaseEncodingDirection"]
-        # recommend["EffectiveEchoSpacing"]
-        # recommend["TotalReadoutTime"]
-        recommend["EchoTime"] = MetaField("EchoTime", 1e-3)
-        recommend["InversionTime"] = MetaField("InversionTime", 1e-3)
-        # recommend["SliceTiming"]
-        # recommend["SliceEncodingDirection"]
-        # recommend["DwellTime"] = MetaField("Private_0019_1018", 1e-6)
-        recommend["FlipAngle"] = MetaField("FlipAngle", 1.)
-        # recommend["MultibandAccelerationFactor"]
-        # recommend["NegativeContrast"]
-        # recommend["MultibandAccelerationFactor"]
-        # recommend["AnatomicalLandmarkCoordinates"]
-        recommend["InstitutionName"] = MetaField("InstitutionName")
-        recommend["InstitutionAddress"] = MetaField("InstitutionAddress")
-        recommend["InstitutionalDepartmentName"] =\
-            MetaField("InstitutionalDepartmentName")
-
-        #####################
-        # sMRI metafields   #
-        #####################
-        # optional = self.metaFields_opt["anat"]
-        # optional["ContrastBolusIngredient"]
-
-        #####################
-        # fMRI metafields   #
-        #####################
-        required = self.metaFields_req["func"]
-        required["RepetitionTime"] = MetaField("RepetitionTime", 1e-3)
-        required["TaskName"] = MetaField("<<bids:task>>")
-
-        recommend = self.metaFields_rec["func"]
-        # recommend["NumberOfVolumesDiscardedByScanner"]
-        # recommend["NumberOfVolumesDiscardedByUser"]
-        # recommend["DelayTime"]
-        # recommend["AcquisitionDuration"]
-        # recommend["DelayAfterTrigger"]
-        # recommend["Instructions"]
-        # recommend["TaskDescription"]
-        # recommend["CogAtlasID"]
-        # recommend["CogPOID"]
-
-        #####################
-        # fMap metafields   #
-        #####################
-        required = self.metaFields_req["fmap"]
-        # required["IntendedFor"]
-
-        recommend = self.metaFields_rec["fmap"]
-        # recommend["EchoTime1"]
-        # recommend["EchoTime2"]
-        # recommend["Units"]
 
     ################################
     # reimplementation of virtuals #
@@ -207,10 +122,13 @@ class Nifti_SPM12(MRI):
             dicomdict = self.__loadJsonDump(path)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
-            self.isSiemens = (self._DICOMDICT_CACHE["Manufacturer"]
-                              == "SIEMENS ")
+            if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"]):
+                self.resetMetaFields()
+                self.setupMetaFields()
+                self.testMetaFields()
+
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
-            if self.isSiemens:
+            if self.manufacturer == "Siemens":
                 self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
                 self.__phoenix = self.__csas["MrPhoenixProtocol"]
                 if "sWipMemBlock" in self.__phoenix:
@@ -305,65 +223,63 @@ class Nifti_SPM12(MRI):
     # Additional fonctions #
     ########################
     def _adaptMetaField(self, name):
-        if not self.isSiemens:
-            raise ValueError("{}: {} is defined only for Siemens"
-                             .format(self.recIdentity(), name))
+        value = None
+        if self.manufacturer == "Siemens":
+            if name == "NumberOfMeasurements":
+                value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
+            elif name == "PhaseEncodingDirection":
+                value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
+                        .get("PhaseEncodingDirectionPositive", 0)
+                if value == 0:
+                    value = -1
+            elif name == "B1mapNominalFAValues":
+                if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2b3d2",
+                                      "b1epi2d3d2"):
+                    value = list(range(self.__adFree[2], 0, -self.__adFree[3]))
+                elif self.__seqName == "seste1d3d2":
+                    value = list(range(230, -10, 0))
+                else:
+                    logger.warning("{}: Unable to get {}: sequence {} "
+                                   "not defined"
+                                   .format(self.recIdentity(),
+                                           name, self.__seqName))
+                    value = []
+            elif name == "B1mapMixingTime":
+                if self.__seqName in ("b1v2d3d2", "b1epi2d3d2"):
+                    value = self.__alFree[0] * 1e-6
+                elif self.__seqName in ("b1epi4a3d2", "b1epi2b3d2"):
+                    value = self.__alFree[1] * 1e-6
+                elif self.__seqName == "seste1d3d2":
+                    value = self.__alFree[13] * 1e-6
+                else:
+                    logger.warning("{}: Unable to get {}: sequence {} "
+                                   "not defined"
+                                   .format(self.recIdentity(),
+                                           name, self.__seqName))
+                    value = None
+            elif name == "RFSpoilingPhaseIncrement":
+                if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2d3d2"):
+                    value = self.__adFree[5]
+                elif self.__seqName in ("fl3d_2l3d8", "fl3d_2d3d6"):
+                    value = self.__adFree[2]
+                elif self.__seqName == "seste1d3d2":
+                    value = self.__adFree[11] * 1e-6
+                else:
+                    logger.warning("{}: Unable to get {}: sequence {} "
+                                   "not defined"
+                                   .format(self.recIdentity(),
+                                           name, self.__seqName))
+                    value = 0
 
-        if name == "NumberOfMeasurements":
-            value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
-        elif name == "PhaseEncodingDirection":
-            value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
-                    .get("PhaseEncodingDirectionPositive", 0)
-            if value == 0:
-                value = -1
-        elif name == "B1mapNominalFAValues":
-            if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2b3d2",
-                                  "b1epi2d3d2"):
-                value = list(range(self.__adFree[2], 0, -self.__adFree[3]))
-            elif self.__seqName == "seste1d3d2":
-                value = list(range(230, -10, 0))
-            else:
-                logger.warning("{}: Unable to get {}: sequence {} "
-                               "not defined"
-                               .format(self.recIdentity(),
-                                       name, self.__seqName))
-                value = []
-        elif name == "B1mapMixingTime":
-            if self.__seqName in ("b1v2d3d2", "b1epi2d3d2"):
-                value = self.__alFree[0] * 1e-6
-            elif self.__seqName in ("b1epi4a3d2", "b1epi2b3d2"):
-                value = self.__alFree[1] * 1e-6
-            elif self.__seqName == "seste1d3d2":
-                value = self.__alFree[13] * 1e-6
-            else:
-                logger.warning("{}: Unable to get {}: sequence {} "
-                               "not defined"
-                               .format(self.recIdentity(),
-                                       name, self.__seqName))
-                value = None
-        elif name == "RFSpoilingPhaseIncrement":
-            if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2d3d2"):
-                value = self.__adFree[5]
-            elif self.__seqName in ("fl3d_2l3d8", "fl3d_2d3d6"):
-                value = self.__adFree[2]
-            elif self.__seqName == "seste1d3d2":
-                value = self.__adFree[11] * 1e-6
-            else:
-                logger.warning("{}: Unable to get {}: sequence {} "
-                               "not defined"
-                               .format(self.recIdentity(),
-                                       name, self.__seqName))
-                value = 0
-
-        elif name == "MTState":
-            value = self.__phoenix["sPrepPulses"].get("ucMTC", 0)
-            if value == 0:
-                value = "Off"
-            else:
-                value = "On"
-        elif name == "ReceiveCoilActiveElements":
-            value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
-                    .get("CoilString", "")
+            elif name == "MTState":
+                value = self.__phoenix["sPrepPulses"].get("ucMTC", 0)
+                if value == 0:
+                    value = "Off"
+                else:
+                    value = "On"
+            elif name == "ReceiveCoilActiveElements":
+                value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
+                        .get("CoilString", "")
 
         return value
 
@@ -372,3 +288,26 @@ class Nifti_SPM12(MRI):
         json_dump = file[:-4] + ".json"
         with open(json_dump, "r") as f:
             return json.load(f)["acqpar"][0]
+
+    def setupMetaFields(self):
+        if self.manufacturer in _hmriNIFTI.metafields:
+            meta = _hmriNIFTI.metafields[self.manufacturer]
+        else:
+            meta = None
+        meta_default = _hmriNIFTI.metafields["Unknown"]
+
+        for metaFields in (self.metaFields_req,
+                           self.metaFields_rec,
+                           self.metaFields_opt):
+            for mod in metaFields:
+                for key in metaFields[mod]:
+                    if meta is not None:
+                        if key in meta:
+                            metaFields[mod][key]\
+                                    = MetaField(meta[key][0],
+                                                default=meta[key][1])
+                            continue
+                    if key in meta_default:
+                        metaFields[mod][key]\
+                                = MetaField(meta_default[key][0],
+                                            default=meta_default[key][1])

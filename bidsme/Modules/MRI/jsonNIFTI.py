@@ -1,6 +1,6 @@
 ###############################################################################
-# headNIFTI.py provides an implementation of MRI class for Nifti file format
-# with dumped DICOM header in form of json file
+# jsonNIFTI.py provides an implementation of MRI class for Nifti file format
+# with a generic json file containing metadata
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy
@@ -35,8 +35,8 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-class headNIFTI(MRI):
-    _type = "headNIFTI"
+class jsonNIFTI(MRI):
+    _type = "jsonNIFTI"
 
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
                  "_header_file",
@@ -169,7 +169,7 @@ class headNIFTI(MRI):
                 return False
             path, base = os.path.split(file)
             base, ext = os.path.splitext(base)
-            header = os.path.join(path, "dcm_dump_" + base + ".json")
+            header = os.path.join(path, base + ".json")
             if os.path.isfile(header):
                 return True
         return False
@@ -179,7 +179,7 @@ class headNIFTI(MRI):
             # The DICM tag may be missing for anonymized DICOM files
             path, base = os.path.split(path)
             base, ext = os.path.splitext(base)
-            header = os.path.join(path, "dcm_dump_" + base + ".json")
+            header = os.path.join(path, base + ".json")
             try:
                 with open(header, "r") as f:
                     dicomdict = json.load(f)
