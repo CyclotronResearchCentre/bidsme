@@ -34,8 +34,7 @@ flake8:
   stage: test
   script:
     - python -m flake8 bidsme
-  rules:
-    - allow_failure: true
+  allow_failure: true
   <<: *only_branches
     
 include_test:
