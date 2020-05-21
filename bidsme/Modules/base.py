@@ -565,10 +565,22 @@ class baseModule(object):
         self.attributes.pop(attribute)
 
     def getDynamicField(self, field: str,
+                        default: object=None,
                         cleanup: bool = True, raw: bool = False):
         """
         Dynamically retrieves metadata field from recording
 
+        Parameters
+        ----------
+        field: str
+            name of field to retrieve
+        default: object
+            default value if unable to get field
+        cleanup: bool
+            if True the result will be transformed
+            to be bids-compatible
+        raw: bool
+            if False, a str(value) will be returned
         """
         if not isinstance(field, str) or field == "":
             return field
@@ -594,7 +606,7 @@ class baseModule(object):
                                      .format(seek, pos, field))
                 query = field[pos:pos2]
                 if seek == '>':
-                    result = self.getAttribute(query)
+                    result = self.getAttribute(query, default)
                     if result is None:
                         logger.warning("{}: Can't find '{}' "
                                        "attribute from '{}'"
@@ -828,8 +840,9 @@ class baseModule(object):
 
         self._loadFile(path)
         self.index = index
-        for key in self.attributes:
-            self.attributes[key] = self.getField(key)
+        self.attributes = {}
+        # for key in self.attributes:
+        #     self.attributes[key] = self.getField(key)
 
     def setRecPath(self, folder: str) -> int:
         """
@@ -1301,7 +1314,9 @@ class baseModule(object):
             return fallback
         try:
             if field.name.startswith("<"):
-                val = self.getDynamicField(field.name, raw=True, cleanup=False)
+                val = self.getDynamicField(field.name,
+                                           default=fallback,
+                                           raw=True, cleanup=False)
             else:
                 val = self.getField(field.name, field.default)
         except Exception:

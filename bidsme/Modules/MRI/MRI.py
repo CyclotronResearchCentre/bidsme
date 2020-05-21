@@ -28,6 +28,7 @@ import os
 import shutil
 import logging
 from tools import tools
+from bidsMeta import MetaField
 
 from ..base import baseModule
 
@@ -114,8 +115,8 @@ class MRI(baseModule):
 
             if "siemens" in lin:
                 manufacturer = "Siemens"
-            elif "phillips" in lin:
-                manufacturer = "Phillips"
+            elif "philips" in lin:
+                manufacturer = "Philips"
             else:
                 manufacturer = "Unknown"
 
@@ -130,9 +131,51 @@ class MRI(baseModule):
             self.manufacturer = manufacturer
             return True
 
+    def setupMetaFields(self, definitions: dict) -> None:
+        """
+        Setup json fields to values from given dictionary.
+
+        Dictionary must contain key "Unknown", and keys
+        correspondand to each of manufacturer.
+
+        Corresponding values are dictionaries with json
+        metafields names (as defined in MRI metafields)
+        as keys and a tuple of DynamicField name, default value
+        If default value is None, no default is defined.
+
+        Parameters
+        ----------
+        definitions: dict
+            dictionary with metadata fields definitions
+        """
+        if self.manufacturer in definitions:
+            meta = definitions[self.manufacturer]
+        else:
+            meta = None
+        meta_default = definitions["Unknown"]
+
+        for metaFields in (self.metaFields_req,
+                           self.metaFields_rec,
+                           self.metaFields_opt):
+            for mod in metaFields:
+                for key in metaFields[mod]:
+                    if meta is not None:
+                        if key in meta:
+                            metaFields[mod][key]\
+                                    = MetaField(meta[key][0],
+                                                scaling=None,
+                                                default=meta[key][1])
+                            continue
+                    if key in meta_default:
+                        metaFields[mod][key]\
+                                = MetaField(meta_default[key][0],
+                                            scaling=None,
+                                            default=meta_default[key][1])
+
     def resetMetaFields(self) -> None:
         """
         Resets currently defined meta fields dictionaries
+        to None values
         """
         self.metaFields_req["__common__"] = {
                 key: None for key in
@@ -158,7 +201,7 @@ class MRI(baseModule):
 
     def testMetaFields(self):
         """
-        Test all metafields and removes if not found in file header
+        Test all metafields values and resets not found ones
         """
         for metaFields in (self.metaFields_req,
                            self.metaFields_rec,
@@ -170,6 +213,7 @@ class MRI(baseModule):
                     res = None
                     try:
                         res = self.getDynamicField(field.name,
+                                                   default=field.default,
                                                    raw=True,
                                                    cleanup=False)
                     except Exception:

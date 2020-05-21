@@ -28,7 +28,6 @@ from .MRI import MRI
 from tools import tools
 
 import os
-import re
 import logging
 import struct
 import shutil
@@ -212,21 +211,19 @@ class NIFTI(MRI):
                          os.path.join(directory, bidsname + ".img"))
 
     def acqTime(self) -> datetime:
-        return self.getAttribute("AcquisitionTime")
+        return None
 
     def recNo(self):
-        self.getAttribute("RecordingNumber", 0)
+        return self.index
 
     def recId(self):
-        return self.getAttribute("RecordingId",
-                                 os.path.splitext(self.currentFile(False)[0])
-                                 )
+        return os.path.splitext(self.currentFile(True))[0]
 
     def _getSubId(self) -> str:
-        return str(self.getAttribute("PatientId"))
+        return None
 
     def _getSesId(self) -> str:
-        return str(self.getAttribute("SessionId"))
+        return ""
 
     def isCompleteRecording(self):
         return True
@@ -347,20 +344,4 @@ class NIFTI(MRI):
         return res
 
     def _adaptMetaField(self, name):
-        if name == "AcquisitionTime":
-            return None
-        if name == "RecordingNumber":
-            return self.index
-        if name == "RecordingId":
-            return os.path.splitext(self.currentFile(False))[0]
-        if name == "PatientId":
-            recId = os.path.splitext(self.currentFile(False))[0]
-            res = re.search("sub-([a-zA-Z0-9]+)", recId)
-            if res:
-                return res.group(1)
-        if name == "SessionId":
-            recId = os.path.splitext(self.currentFile(False))[0]
-            res = re.search("ses-([a-zA-Z0-9]+)", recId)
-            if res:
-                return res.group(1)
         return None

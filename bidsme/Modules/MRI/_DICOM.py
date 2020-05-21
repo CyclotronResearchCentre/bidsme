@@ -1,5 +1,5 @@
 ###############################################################################
-# _hmriNIFTI.py provides additional parameters for hmriNIFTI class
+# _DICOM.py provides additional parameters for DICOM class
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy
@@ -32,9 +32,8 @@ metafields = {
             "MagneticFieldStrength": ("<MagneticFieldStrength>", None),
             "ScanningSequence": ("<ScanningSequence>", None),
             "SequenceVariant": ("<SequenceVariant>", None),
-            "ScanOptions": ("<ScanOptions>", ""),
+            "ScanOptions": ("<ScanOptions>", None),
             "EchoTime": ("<scale-3:EchoTime>", None),
-            "InversionTime": ("<scale-3:InversionTime>", 0),
             "FlipAngle": ("<FlipAngle>", None),
             "InstitutionName": ("<InstitutionName>", None),
             "InstitutionAddress": ("<InstitutionAddress>", None),
@@ -45,6 +44,12 @@ metafields = {
             },
         "Siemens": {
             "SequenceName": ("<SequenceName>", None),
+            },
+        "Philips": {
+            "ReceiveCoilName": ("<ReceiveCoilName>", None),
+            "PartialFourier": ("<(2005, 140f)/0/PartialFourier>", None),
+            "PartialFourierDirection":
+                ("<(2005, 140f)/0/PartialFourierDirection>", None),
+            "InversionTime": ("<scale-3:(2005, 140f)/0/InversionTimes>", None),
             }
-
         }

@@ -172,7 +172,7 @@ __templates__:
       B1mapNominalFAValues: <B1mapNominalFAValues>
 
 MRI:
-  Nifti_SPM12:
+  hmriNIFTI:
     anat:
     - <<: *mri_anat
       suffix: T1w

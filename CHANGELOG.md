@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed
+  - MRI: renamed MRI classes to DICOM, hmriNIFTI, bidsmeNIFTI, jsonNIFTI and 
+NIFTI
+  - MRI: moved json fields definitions to separate file `_<ClassName>`
+  - MRI: streamlined json metafields loading
+
 ## [1.1.1] - 2020-05-15
 
 ### Fixed

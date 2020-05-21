@@ -27,7 +27,6 @@
 from .MRI import MRI
 from ..common import action_value
 from ..common import retrieveFormDict
-from bidsMeta import MetaField
 from tools import tools
 from . import _hmriNIFTI
 
@@ -124,7 +123,7 @@ class hmriNIFTI(MRI):
             self._DICOMDICT_CACHE = dicomdict
             if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"]):
                 self.resetMetaFields()
-                self.setupMetaFields()
+                self.setupMetaFields(_hmriNIFTI.metafields)
                 self.testMetaFields()
 
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
@@ -288,26 +287,3 @@ class hmriNIFTI(MRI):
         json_dump = file[:-4] + ".json"
         with open(json_dump, "r") as f:
             return json.load(f)["acqpar"][0]
-
-    def setupMetaFields(self):
-        if self.manufacturer in _hmriNIFTI.metafields:
-            meta = _hmriNIFTI.metafields[self.manufacturer]
-        else:
-            meta = None
-        meta_default = _hmriNIFTI.metafields["Unknown"]
-
-        for metaFields in (self.metaFields_req,
-                           self.metaFields_rec,
-                           self.metaFields_opt):
-            for mod in metaFields:
-                for key in metaFields[mod]:
-                    if meta is not None:
-                        if key in meta:
-                            metaFields[mod][key]\
-                                    = MetaField(meta[key][0],
-                                                default=meta[key][1])
-                            continue
-                    if key in meta_default:
-                        metaFields[mod][key]\
-                                = MetaField(meta_default[key][0],
-                                            default=meta_default[key][1])
