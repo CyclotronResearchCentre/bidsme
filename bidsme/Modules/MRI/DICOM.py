@@ -100,26 +100,9 @@ class DICOM(MRI):
                 self.testMetaFields()
 
     def acqTime(self) -> datetime:
-        if "AcquisitionDateTime" in self._DICOM_CACHE:
-            dt_stamp = self._DICOM_CACHE["AcquisitionDateTime"]
-            return self.__transform(dt_stamp)
-
-        acq = datetime.min
-
-        if "AcquisitionDate" in self._DICOM_CACHE:
-            date_stamp = self.__transform(self._DICOM_CACHE["AcquisitionDate"])
-        else:
-            logger.warning("{}: Acquisition Date not defined"
-                           .format(self.recIdentity()))
-            return acq
-
-        if "AcquisitionDate" in self._DICOM_CACHE:
-            time_stamp = self.__transform(self._DICOM_CACHE["AcquisitionTime"])
-        else:
-            logger.warning("{}: Acquisition Time not defined"
-                           .format(self.recIdentity()))
-            return acq
-        acq = datetime.combine(date_stamp, time_stamp)
+        acq = self._acqTime("Acquisition")
+        if acq is None:
+            acq = self._acqTime("Content")
         return acq
 
     def dump(self):
@@ -173,7 +156,7 @@ class DICOM(MRI):
                            .format(self.formatIdentity(),
                                    self.currentFile()))
             seriesdescr = "unknown"
-        return seriesdescr.strip()
+        return seriesdescr.strip().replace('/', ' ').replace('\\', ' ')
 
     def isCompleteRecording(self):
         return True
@@ -290,6 +273,8 @@ class DICOM(MRI):
         # Date and time
         # converted to corresponding datetime subclass
         if VR == "TM":
+            if not val:
+                return None
             if "." in val:
                 dt = datetime.strptime(val, "%H%M%S.%f").time()
             else:
@@ -299,12 +284,16 @@ class DICOM(MRI):
             else:
                 return dt
         if VR == "DA":
+            if not val:
+                return None
             dt = datetime.strptime(val, "%Y%m%d").date()
             if clean:
                 return dt.isoformat()
             else:
                 return dt
         if VR == "DT":
+            if not val:
+                return None
             val = val.strip()
             date_string = "%Y%m%d"
             time_string = "%H%M%S"
@@ -350,7 +339,7 @@ class DICOM(MRI):
 
         # unregistered VR
         logger.error("{} is not valid DICOM VR".format(VR))
-        raise ValueError("invalid VR")
+        raise ValueError("invalid VR: {}".format(VR))
 
     @staticmethod
     def __getTag(tag: str) -> tuple:
@@ -409,3 +398,35 @@ class DICOM(MRI):
             else:
                 res[key] = DICOM.__transform(el, clean=True)
         return res
+
+    def _acqTime(self, Id: str):
+        """
+        Returns datetime from IdDateTime/Date/Time fields
+
+        Parameters
+        ----------
+        Id: str
+            Id of field -- Acquisition, Instance, Content etc...
+        """
+        field = Id + "DateTime"
+        if field in self._DICOM_CACHE:
+            dt_stamp = self._DICOM_CACHE[field]
+            return self.__transform(dt_stamp)
+
+        field = Id + "Date"
+        if field in self._DICOM_CACHE:
+            date_stamp = self.__transform(self._DICOM_CACHE[field])
+        else:
+            logger.warning("{}: {} not defined"
+                           .format(self.recIdentity(), field))
+            return None
+
+        field = Id + "Time"
+        if field in self._DICOM_CACHE:
+            time_stamp = self.__transform(self._DICOM_CACHE[field])
+        else:
+            logger.warning("{}: {} not defined"
+                           .format(self.recIdentity(), field))
+            return None
+        acq = datetime.combine(date_stamp, time_stamp)
+        return acq

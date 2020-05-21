@@ -3,11 +3,21 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+  - DICOM: unittests 
+
 ### Changed
   - MRI: renamed MRI classes to DICOM, hmriNIFTI, bidsmeNIFTI, jsonNIFTI and 
 NIFTI
   - MRI: moved json fields definitions to separate file `_<ClassName>`
   - MRI: streamlined json metafields loading
+  - folder recording will no longer automatically fail `isValidFile`
+  - scans.tsv show acqTime with microseconds
+
+### Fixed
+  - DICOM: empty value for Time and DateTime fields
+  - baseModule: virtual dump function returned exception instead of raising it
+  - prepare: fixed manual setting for path in series
 
 ## [1.1.1] - 2020-05-15
 

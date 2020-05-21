@@ -161,7 +161,7 @@ class baseModule(object):
         Virtual function that returns list of all meta-data
         associated with current file
         """
-        return NotImplementedError
+        raise NotImplementedError
 
     def _getField(self, field: list, prefix: str = ""):
         """
@@ -324,10 +324,7 @@ class baseModule(object):
         FileNotFoundError
             If path is not a file
         """
-        if os.path.isdir(file):
-            logger.warning("File {} is a directory".format(file))
-            return False
-        if not os.path.isfile(file):
+        if not os.path.exists(file):
             raise FileNotFoundError("File {} not found or not a file"
                                     .format(file))
         if not os.access(file, os.R_OK):
@@ -994,8 +991,7 @@ class baseModule(object):
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
                                                        bidsname
                                                        + ext)
-        self.rec_BIDSvalues["acq_time"] = self.acqTime()\
-            .replace(microsecond=0)
+        self.rec_BIDSvalues["acq_time"] = self.acqTime()
 
         scans = os.path.join(bidsfolder,
                              self.getBidsPrefix('/'),

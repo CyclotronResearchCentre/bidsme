@@ -80,8 +80,8 @@ def sortsession(outfolder: str,
         serie = os.path.join(
                 outfolder,
                 recording.getBidsSession().getPath(True),
-                "{}/{}".format(recording.Module(),
-                               recording.recIdentity(index=False)))
+                recording.Module(),
+                recording.recIdentity(index=False))
         if not dry_run:
             os.makedirs(serie, exist_ok=True)
             outfile = recording.copyRawFile(serie)
