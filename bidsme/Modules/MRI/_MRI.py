@@ -1,5 +1,5 @@
 ###############################################################################
-# _MRI_bids_meta.py contains the BIDS-defined MRI  modalities and met fields
+# _MRI.py contains the BIDS-defined MRI  modalities and met fields
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy

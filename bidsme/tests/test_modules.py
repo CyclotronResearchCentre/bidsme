@@ -165,3 +165,6 @@ class TestModules(unittest.TestCase):
         recording.loadNextFile()
         self.assertEqual(recording.acqTime(),
                          datetime(2007, 5, 11, 11, 33, 22))
+
+        recording._modality = "dwi"
+        recording._copy_bidsified("tests/data/", "bidsified", "dcm")

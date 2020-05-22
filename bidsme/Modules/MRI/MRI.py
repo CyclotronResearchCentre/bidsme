@@ -32,7 +32,7 @@ from bidsMeta import MetaField
 
 from ..base import baseModule
 
-from . import _MRI_bids_meta
+from . import _MRI
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 class MRI(baseModule):
     _module = "MRI"
 
-    bidsmodalities = _MRI_bids_meta.modalities
+    bidsmodalities = _MRI.modalities
 
     __slots__ = ["manufacturer"]
 
@@ -179,25 +179,25 @@ class MRI(baseModule):
         """
         self.metaFields_req["__common__"] = {
                 key: None for key in
-                _MRI_bids_meta.required_common}
-        for mod in _MRI_bids_meta.required_modality:
+                _MRI.required_common}
+        for mod in _MRI.required_modality:
             self.metaFields_req[mod] = {
                 key: None for key in
-                _MRI_bids_meta.required_modality[mod]}
+                _MRI.required_modality[mod]}
         self.metaFields_rec["__common__"] = {
                 key: None for key in
-                _MRI_bids_meta.recommended_common}
-        for mod in _MRI_bids_meta.recommended_modality:
+                _MRI.recommended_common}
+        for mod in _MRI.recommended_modality:
             self.metaFields_rec[mod] = {
                 key: None for key in
-                _MRI_bids_meta.recommended_modality[mod]}
+                _MRI.recommended_modality[mod]}
         self.metaFields_opt["__common__"] = {
                 key: None for key in
-                _MRI_bids_meta.optional_common}
-        for mod in _MRI_bids_meta.optional_modality:
+                _MRI.optional_common}
+        for mod in _MRI.optional_modality:
             self.metaFields_opt[mod] = {
                 key: None for key in
-                _MRI_bids_meta.optional_modality[mod]}
+                _MRI.optional_modality[mod]}
 
     def testMetaFields(self):
         """

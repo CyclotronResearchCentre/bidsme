@@ -9,8 +9,10 @@
     * [Dataset 1](#ex1)
 - [Supported formats](#formats)
     * [MRI](#mri)
-        + [Nifti\_SPM12](#Nifti_SPM12)
-        + [genNIFTI](#gennifti)
+    	+ [hmriNIFTI](#hmriNIFTI)
+        + [jsonNIFTI](#jsonNIFTI)
+        + [bidsmeNIFTI](#bidsmeNIFTI)
+        + [NIFTI](#NIFTI)
         + [DICOM](#dicom)
     * [EEG](#eeg)
         + [BrainVision](#BV)
@@ -449,8 +451,33 @@ It defines the following modalities:
 - **dwi** for [diffusion images](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#diffusion-imaging-data)
 - **fmap** for [fieldmaps](https://bids-specification.readthedocs.io/en/stable/04-modality-specific-files/01-magnetic-resonance-imaging-data.html#fieldmap-data)
 
-#### <a name="Nifti_SPM12"></a>Nifti\_SPM12
-`Nifti_SPM12` data-format is a DICOM files converted to Nifti format by 
+#### <a name="dicom"></a> DICOM
+BIDSme support generic raw [DICOM](https://www.dicomstandard.org/) file format. 
+Attributes extraction rely on [`pydicom`](https://pydicom.github.io/pydicom/stable/index.html) library.
+
+DICOM files are identified by an extension `.dcm` and `.DCM`, and by word `DICM` placed in file at  `0x80`.
+
+Attributes can be retrieved using both the DICOM tag and keyword (if defined).
+For example `getField("InstanceCreationDate")` and `getField("(008, 0012)")` will both retrieve the same 
+`Instance Creation Date`.
+Tags must be **exatctly** in form of string formatted as follows: `"(%04d, %04d)"`, and the tag numbers
+must be put in hexadecimal form without `0x` prefix -- the same way as DICOM tags are usually depicted.
+Retrieved values are parsed if possible into python base values: `int`, `float`, `str`, `datetime.date`, 
+`datetime.time` and `datetime.datetime`.
+
+Nested values are retrieved using `/` separator, for example `getField("(2005, 140f)/0/PixelPresentation")` 
+will retrieve Pixel Presentation value from private tag.
+The navigation follows the same structure as pydicom: `ds[0x2005, 0x140f][0]["PixelPresentation"]`.
+To retrieve values with multiplicity an index addressing each value must be used.
+For example if `(0008, 0008) Image Type` is `['ORIGINAL', 'PRIMARY', 'M_FFE', 'M', 'FFE']`,
+it can be accessed by `getField("ImageType/0") -> 'ORIGINAL'`. 
+
+For convenience, during the preparation step, the full dump of DICOM header is created in form of JSON file
+`dcm_dump_<dicom file name>.json`. 
+In this dump, dataset structure is represented as dictionary, multi-values and sequences as lists.
+
+#### <a name="hmriNIFTI"></a>hmriNIFTI
+`hmriNIFTI` data-format is a DICOM files converted to Nifti format by 
 [hMRI toolbox](https://www.sciencedirect.com/science/article/pii/S1053811919300291) for 
 [SPM12](https://www.fil.ion.ucl.ac.uk/spm/software/spm12/). 
 Essentially it consists by a nifti image data and a JSON file with DICOM header dumped into it.
@@ -489,33 +516,37 @@ implementation must be either patched up or performed in plugins.
 dependent. It is unclear to me if sequences names are standard or not. If outcome of these values produces
 incorrect output, the correction must be either patched or corrected in plugin.
 
-#### <a name="dicom"></a> DICOM
-BIDSme support generic raw [DICOM](https://www.dicomstandard.org/) file format. 
-Attributes extraction rely on [`pydicom`](https://pydicom.github.io/pydicom/stable/index.html) library.
+#### <a name="bidsmeNIFTI"></a>bidsmeNIFTI
+`bidsmeNIFTI` dataformat is a generic NIFTI data file with a accompaigned DICOM header created
+by BIDSme from original DICOM file, as described in [MRI/DICOM](#dicom) section.
+It was introduced in order to use user-preferred DICOM converting tools without loosing any meta-data
+from the initial file.
 
-DICOM files are identified by an extension `.dcm` and `.DCM`, and by word `DICM` placed in file at  `0x80`.
+The JSON file conserves the same structure as original DICOM, with conservation of DICOM key words
+if defined and tags (in form `"(%04d, %04d)"`) if not.
 
-Attributes can be retrieved using both the DICOM tag and keyword (if defined).
-For example `getField("InstanceCreationDate")` and `getField("(008, 0012)")` will both retrieve the same 
-`Instance Creation Date`.
-Tags must be **exatctly** in form of string formatted as follows: `"(%04d, %04d)"`, and the tag numbers
-must be put in hexadecimal form without `0x` prefix -- the same way as DICOM tags are usually depicted.
-Retrieved values are parsed if possible into python base values: `int`, `float`, `str`, `datetime.date`, 
-`datetime.time` and `datetime.datetime`.
+Te expected procedure to use this format is following:
 
-Nested values are retrieved using `/` separator, for example `getField("(2005, 140f)/0/PixelPresentation")` 
-will retrieve Pixel Presentation value from private tag.
-The navigation follows the same structure as pydicom: `ds[0x2005, 0x140f][0]["PixelPresentation"]`.
-To retrieve values with multiplicity an index addressing each value must be used.
-For example if `(0008, 0008) Image Type` is `['ORIGINAL', 'PRIMARY', 'M_FFE', 'M', 'FFE']`,
-it can be accessed by `getField("ImageType/0") -> 'ORIGINAL'`. 
+	1. DICOM dataset is prepared as described [there](#wf_prep).
+	2. DICOM files are converted to NIFTI format using tool of preference, but conserving the file
+name (modulo the extention).
+	3. DICOM files must be removed from prepared folder together with any JSON files created by 
+converter to avoid data format mis-identifications and file double-counting.
+	4 [process](#wf_process) and [bidsify](#wf_bidsify) steps will now use 
+`dcm_dump_<dicom file name>.json`to identify recordings.
 
-For convenience, during the preparation step, the full dump of DICOM header is created in form of JSON file
-`dcm_dump_<dicom file name>.json`. 
-In this dump, dataset structure is represented as dictionary, multi-values and sequences as lists.
+#### <a name=jsonNIFTI></a> jsonNIFTI
+A lot of DICOM converters create a JSON file containing extracted meta-data. 
+What metadata and how it is stored may vary unpredictably from one converter to another.
 
-#### <a name=gennifti> </a> genNIFTI
-Generic Nifti format implements [NIfti file format](os.path.join(directory, bidsname).
+`jsonNIFTI` is an attempt to incorporate such converted files. 
+The metadata is extracted from JSON file using same procedure as for [hmriNIFTI](#hmriNIFTI):
+```
+getField("CSAImageHeaderInfo/RealDwellTime") -> 2700
+```
+
+#### <a name=NIFTI> </a> NIFTI
+A generic Nifti format implements [NIfti file format](os.path.join(directory, bidsname).
 It's supports `ni1` (`.hdr + .img` files), `n+1` and `n+2` (`.nii`) formats.
 
 Nifti files are identified by extension, either `.hdr` or `.nii`, and 
