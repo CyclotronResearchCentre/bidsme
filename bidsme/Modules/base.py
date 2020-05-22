@@ -562,7 +562,7 @@ class baseModule(object):
         self.attributes.pop(attribute)
 
     def getDynamicField(self, field: str,
-                        default: object=None,
+                        default: object = None,
                         cleanup: bool = True, raw: bool = False):
         """
         Dynamically retrieves metadata field from recording
