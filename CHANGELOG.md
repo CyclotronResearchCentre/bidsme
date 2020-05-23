@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed
+  - baseModule: acquisition time is now stored in `_acqTime` attribute,
+so it can be directly set by `setAcqTime(datetime)` function. The value
+from header is retrieved via `_getAcqTime` virtual function
+  - DICOM: when exporting header, if `AcquisitionDateTime` field is not defined
+it is exported using the current recording acquisition time
+
 ## [1.1.2] - 2020-05-22
 
 ### Added

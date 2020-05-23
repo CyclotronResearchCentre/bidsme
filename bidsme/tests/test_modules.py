@@ -62,7 +62,7 @@ class TestModules(unittest.TestCase):
         with self.assertRaises(NotImplementedError):
             rec._loadFile("aaa")
         with self.assertRaises(NotImplementedError):
-            rec.acqTime()
+            rec._getAcqTime()
         with self.assertRaises(NotImplementedError):
             rec.dump()
         with self.assertRaises(NotImplementedError):

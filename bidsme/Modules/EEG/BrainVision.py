@@ -44,7 +44,6 @@ class BrainVision(EEG):
     __slots__ = ["_CACHE", "_FILE_CACHE",
                  "_MRK_CACHE",
                  "_datafile", "_markfile",
-                 "_acqTime",
                  "_chanValues"
                  ]
     __spetialFields = {
@@ -62,7 +61,6 @@ class BrainVision(EEG):
         self._FILE_CACHE = ""
         self._datafile = None
         self.__markfile = None
-        self._acqTime = datetime(1900, 1, 1, 0, 0)
         # Series number and secription is not defined
 
         self._chan_BIDS.Activate("sampling_frequency")
@@ -135,38 +133,36 @@ class BrainVision(EEG):
                     dirpath,
                     base,
                     self._CACHE["Common Infos"].get("MarkerFile"))
-            self._acqTime = datetime(1900, 1, 1, 0, 0)
             if self._markfile:
                 if not os.path.isfile(self._markfile):
                     raise FileNotFoundError("{}: MarkerFile {} not found"
                                             .format(self.formatIdentity(),
                                                     self._markfile))
-                with open(self._markfile, "r", encoding="utf-8") as f:
-                    decl = f.readline().strip()
-                    if not decl != self.__fileversion:
-                        raise ValueError("{}: Incorrect Marker file version {}"
-                                         .format(self.formatIdentity(),
-                                                 decl))
-                    self._MRK_CACHE.read_file(f, source=self._markfile)
-                    t = None
-                    for mk, val in self._MRK_CACHE["Marker Infos"].items():
-                        val = val.split(",")
-                        if val[0].strip() == "New Segment":
-                            t = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
-                            dt = timedelta(microseconds=self.getField(
-                                "SamplingInterval"))
-                            dt = int(val[2]) * dt
-                            t = t - dt
-                            break
-                    if not t:
-                        logger.warning("{}: Marker file do not contain any "
-                                       "'New Segment' markers"
-                                       .format(self.formatIdentity()))
-                    else:
-                        self._acqTime = t
 
-    def acqTime(self) -> datetime:
-        return self._acqTime
+    def _getAcqTime(self) -> datetime:
+        t = None
+        if self._markfile:
+            with open(self._markfile, "r", encoding="utf-8") as f:
+                decl = f.readline().strip()
+                if not decl != self.__fileversion:
+                    raise ValueError("{}: Incorrect Marker file version {}"
+                                     .format(self.formatIdentity(),
+                                             decl))
+                self._MRK_CACHE.read_file(f, source=self._markfile)
+                for mk, val in self._MRK_CACHE["Marker Infos"].items():
+                    val = val.split(",")
+                    if val[0].strip() == "New Segment":
+                        t = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
+                        dt = timedelta(microseconds=self.getField(
+                            "SamplingInterval"))
+                        dt = int(val[2]) * dt
+                        t = t - dt
+                        break
+        if t is None:
+            logger.warning("{}: Marker file do not contain any "
+                           "'New Segment' markers"
+                           .format(self.formatIdentity()))
+        return t
 
     def dump(self):
         if not self._FILE_CACHE:
@@ -391,7 +387,7 @@ class BrainVision(EEG):
                     if name.strip() == "New Segment":
                         last_onset = datetime.strptime(val[5],
                                                        "%Y%m%d%H%M%S%f")\
-                                - self._acqTime
+                                - self.acqTime()
                         last_seg = pos
                     mrkValues["onset"] = ((pos - last_seg) * dt + last_onset)\
                         .total_seconds()

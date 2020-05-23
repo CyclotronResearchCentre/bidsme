@@ -69,7 +69,9 @@ class baseModule(object):
                  "metaFields_opt",
                  # tsv meta variables
                  "rec_BIDSvalues",
-                 "sub_BIDSvalues"
+                 "sub_BIDSvalues",
+                 # general attributes
+                 "_acqTime"
                  ]
 
     _module = "base"
@@ -128,6 +130,8 @@ class baseModule(object):
         self.rec_BIDSvalues = self.rec_BIDSfields.GetTemplate()
         self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
 
+        self._acqTime = None
+
     #########################
     # Pure virtual methodes #
     #########################
@@ -149,7 +153,7 @@ class baseModule(object):
         """
         raise NotImplementedError
 
-    def acqTime(self) -> datetime:
+    def _getAcqTime(self) -> datetime:
         """
         Virtual function that returns acquisition time, i.e.
         time corresponding to the first data of file
@@ -745,6 +749,40 @@ class baseModule(object):
         self._bidsSession.session = subid
         self._bidsSession.lock_session()
 
+    def acqTime(self) -> datetime:
+        """
+        Returns the time corresponding to the first data
+        of recording
+
+        Returns
+        -------
+        datetime
+        """
+        return self._acqTime
+
+    def setAcqTime(self, t: datetime = None) -> None:
+        """
+        Sets the recording to given datetime.
+
+        If t is None (default), then datetime determined from
+        recording
+
+        Parameters
+        ----------
+        t: datetime
+            datetime to set
+        """
+        if t is None:
+            self._acqTime = self._getAcqTime()
+        else:
+            self._acqTime = tools.check_type("t", datetime, t)
+
+    def resetAcqTime(self):
+        """
+        Sets current acqTime to unkown value
+        """
+        self._acqTime = None
+
     def recIdentity(self, padding: int = 3, index=True):
         """
         Returns identification string for current recording
@@ -836,6 +874,7 @@ class baseModule(object):
                              .format(self.formatIdentity(), path))
 
         self._loadFile(path)
+        self.setAcqTime()
         self.index = index
         self.attributes = {}
         # for key in self.attributes:

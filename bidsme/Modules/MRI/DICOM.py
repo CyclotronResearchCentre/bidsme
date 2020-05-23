@@ -99,10 +99,10 @@ class DICOM(MRI):
                 self.setupMetaFields(_DICOM.metafields)
                 self.testMetaFields()
 
-    def acqTime(self) -> datetime:
-        acq = self._acqTime("Acquisition")
+    def _getAcqTime(self) -> datetime:
+        acq = self._parceAcqTime("Acquisition")
         if acq is None:
-            acq = self._acqTime("Content")
+            acq = self._parceAcqTime("Content")
         return acq
 
     def dump(self):
@@ -178,6 +178,9 @@ class DICOM(MRI):
         json_file = os.path.join(destination, json_file)
         with open(json_file, "w") as f:
             d = self.__extractStruct(self._DICOM_CACHE)
+            if "AcquisitionDateTime" not in d\
+                    and self.acqTime() is not None:
+                d["AcquisitionDateTime"] = self.acqTime().isoformat()
             json.dump(d, f, indent=2)
 
     def _getSubId(self) -> str:
@@ -399,7 +402,7 @@ class DICOM(MRI):
                 res[key] = DICOM.__transform(el, clean=True)
         return res
 
-    def _acqTime(self, Id: str):
+    def _parceAcqTime(self, Id: str):
         """
         Returns datetime from IdDateTime/Date/Time fields
 

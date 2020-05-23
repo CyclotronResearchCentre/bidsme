@@ -41,7 +41,7 @@ class bidsmeNIFTI(MRI):
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
                  "_header_file"
                  ]
-    __specialFields = {"acq_time"}
+    __specialFields = {}
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -109,7 +109,10 @@ class bidsmeNIFTI(MRI):
                 self.testMetaFields()
 
     def acqTime(self) -> datetime:
-        return self.getAttribute("acq_time")
+        if "AcquisitionDateTime" in self._HEADER_CACHE:
+            dt_stamp = self._HEADER_CACHE["AcquisitionDateTime"]
+            return self.__transform(dt_stamp, "DT")
+        return None
 
     def dump(self):
         if self._HEADER_CACHE is not None:
@@ -175,34 +178,6 @@ class bidsmeNIFTI(MRI):
     # Additional fonctions #
     ########################
     def _adaptMetaField(self, name):
-        if name == "acq_time":
-            if "AcquisitionDateTime" in self._HEADER_CACHE:
-                dt_stamp = self._HEADER_CACHE["AcquisitionDateTime"]
-                return self.__transform(dt_stamp, "DT")
-
-            acq = datetime.min
-
-            if "AcquisitionDate" in self._HEADER_CACHE:
-                date_stamp = self.__transform(
-                        self._HEADER_CACHE["AcquisitionDate"],
-                        "DA"
-                        )
-            else:
-                logger.warning("{}: Acquisition Date not defined"
-                               .format(self.recIdentity()))
-                return acq
-
-            if "AcquisitionTime" in self._HEADER_CACHE:
-                time_stamp = self.__transform(
-                        self._HEADER_CACHE["AcquisitionTime"],
-                        "TM")
-            else:
-                logger.warning("{}: Acquisition Time not defined"
-                               .format(self.recIdentity()))
-                return acq
-            acq = datetime.combine(date_stamp, time_stamp)
-            return acq
-
         return None
 
     def __transform(self, value, VR: str):

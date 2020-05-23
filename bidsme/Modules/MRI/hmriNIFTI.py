@@ -134,7 +134,7 @@ class hmriNIFTI(MRI):
                     self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
                     self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
 
-    def acqTime(self) -> datetime:
+    def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
         time_stamp = float(self.getField("AcquisitionTime"))
         days = date_stamp % 1

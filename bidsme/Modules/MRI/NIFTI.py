@@ -210,7 +210,7 @@ class NIFTI(MRI):
             shutil.copy2(data_file,
                          os.path.join(directory, bidsname + ".img"))
 
-    def acqTime(self) -> datetime:
+    def _getAcqTime(self) -> datetime:
         return None
 
     def recNo(self):
