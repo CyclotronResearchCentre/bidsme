@@ -26,9 +26,9 @@
 from .MRI import MRI
 from tools import tools
 from . import _DICOM
+from .. import _dicom_common
 
 import os
-import re
 import logging
 import pydicom
 import shutil
@@ -80,10 +80,7 @@ class DICOM(MRI):
                                        file))
                 return False
             try:
-                with open(file, 'rb') as dcmfile:
-                    dcmfile.seek(0x80, 1)
-                    if dcmfile.read(4) == b'DICM':
-                        return True
+                return _dicom_common.isValidDICOM(file, "MR")
             except Exception:
                 return False
         return False
@@ -100,10 +97,11 @@ class DICOM(MRI):
                 self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
-        acq = self._parceAcqTime("Acquisition")
-        if acq is None:
-            acq = self._parceAcqTime("Content")
-        return acq
+        for Id in ("Acquisition", "Content", "Instance"):
+            acq = _dicom_common.combineDateTime(self._DICOM_CACHE, Id)
+            if acq is not None:
+                return acq
+        return None
 
     def dump(self):
         if self._DICOM_CACHE is not None:
@@ -121,23 +119,10 @@ class DICOM(MRI):
             if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                value = self._DICOM_CACHE
-                for ind, f in enumerate(field):
-                    f = f.strip()
-                    tag = self.__getTag(f)
-                    if tag is not None:
-                        f = tag
-                    if isinstance(value, pydicom.dataset.Dataset):
-                        value = value[f]
-                    elif isinstance(value, pydicom.dataelem.DataElement):
-                        if value.VR == "SQ":
-                            value = value[int(f)]
-                    if isinstance(value, pydicom.dataelem.DataElement) \
-                            and value.VR != "SQ":
-                        break
-                res = self.__transform(value)
-                for i in range(ind + 1, len(field)):
-                    res = res[int(field[i])]
+                res = _dicom_common.retrieveFromDataset(
+                        field, 
+                        self._DICOM_CACHE,
+                        fail_on_last_not_found = False)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))
@@ -177,7 +162,7 @@ class DICOM(MRI):
         json_file = "dcm_dump_" + tools.change_ext(data_file, "json")
         json_file = os.path.join(destination, json_file)
         with open(json_file, "w") as f:
-            d = self.__extractStruct(self._DICOM_CACHE)
+            d = _dicom_common.extractStruct(self._DICOM_CACHE)
             if "AcquisitionDateTime" not in d\
                     and self.acqTime() is not None:
                 d["AcquisitionDateTime"] = self.acqTime().isoformat()
@@ -194,242 +179,3 @@ class DICOM(MRI):
     ########################
     def _adaptMetaField(self, name):
         return None
-
-    @staticmethod
-    def __transform(element: pydicom.dataelem.DataElement,
-                    clean: bool = False):
-        if element is None:
-            return None
-        VR = element.VR
-        VM = element.VM
-        val = element.value
-
-        if VM > 1:
-            return [DICOM.__decodeValue(val[i], VR, clean) for i in range(VM)]
-        else:
-            return DICOM.__decodeValue(val, VR, clean)
-
-    @staticmethod
-    def __decodeValue(val, VR: str, clean=False):
-        """
-        Decodes a value from pydicom.DataElement to corresponding
-        python class following description in:
-        http://dicom.nema.org/medical/dicom/current/output/
-        chtml/part05/sect_6.2.html
-
-        Nested values are not permitted
-
-        Parameters
-        ----------
-        val:
-            value as stored in DataElements.value
-        VR: str
-            Value representation defined by DICOM
-        clean: bool
-            if True, values of not-basic classes (None, int, float)
-            transformed to string
-
-        Returns
-        -------
-            decoded value
-        """
-
-        # Byte Numbers:
-        # parced by pydicom, just return value
-        if VR in ("FL", "FD",
-                  "SL", "SS", "SV",
-                  "UL", "US", "UV"):
-            return val
-
-        # Text Numbers
-        # using int(), float()
-        if VR == "DS":
-            return float(val)
-        if VR == "IS":
-            return int(val)
-
-        # Text and text-like
-        # using strip to remove apddings
-        if VR in ("AE", "CS",
-                  "LO", "LT",
-                  "SH", "ST", "UC",
-                  "UR", "UT", "UI"):
-            return val.strip(" \0")
-
-        # Persons Name
-        # Use decoded original value
-        if VR == "PN":
-            if isinstance(val, str):
-                return val.strip(" \0")
-            if len(val.encodings) > 0:
-                enc = val.encodings[0]
-            return val.original_string.decode(enc)
-
-        # Age string
-        # unit mark is ignored, value converted to int
-        if VR == "AS":
-            if val[-1] in "YMWD":
-                return int(val[:-1])
-            else:
-                return int(val)
-
-        # Date and time
-        # converted to corresponding datetime subclass
-        if VR == "TM":
-            if not val:
-                return None
-            if "." in val:
-                dt = datetime.strptime(val, "%H%M%S.%f").time()
-            else:
-                dt = datetime.strptime(val, "%H%M%S").time()
-            if clean:
-                return dt.isoformat()
-            else:
-                return dt
-        if VR == "DA":
-            if not val:
-                return None
-            dt = datetime.strptime(val, "%Y%m%d").date()
-            if clean:
-                return dt.isoformat()
-            else:
-                return dt
-        if VR == "DT":
-            if not val:
-                return None
-            val = val.strip()
-            date_string = "%Y%m%d"
-            time_string = "%H%M%S"
-            ms_string = ""
-            uts_string = ""
-            if "." in val:
-                ms_string += ".%f"
-            if "+" in val or "-" in val:
-                uts_string += "%z"
-            if len(val) == 8 or \
-                    (len(val) == 13 and uts_string != ""):
-                logger.warning("{}: Format is DT, but string looks like DA"
-                               .format(val))
-                t = datetime.strptime(val, date_string + uts_string)
-            elif len(val) == 6 or \
-                    (len(val) == 13 and ms_string != ""):
-                logger.warning("{}: Format is DT, but string looks like TM"
-                               .format(val))
-                t = datetime.strptime(val, time_string + ms_string)
-            else:
-                t = datetime.strptime(val, date_string + time_string
-                                      + ms_string + uts_string)
-            if t.tzinfo is not None:
-                t += t.tzinfo.utcoffset(t)
-                t = t.replace(tzinfo=None)
-            if clean:
-                return t.isoformat()
-            else:
-                return t
-
-        # Invalid type
-        # Attributes and sequences will produce warning and return
-        # None
-        if VR in ("AT", "SQ", "UN"):
-            logger.warning("Invalid VR: {}".format(VR))
-            return None
-
-        # Other type
-        # Not clear how parce them
-        if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
-            logger.warning("Other VR: {}".format(VR))
-            return None
-
-        # unregistered VR
-        logger.error("{} is not valid DICOM VR".format(VR))
-        raise ValueError("invalid VR: {}".format(VR))
-
-    @staticmethod
-    def __getTag(tag: str) -> tuple:
-        """
-        Parces a DICOM tag from string into a tuple of int
-
-        String is expected to have format '(%4d, %4d)', and
-        tag numbers are expected to be in DICOM standart form:
-        hex numbers without '0x' prefix
-
-        Parameters
-        ----------
-        tag: str
-            string tag, e.g. '(0008, 0030)'
-
-        Returns
-        -------
-        (int, int)
-        None
-        """
-        res = re.match("\\(([0-9a-fA-F]{4})\\, ([0-9a-fA-F]{4})\\)", tag)
-        if res:
-            return (int(res.group(1), 16), int(res.group(2), 16))
-        else:
-            return None
-
-    @staticmethod
-    def __extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
-        """
-        Recurcively extract data from DICOM dataset and put it
-        into dictionary. Key are created from keyword, or if not
-        defined from tag.
-
-        Values are parced from DataElement values, multiple values
-        are stored as list.
-        Sequences are stored as lists of dictionaries
-
-        Parameters
-        ----------
-        dataset: pydicom.dataset.Dataset
-            dataset to extract
-
-        Returns
-        -------
-        dict
-        """
-        res = dict()
-
-        for el in dataset:
-            key = el.keyword
-            if key == '':
-                key = str(el.tag)
-            if el.VR == "SQ":
-                res[key] = [DICOM.__extractStruct(val)
-                            for val in el]
-            else:
-                res[key] = DICOM.__transform(el, clean=True)
-        return res
-
-    def _parceAcqTime(self, Id: str):
-        """
-        Returns datetime from IdDateTime/Date/Time fields
-
-        Parameters
-        ----------
-        Id: str
-            Id of field -- Acquisition, Instance, Content etc...
-        """
-        field = Id + "DateTime"
-        if field in self._DICOM_CACHE:
-            dt_stamp = self._DICOM_CACHE[field]
-            return self.__transform(dt_stamp)
-
-        field = Id + "Date"
-        if field in self._DICOM_CACHE:
-            date_stamp = self.__transform(self._DICOM_CACHE[field])
-        else:
-            logger.warning("{}: {} not defined"
-                           .format(self.recIdentity(), field))
-            return None
-
-        field = Id + "Time"
-        if field in self._DICOM_CACHE:
-            time_stamp = self.__transform(self._DICOM_CACHE[field])
-        else:
-            logger.warning("{}: {} not defined"
-                           .format(self.recIdentity(), field))
-            return None
-        acq = datetime.combine(date_stamp, time_stamp)
-        return acq

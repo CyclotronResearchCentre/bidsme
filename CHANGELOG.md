@@ -9,6 +9,8 @@ so it can be directly set by `setAcqTime(datetime)` function. The value
 from header is retrieved via `_getAcqTime` virtual function
   - DICOM: when exporting header, if `AcquisitionDateTime` field is not defined
 it is exported using the current recording acquisition time
+  - DICOM: common dicom operations (DataElement transformation, tag search etc.)
+are moved to `_dicom_common.py`
 
 ## [1.1.2] - 2020-05-22
 

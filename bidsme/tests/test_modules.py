@@ -92,6 +92,10 @@ class TestModules(unittest.TestCase):
 
         self.assertEqual(recording.acqTime(), datetime(2007, 5, 11,
                                                        11, 33, 22))
+        self.assertEqual(recording._getSubId(), "11788759296811")
+        self.assertEqual(recording._getSesId(), "")
+
+        self.assertIsNone(recording._adaptMetaField("test"))
 
         recording.dump()
         recording.clearCache()
@@ -109,62 +113,6 @@ class TestModules(unittest.TestCase):
 
         recording.copyRawFile("tests/out")
         recording.copyRawFile("tests/out")
-
-        self.assertEqual(recording._getField(["RequestAttributesSequence",
-                                              "0",
-                                              "RequestedProcedureID"]),
-                         "0000154779")
-        self.assertEqual(recording._getField(["ImageType"]),
-                         ["ORIGINAL", "PRIMARY", "M_FFE", "M", "FFE"])
-        self.assertEqual(recording._getField(["ImageType", "3"]), "M")
-        self.assertEqual(recording._getSubId(), "11788759296811")
-        self.assertEqual(recording._getSesId(), "")
-        self.assertIsNone(recording._adaptMetaField(""))
-
-        self.assertIsNone(Modules.MRI.DICOM._DICOM__transform(None))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("12Y", "AS"), 12)
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("12", "AS"), 12)
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("121100.123", "TM"),
-                time(12, 11, 0, 123000))
-        self.assertEqual(Modules.MRI.DICOM._DICOM__decodeValue(
-            "121100.123", "TM", True), "12:11:00.123000")
-        self.assertIsNone(Modules.MRI.DICOM._DICOM__decodeValue("", "DT"))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("20070511113322", "DT"),
-                datetime(2007, 5, 11, 11, 33, 22))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("20070511113322", "DT",
-                                                      True),
-                "2007-05-11T11:33:22")
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("20070511113322.1",
-                                                      "DT"),
-                datetime(2007, 5, 11, 11, 33, 22, 100000))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("20070511113322+0100",
-                                                      "DT"),
-                datetime(2007, 5, 11, 12, 33, 22))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("20070511",
-                                                      "DT"),
-                datetime(2007, 5, 11, 0, 0, 0))
-        self.assertEqual(
-                Modules.MRI.DICOM._DICOM__decodeValue("070511",
-                                                      "DT"),
-                datetime(1900, 1, 1, 7, 5, 11))
-        for VR in ("AT", "SQ", "UN",
-                   "OB", "OD", "OF", "OL", "OV", "OW"):
-            self.assertIsNone(
-                    Modules.MRI.DICOM._DICOM__decodeValue("aaa", VR))
-        with self.assertRaises(ValueError):
-            Modules.MRI.DICOM._DICOM__decodeValue("aaa", "XX")
-
-        recording.loadNextFile()
-        self.assertEqual(recording.acqTime(),
-                         datetime(2007, 5, 11, 11, 33, 22))
 
         recording._modality = "dwi"
         recording._copy_bidsified("tests/data/", "bidsified", "dcm")
