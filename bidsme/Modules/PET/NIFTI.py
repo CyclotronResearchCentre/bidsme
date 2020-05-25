@@ -1,5 +1,5 @@
 ###############################################################################
-# NIFTI.py provides an implementation of MRI class for generic NIFTI file
+# NIFTI.py provides an implementation of PET class for generic NIFTI file
 # format
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
@@ -24,7 +24,7 @@
 ##############################################################################
 
 from ..common import retrieveFormDict
-from .MRI import MRI
+from .PET import PET
 from tools import tools
 from .. import _nifti_common
 
@@ -36,7 +36,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-class NIFTI(MRI):
+class NIFTI(PET):
     _type = "NIFTI"
 
     __slots__ = ["_NIFTI_CACHE", "_FILE_CACHE",
