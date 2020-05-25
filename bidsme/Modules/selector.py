@@ -23,13 +23,17 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+from collections import OrderedDict
 
-from . import MRI, EEG
+from . import MRI, EEG, PET
 
-types_list = {"MRI": (MRI.hmriNIFTI, MRI.bidsmeNIFTI,
+types_list = OrderedDict(
+             {"MRI": (MRI.hmriNIFTI, MRI.bidsmeNIFTI,
                       MRI.jsonNIFTI, MRI.NIFTI,
                       MRI.DICOM),
+              "PET": (PET.DICOM),
               "EEG": (EEG.BrainVision,)}
+             )
 
 
 def select(folder: str, module: str = ""):
