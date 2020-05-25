@@ -24,7 +24,7 @@
 
 import unittest
 
-from datetime import datetime, time
+from datetime import datetime
 
 import Modules
 

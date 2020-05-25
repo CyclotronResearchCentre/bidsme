@@ -1,5 +1,5 @@
 ###############################################################################
-# DICOM.py provides an implementation of MRI class for DICOM file format
+# DICOM.py provides an implementation of PET class for DICOM file format
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy
@@ -23,7 +23,7 @@
 ##############################################################################
 
 
-from .MRI import MRI
+from .PET import PET
 from tools import tools
 from . import _DICOM
 from .. import _dicom_common
@@ -38,7 +38,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-class DICOM(MRI):
+class DICOM(PET):
     _type = "DICOM"
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]

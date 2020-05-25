@@ -100,34 +100,3 @@ recommended_modality = {
 optional_modality = {
         "anat": ["ContrastBolusIngredient"],
         }
-
-
-recommended = [
-        # Scanner hardware
-        "Manufacturer", "ManufacturersModelName", "DeviceSerialNumber",
-        "StationName", "SoftwareVersions",
-        "MagneticFieldStrength", "ReceiveCoilName",
-        "ReceiveCoilActiveElements",
-        "GradientSetType", "MRTransmitCoilSequence",
-        "MatrixCoilMode", "CoilCombinationMethod",
-        # Sequence Specifics
-        "PulseSequenceType", "ScanningSequence", "SequenceVariant",
-        "ScanOptions", "SequenceName", "PulseSequenceDetails",
-        "NonlinearGradientCorrection",
-        # In-Plane Spatial Encoding
-        "NumberShots", "ParallelReductionFactorInPlane",
-        "ParallelAcquisitionTechnique", "PartialFourier",
-        "PartialFourierDirection", "PhaseEncodingDirection",
-        "EffectiveEchoSpacing", "TotalReadoutTime",
-        # Timing Parameters
-        "EchoTime", "InversionTime", "SliceTiming",
-        "SliceEncodingDirection", "DwellTime",
-        # RF & Contrast
-        "FlipAngle", "MultibandAccelerationFactor",
-        # Slice Acceleration
-        "MultibandAccelerationFactor",
-        # Anatomical landmarks
-        "AnatomicalLandmarkCoordinates",
-        # Institution information
-        "InstitutionName", "InstitutionAddress", "InstitutionalDepartmentName",
-        ]

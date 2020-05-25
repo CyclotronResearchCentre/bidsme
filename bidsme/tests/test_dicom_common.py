@@ -34,6 +34,7 @@ from Modules._dicom_common import decodeValue
 from Modules._dicom_common import extractStruct
 from Modules._dicom_common import combineDateTime
 
+
 class TestValidation(unittest.TestCase):
     def test(self):
         self.assertTrue(isValidDICOM("tests/data/testDICOM_01.dcm"))
@@ -41,6 +42,7 @@ class TestValidation(unittest.TestCase):
         self.assertFalse(isValidDICOM("tests/data/testDICOM_01.dcm", "PT"))
 
         self.assertFalse(isValidDICOM(__file__))
+
 
 class TestDataRetrieval(unittest.TestCase):
     def testTag(self):
@@ -106,9 +108,9 @@ class TestDataRetrieval(unittest.TestCase):
                          ['ORIGINAL', 'PRIMARY', 'M_FFE', 'M', 'FFE'])
         self.assertEqual(retrieveFromDataset(["ImageType", "3"], ds), "M")
         self.assertEqual(retrieveFromDataset(["(0008, 1111)",
-                                              "0", 
+                                              "0",
                                               "(0008, 0005)"], ds),
-                                              "ISO_IR 100")
+                         "ISO_IR 100")
 
         self.assertIsNone(retrieveFromDataset(["ABC"],
                                               ds,
@@ -131,7 +133,7 @@ class TestDataRetrieval(unittest.TestCase):
                                               fail_on_last_not_found=False))
         with self.assertRaises(KeyError):
             retrieveFromDataset(["ImageType", "9"], ds)
-        
+
         exp = extractStruct(ds)
         self.assertEqual(exp["ImageType"],
                          ['ORIGINAL', 'PRIMARY', 'M_FFE', 'M', 'FFE'])
@@ -139,7 +141,7 @@ class TestDataRetrieval(unittest.TestCase):
         self.assertEqual(combineDateTime(ds, "Study"),
                          datetime(2001, 1, 1, 11, 33, 22))
         self.assertIsNone(combineDateTime(ds, "Acquisition"))
-        ds.add(pydicom.DataElement("AcquisitionDateTime", 
+        ds.add(pydicom.DataElement("AcquisitionDateTime",
                                    "DT",
                                    "19920304112233"))
         self.assertEqual(combineDateTime(ds, "Acquisition"),
@@ -147,4 +149,3 @@ class TestDataRetrieval(unittest.TestCase):
 
         del ds["StudyTime"]
         self.assertIsNone(combineDateTime(ds, "Study"))
-
