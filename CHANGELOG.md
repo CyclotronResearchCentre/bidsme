@@ -15,6 +15,7 @@ from header is retrieved via `_getAcqTime` virtual function
 it is exported using the current recording acquisition time
   - DICOM: common dicom operations (DataElement transformation, tag search etc.)
 are moved to `_dicom_common.py`
+  - selector: dictionary of aviable classes is now ordered
 
 ## [1.1.2] - 2020-05-22
 
