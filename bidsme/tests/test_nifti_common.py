@@ -48,9 +48,18 @@ class TestDataRetrieval(unittest.TestCase):
         self.assertEqual(end, ">")
         self.assertEqual(tfile, "ni1")
 
+        end, tfile = getEndType("tests/data/nifti1_le.nii")
+        self.assertEqual(end, "<")
+        self.assertEqual(tfile, "n+1")
+
     def testData_1(self):
         res = parceNIFTIheader_1("tests/data/nifti1.nii", ">")
         self.assertEqual(res["descrip"], "FSL3.2beta")
         self.assertEqual(res["cal_max"], 255.)
         self.assertEqual(res["cal_min"], 0.)
         self.assertEqual(res["dim"], (3, 91, 109, 91, 1, 1, 1, 1))
+
+        res = parceNIFTIheader_1("tests/data/nifti1_le.nii", "<")
+        self.assertEqual(res["descrip"], "TE=30;Time=160456.680")
+        self.assertEqual(res["quatern_c"], -0.9933918714523315)
+        self.assertEqual(res["scl_slope"], 4.007570266723633)
