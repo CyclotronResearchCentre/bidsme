@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
   - PET: new module for PET images
   - PET: DICOM file format
+  - PET: ECAT file format
 
 ### Changed
   - baseModule: acquisition time is now stored in `_acqTime` attribute,

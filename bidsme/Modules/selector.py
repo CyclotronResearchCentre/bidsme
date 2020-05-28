@@ -31,7 +31,8 @@ types_list = OrderedDict(
              {"MRI": (MRI.hmriNIFTI, MRI.bidsmeNIFTI,
                       MRI.jsonNIFTI, MRI.NIFTI,
                       MRI.DICOM),
-              "PET": (PET.DICOM, PET.bidsmeNIFTI,
+              "PET": (PET.DICOM, PET.ECAT,
+                      PET.bidsmeNIFTI,
                       PET.NIFTI),
               "EEG": (EEG.BrainVision,)}
              )

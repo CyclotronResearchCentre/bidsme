@@ -29,7 +29,7 @@ import shutil
 import logging
 import json
 import re
-from datetime import datetime
+from datetime import datetime, date, time
 from collections import OrderedDict
 
 from tools import tools
@@ -1025,7 +1025,7 @@ class baseModule(object):
             js_dict = {key: val
                        for key, val in js_dict.items()
                        if val is not None}
-            json.dump(js_dict, f, indent=2)
+            json.dump(js_dict, f, indent=2, cls=TimeEncoder)
 
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
                                                        bidsname
@@ -1427,3 +1427,12 @@ class baseModule(object):
             if not match_all:
                 break
         return match_one and match_all
+
+
+class TimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime)\
+                or isinstance(obj, date)\
+                or isinstance(obj, time):
+            return obj.isoformat()
+        return json.JSONEncoder.default(self, obj)
