@@ -24,15 +24,12 @@
 
 
 from .MRI import MRI
-from tools import tools
 from . import _DICOM
 from .. import _dicom_common
 
 import os
 import logging
 import pydicom
-import shutil
-import json
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -50,6 +47,7 @@ class DICOM(MRI):
 
         self._DICOM_CACHE = None
         self._DICOMFILE_CACHE = ""
+        self.isBidsValid = False
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -91,7 +89,8 @@ class DICOM(MRI):
             dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
             self._DICOM_CACHE = dicomdict
-            if self.setManufacturer(self.getField("Manufacturer")):
+            if self.setManufacturer(self.getField("Manufacturer"),
+                                    _DICOM.manufacturers):
                 self.resetMetaFields()
                 self.setupMetaFields(_DICOM.metafields)
                 self.testMetaFields()
@@ -104,14 +103,12 @@ class DICOM(MRI):
         return None
 
     def dump(self):
-        if self._DICOM_CACHE is not None:
-            return str(self._DICOM_CACHE)
-        elif len(self.files) > 0:
+        if self._DICOM_CACHE is None:
             self.loadFile(0)
-            return str(self._DICOM_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        res = _dicom_common.extractStruct(self._DICOM_CACHE)
+        for f in self.__specialFields:
+            res[f] = self._getField([f])
+        return res
 
     def _getField(self, field: list):
         res = None
@@ -150,23 +147,6 @@ class DICOM(MRI):
         del self._DICOM_CACHE
         self._DICOM_CACHE = None
         self._DICOMFILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        data_file = self.currentFile(True)
-        json_file = "dcm_dump_" + tools.change_ext(data_file, "json")
-        json_file = os.path.join(destination, json_file)
-        with open(json_file, "w") as f:
-            d = _dicom_common.extractStruct(self._DICOM_CACHE)
-            if "AcquisitionDateTime" not in d\
-                    and self.acqTime() is not None:
-                d["AcquisitionDateTime"] = self.acqTime().isoformat()
-            json.dump(d, f, indent=2)
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))

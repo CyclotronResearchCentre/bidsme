@@ -121,7 +121,8 @@ class hmriNIFTI(MRI):
             dicomdict = self.__loadJsonDump(path)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
-            if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"]):
+            if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"],
+                                    _hmriNIFTI.manufacturers):
                 self.resetMetaFields()
                 self.setupMetaFields(_hmriNIFTI.metafields)
                 self.testMetaFields()

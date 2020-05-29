@@ -17,6 +17,8 @@ it is exported using the current recording acquisition time
   - DICOM: common dicom operations (DataElement transformation, tag search etc.)
 are moved to `_dicom_common.py`
   - selector: dictionary of aviable classes is now ordered
+  - bidsmeNIFTI: changed the way the header is written
+  - header is automatically created if `isBidsValid` is set to false
 
 ## [1.1.2] - 2020-05-22
 

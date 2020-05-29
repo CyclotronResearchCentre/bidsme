@@ -48,3 +48,8 @@ metafields = {
             }
 
         }
+
+manufacturers = {
+        "siemens": "Siemens",
+        "philips": "Philips"
+        }

@@ -23,7 +23,6 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-
 import os
 import shutil
 import logging
@@ -71,7 +70,10 @@ class baseModule(object):
                  "rec_BIDSvalues",
                  "sub_BIDSvalues",
                  # general attributes
-                 "_acqTime"
+                 "_acqTime",
+                 "manufacturer"
+                 "isBidsValid",
+                 "encoding"
                  ]
 
     _module = "base"
@@ -131,6 +133,9 @@ class baseModule(object):
         self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
 
         self._acqTime = None
+        self.manufacturer = None
+        self.isBidsValid = True
+        self.encoding = "ascii"
 
     #########################
     # Pure virtual methodes #
@@ -160,9 +165,9 @@ class baseModule(object):
         """
         raise NotImplementedError
 
-    def dump(self):
+    def dump(self) -> dict:
         """
-        Virtual function that returns list of all meta-data
+        Virtual function that created adictionary of all meta-data
         associated with current file
         """
         raise NotImplementedError
@@ -280,6 +285,22 @@ class baseModule(object):
             path to copied file
         """
         shutil.copy2(self.currentFile(), destination)
+
+        # creating header dump for BIDS invalid formats
+        if not self.isBidsValid:
+            data_file = self.currentFile(True)
+            json_file = "header_dump_" + tools.change_ext(data_file, "json")
+            with open(os.path.join(destination, json_file), "w") as f:
+                d = dict()
+                d["format"] = self.formatIdentity()
+                d["manufacturer"] = self.manufacturer
+                d["acqDateTime"] = self.acqTime()
+                d["subId"] = self._getSubId()
+                d["sesId"] = self._getSesId()
+                d["recNo"] = self.recNo()
+                d["recId"] = self.recId()
+                d["header"] = self.dump()
+                json.dump(d, f, indent=2, cls=ExtendEncoder)
         return os.path.join(destination, self.currentFile(False))
 
     def _transformField(self, value, prefix: str):
@@ -812,6 +833,41 @@ class baseModule(object):
         except Exception:
             return self.currentFile()
 
+    def setManufacturer(self, line: str, manufacturers: dict) -> bool:
+        """
+        Sets manufacturer accordingly to retrieved key line
+        Returns true if manufacturer changes
+
+        Parameters
+        ----------
+        line: str
+            key line used to determine manufacturer
+        manufacturers: dict
+            dictionary with known manufacturer names
+
+        Returns
+        -------
+        bool:
+            True if manufacturer value changes
+        """
+        manufacturer = "Unknown"
+        if line:
+            lin = line.lower()
+            for man in manufacturers:
+                if man in lin:
+                    manufacturer = manufacturers[man]
+
+        if self.manufacturer is None:
+            # First time initialisation
+            self.manufacturer = manufacturer
+            return True
+
+        if manufacturer == self.manufacturer:
+            return False
+        else:
+            self.manufacturer = manufacturer
+            return True
+
     def _getCharacteristic(self, field):
         """
         Retrieves given cheracteristic value
@@ -1025,7 +1081,7 @@ class baseModule(object):
             js_dict = {key: val
                        for key, val in js_dict.items()
                        if val is not None}
-            json.dump(js_dict, f, indent=2, cls=TimeEncoder)
+            json.dump(js_dict, f, indent=2, cls=ExtendEncoder)
 
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
                                                        bidsname
@@ -1152,6 +1208,81 @@ class baseModule(object):
         if self.suffix:
             tags_list.append(tools.cleanup_value(self.suffix))
         return "_".join(tags_list)
+
+    #############################################
+    # JSON sidecar meta-fields related methodes #
+    #############################################
+    def reserMetaFields(self) -> None:
+        """
+        Virtual function
+        Resets currently defined meta fields dictionaries
+        to None values
+        """
+        raise NotImplementedError
+
+    def setupMetaFields(self, definitions: dict) -> None:
+        """
+        Setup json fields to values from given dictionary.
+
+        Dictionary must contain key "Unknown", and keys
+        correspondand to each of manufacturer.
+
+        Corresponding values are dictionaries with json
+        metafields names (as defined in MRI metafields)
+        as keys and a tuple of DynamicField name, default value
+        If default value is None, no default is defined.
+
+        Parameters
+        ----------
+        definitions: dict
+            dictionary with metadata fields definitions
+        """
+        if self.manufacturer in definitions:
+            meta = definitions[self.manufacturer]
+        else:
+            meta = None
+        meta_default = definitions["Unknown"]
+
+        for metaFields in (self.metaFields_req,
+                           self.metaFields_rec,
+                           self.metaFields_opt):
+            for mod in metaFields:
+                for key in metaFields[mod]:
+                    if meta is not None:
+                        if key in meta:
+                            metaFields[mod][key]\
+                                    = MetaField(meta[key][0],
+                                                scaling=None,
+                                                default=meta[key][1])
+                            continue
+                    if key in meta_default:
+                        metaFields[mod][key]\
+                                = MetaField(meta_default[key][0],
+                                            scaling=None,
+                                            default=meta_default[key][1])
+
+    def testMetaFields(self):
+        """
+        Test all metafields values and resets not found ones
+        """
+        for metaFields in (self.metaFields_req,
+                           self.metaFields_rec,
+                           self.metaFields_opt):
+            for mod in metaFields:
+                for key, field in metaFields[mod].items():
+                    if field is None or "<<" in field.name:
+                        continue
+                    res = None
+                    try:
+                        res = self.getDynamicField(field.name,
+                                                   default=field.default,
+                                                   raw=True,
+                                                   cleanup=False)
+                    except Exception:
+                        metaFields[mod][key] = None
+                        pass
+                    if res is None:
+                        metaFields[mod][key] = None
 
     def generateMeta(self) -> dict:
         """
@@ -1348,12 +1479,9 @@ class baseModule(object):
         if field is None:
             return fallback
         try:
-            if field.name.startswith("<"):
-                val = self.getDynamicField(field.name,
-                                           default=fallback,
-                                           raw=True, cleanup=False)
-            else:
-                val = self.getField(field.name, field.default)
+            val = self.getDynamicField(field.name,
+                                       default=fallback,
+                                       raw=True, cleanup=False)
         except Exception:
             return fallback
         if val is None:
@@ -1429,10 +1557,17 @@ class baseModule(object):
         return match_one and match_all
 
 
-class TimeEncoder(json.JSONEncoder):
+class ExtendEncoder(json.JSONEncoder):
     def default(self, obj):
-        if isinstance(obj, datetime)\
-                or isinstance(obj, date)\
-                or isinstance(obj, time):
-            return obj.isoformat()
+        if isinstance(obj, datetime):
+            return obj.strftime("%Y-%m-%dT%H:%M:%S.%f")
+        if isinstance(obj, time):
+            return obj.strftime("%H:%M:%S.%f")
+        if isinstance(obj, date):
+            return obj.strftime("%Y-%m-%d")
+        if isinstance(obj, bytes):
+            try:
+                return obj.decode(self.encoding)
+            except UnicodeDecodeError:
+                return "<bytes>"
         return json.JSONEncoder.default(self, obj)

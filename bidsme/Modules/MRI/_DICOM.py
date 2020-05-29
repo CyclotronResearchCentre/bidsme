@@ -53,3 +53,8 @@ metafields = {
             "InversionTime": ("<scale-3:(2005, 140f)/0/InversionTimes>", None),
             }
         }
+
+manufacturers = {
+        "siemens": "Siemens",
+        "philips": "Philips"
+        }

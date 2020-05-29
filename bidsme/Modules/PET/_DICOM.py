@@ -26,3 +26,8 @@ metafields = {
         "Unknown": {
             }
         }
+
+manufacturers = {
+        "siemens": "Siemens",
+        "philips": "Philips"
+        }

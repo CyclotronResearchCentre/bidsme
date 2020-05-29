@@ -1,6 +1,6 @@
 ###############################################################################
 # bidsmeNIFTI.py provides an implementation of PET class for Nifti file format
-# with dumped DICOM header in form of json file
+# with dumped header in form of json file
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy
@@ -25,6 +25,7 @@
 from ..common import retrieveFormDict
 from .PET import PET
 from . import _DICOM
+from . import _ECAT
 
 import os
 import logging
@@ -39,9 +40,9 @@ class bidsmeNIFTI(PET):
     _type = "bidsmeNIFTI"
 
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
-                 "_header_file"
+                 "_header_file",
+                 "_headerData"
                  ]
-    __specialFields = {}
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -81,7 +82,7 @@ class bidsmeNIFTI(PET):
                 return False
             path, base = os.path.split(file)
             base, ext = os.path.splitext(base)
-            header = os.path.join(path, "dcm_dump_" + base + ".json")
+            header = os.path.join(path, "header_dump_" + base + ".json")
             if os.path.isfile(header):
                 return True
         return False
@@ -91,47 +92,68 @@ class bidsmeNIFTI(PET):
             # The DICM tag may be missing for anonymized DICOM files
             path, base = os.path.split(path)
             base, ext = os.path.splitext(base)
-            header = os.path.join(path, "dcm_dump_" + base + ".json")
+            header = os.path.join(path, "header_dump_" + base + ".json")
             try:
                 with open(header, "r") as f:
                     dicomdict = json.load(f)
+                    self._headerData = {
+                            "format": dicomdict["format"],
+                            "acqDateTime": dicomdict["acqDateTime"],
+                            "manufacturer": dicomdict["manufacturer"],
+                            }
+                    dicomdict["header"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),
                                      header))
                 raise
+            except KeyError as e:
+                logger.error("{}: missing {} key in {}"
+                             .format(self.formatIdentity(),
+                                     e,
+                                     header))
+                raise
             self._FILE_CACHE = path
-            self._HEADER_CACHE = dicomdict
+            self._HEADER_CACHE = dicomdict["header"]
             self._header_file = header
-            if self.setManufacturer(self._getField("Manufacturer")):
+            form = dicomdict["format"].split("/")
+            if form[0] != self._module:
+                logger.error("{}: format is not {}"
+                             .format(self.recIdentity,
+                                     self._module))
+                raise Exception("Wrong format")
+            if form[1] == "DICOM":
+                mod = _DICOM
+            elif form[1] == "ECAT":
+                mod = _ECAT
+            else:
+                logger.error("{}: unknown format {}"
+                             .format(self.recIdentity,
+                                     form[1]))
+                raise Exception("Wrong format")
+
+            if self.setManufacturer(dicomdict["manufacturer"],
+                                    mod.manufacturers):
                 self.resetMetaFields()
-                self.setupMetaFields(_DICOM.metafields)
+                self.setupMetaFields(mod.metafields)
                 self.testMetaFields()
 
-    def acqTime(self) -> datetime:
-        if "AcquisitionDateTime" in self._HEADER_CACHE:
-            dt_stamp = self._HEADER_CACHE["AcquisitionDateTime"]
-            return self.__transform(dt_stamp, "DT")
+    def _getAcqTime(self) -> datetime:
+        if self._headerData["acqDateTime"]:
+                return datetime.strptime(self._headerData["acqDateTime"],
+                                         "%Y-%m-%dT%H:%M:%S.%f")
         return None
 
     def dump(self):
-        if self._HEADER_CACHE is not None:
-            return str(self._HEADER_CACHE)
-        elif len(self.files) > 0:
+        if self._HEADER_CACHE is None:
             self.loadFile(0)
-            return str(self._HEADER_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._HEADER_CACHE
 
     def _getField(self, field: list):
         res = None
         try:
-            if field[0] in self.__specialFields:
-                res = self._adaptMetaField(field[0])
-            else:
-                res = retrieveFormDict(field, self._HEADER_CACHE,
-                                       fail_on_last_not_found=False)
+            res = retrieveFormDict(field, self._HEADER_CACHE,
+                                   fail_on_last_not_found=False)
         except Exception:
             logger.warning("{}: Could not parse '{}'"
                            .format(self.currentFile(False), field))
@@ -139,18 +161,10 @@ class bidsmeNIFTI(PET):
         return res
 
     def recNo(self):
-        return self.getField("SeriesNumber", 0)
+        return self._headerData["recNo"]
 
     def recId(self):
-        seriesdescr = self.getField("SeriesDescription")
-        if seriesdescr is None:
-            seriesdescr = self.getField("ProtocolName")
-        if seriesdescr is None:
-            logger.warning("{}: Unable to get recording Id for file {}"
-                           .format(self.formatIdentity(),
-                                   self.currentFile()))
-            seriesdescr = "unknown"
-        return seriesdescr.strip()
+        return self._headerData["recId"]
 
     def isCompleteRecording(self):
         return True
@@ -169,54 +183,13 @@ class bidsmeNIFTI(PET):
         shutil.copy2(self._header_file, destination)
 
     def _getSubId(self) -> str:
-        return str(self.getField("PatientID"))
+        return self._headerData["subId"]
 
     def _getSesId(self) -> str:
-        return ""
+        return self._headerData["sesId"]
 
     ########################
     # Additional fonctions #
     ########################
     def _adaptMetaField(self, name):
         return None
-
-    def __transform(self, value, VR: str):
-        # Date and time
-        # converted to corresponding datetime subclass
-        if VR == "TM":
-            if "." in value:
-                dt = datetime.strptime(value, "%H:%M:%S.%f").time()
-            else:
-                dt = datetime.strptime(value, "%H:%M:%S").time()
-            return dt
-        if VR == "DA":
-            dt = datetime.strptime(value, "%Y-%m-%d").date()
-            return dt
-        if VR == "DT":
-            value = value.strip()
-            date_string = "%Y-%m-%d"
-            time_string = "%H:%M:%S"
-            sep_string = "T"
-            ms_string = ""
-            uts_string = ""
-            if "." in value:
-                ms_string += ".%f"
-            if "+" in value or "-" in value:
-                uts_string += "%z"
-            if len(value) == 8 or \
-                    (len(value) == 13 and uts_string != ""):
-                logger.warning("{}: Format is DT, but string looks like DA"
-                               .format(value))
-                t = datetime.strptime(value, date_string + uts_string)
-            elif len(value) == 6 or \
-                    (len(value) == 13 and ms_string != ""):
-                logger.warning("{}: Format is DT, but string looks like TM"
-                               .format(value))
-                t = datetime.strptime(value, time_string + ms_string)
-            else:
-                t = datetime.strptime(value, date_string + sep_string
-                                      + time_string + ms_string + uts_string)
-            if t.tzinfo is not None:
-                t += t.tzinfo.utcoffset(t)
-                t = t.replace(tzinfo=None)
-            return t
