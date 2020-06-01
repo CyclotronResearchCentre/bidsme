@@ -48,6 +48,7 @@ class ECAT(PET):
         self._ECAT_CACHE = None
         self._SUB_CACHE = None
         self._FILE_CACHE = ""
+        self.isBidsValid = False
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -100,7 +101,19 @@ class ECAT(PET):
         return self.getField("datetime:scan_start_time")
 
     def dump(self):
-        return ""
+        if self._ECAT_CACHE is None:
+            self.loadFile(0)
+        res = dict()
+        for key, val in self._ECAT_CACHE.items():
+            res[key] = self.__transform(val)
+        # for index, im in enumerate(self._SUB_CACHE):
+        #     res[index] = dict()
+        #     for key, val in im.items():
+        #        res[index][key] = self.__transform(val)
+        for f in self.__specialFields:
+            res[f] = self._getField([f])
+
+        return res
 
     def _getField(self, field: list):
         res = None
@@ -139,13 +152,13 @@ class ECAT(PET):
                                  prefix, e))
 
     def recNo(self):
-        return self._ECAT_CACHE["acquisition_type"]
+        return self._getField(["acquisition_type"])
 
     def recId(self):
-        return self._ECAT_CACHE["study_type"]
+        return self._getField(["study_type"])
 
     def _getSubId(self) -> str:
-        return self._ECAT_CACHE["patient_id"]
+        return self._getField(["patient_id"])
 
     def _getSesId(self) -> str:
         return ""
@@ -163,7 +176,12 @@ class ECAT(PET):
     def __transform(val: numpy.ndarray) -> object:
         tmp = val.tolist()
         if isinstance(tmp, bytes):
-            tmp = tmp.decode()
+            try:
+                tmp = tmp.decode()
+            except UnicodeError:
+                logger.warning("Unable to decode '{}'"
+                               .format(tmp))
+                tmp = "UnicodeError"
         return tmp
 
     def _adaptMetaField(self, name):

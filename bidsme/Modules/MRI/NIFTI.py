@@ -94,7 +94,7 @@ class NIFTI(MRI):
         return False
 
     def _loadFile(self, path: str) -> None:
-        if path != self._DICOMFILE_CACHE:
+        if path != self._FILE_CACHE:
             self._endianness, self._nii_type = _nifti_common.getEndType(path)
             self._FILE_CACHE = path
 

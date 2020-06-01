@@ -71,7 +71,7 @@ class baseModule(object):
                  "sub_BIDSvalues",
                  # general attributes
                  "_acqTime",
-                 "manufacturer"
+                 "manufacturer",
                  "isBidsValid",
                  "encoding"
                  ]
@@ -1248,18 +1248,31 @@ class baseModule(object):
                            self.metaFields_opt):
             for mod in metaFields:
                 for key in metaFields[mod]:
-                    if meta is not None:
-                        if key in meta:
-                            metaFields[mod][key]\
-                                    = MetaField(meta[key][0],
-                                                scaling=None,
-                                                default=meta[key][1])
-                            continue
-                    if key in meta_default:
+                    if meta is None:
+                        continue
+                    if key in meta:
+                        val = meta[key]
+                        if isinstance(val, list):
+                            metaFields[mod][key] = [MetaField(f[0],
+                                                              scaling=None,
+                                                              default=f[1])
+                                                    for f in val]
                         metaFields[mod][key]\
-                                = MetaField(meta_default[key][0],
-                                            scaling=None,
-                                            default=meta_default[key][1])
+                            = MetaField(val[0],
+                                        scaling=None,
+                                        default=val[1])
+                        continue
+                    if key in meta_default:
+                        val = meta_default[key]
+                        if isinstance(val, list):
+                            metaFields[mod][key] = [MetaField(f[0],
+                                                              scaling=None,
+                                                              default=f[1])
+                                                    for f in val]
+                        metaFields[mod][key]\
+                            = MetaField(val[0],
+                                        scaling=None,
+                                        default=val[1])
 
     def testMetaFields(self):
         """
