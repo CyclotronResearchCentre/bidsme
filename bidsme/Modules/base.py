@@ -1248,20 +1248,19 @@ class baseModule(object):
                            self.metaFields_opt):
             for mod in metaFields:
                 for key in metaFields[mod]:
-                    if meta is None:
-                        continue
-                    if key in meta:
+                    if meta and key in meta:
                         val = meta[key]
                         if isinstance(val, list):
                             metaFields[mod][key] = [MetaField(f[0],
                                                               scaling=None,
                                                               default=f[1])
                                                     for f in val]
-                        metaFields[mod][key]\
-                            = MetaField(val[0],
-                                        scaling=None,
-                                        default=val[1])
-                        continue
+                        else:
+                            metaFields[mod][key]\
+                                = MetaField(val[0],
+                                            scaling=None,
+                                            default=val[1])
+                            continue
                     if key in meta_default:
                         val = meta_default[key]
                         if isinstance(val, list):
@@ -1269,10 +1268,11 @@ class baseModule(object):
                                                               scaling=None,
                                                               default=f[1])
                                                     for f in val]
-                        metaFields[mod][key]\
-                            = MetaField(val[0],
-                                        scaling=None,
-                                        default=val[1])
+                        else:
+                            metaFields[mod][key]\
+                                = MetaField(val[0],
+                                            scaling=None,
+                                            default=val[1])
 
     def testMetaFields(self):
         """
@@ -1283,6 +1283,8 @@ class baseModule(object):
                            self.metaFields_opt):
             for mod in metaFields:
                 for key, field in metaFields[mod].items():
+                    if isinstance(field, list):
+                        continue
                     if field is None or "<<" in field.name:
                         continue
                     res = None
@@ -1310,7 +1312,9 @@ class baseModule(object):
         mod = self._modality
         if mod in self.metaFields_req:
             for key, field in self.metaFields_req[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
+                if field is None:
+                    continue
+                if key not in self.metaAuxiliary:
                     field.value = self.__getMetaFieldSecure(field,
                                                             field.default)
         if mod in self.metaFields_rec:
