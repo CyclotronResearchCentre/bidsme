@@ -137,8 +137,8 @@ class bidsmeNIFTI(MRI):
 
     def _getAcqTime(self) -> datetime:
         if self._headerData["acqDateTime"]:
-                return datetime.strptime(self._headerData["acqDateTime"],
-                                         "%Y-%m-%dT%H:%M:%S.%f")
+            return datetime.strptime(self._headerData["acqDateTime"],
+                                     "%Y-%m-%dT%H:%M:%S.%f")
         return None
 
     def dump(self):
