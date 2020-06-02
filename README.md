@@ -49,6 +49,7 @@ widely supported [YAML](http://yaml.org/) files, generated from a template yaml-
 - ruamel.yaml>=0.15.35
 - coloredlogs
 - pydicom >= 1.4.2
+- nibabel >= 3.1.0
 
 ## <a name="interface"></a> The BIDSme interface
 
