@@ -28,7 +28,6 @@ import os
 import shutil
 import logging
 from tools import tools
-from bidsMeta import MetaField
 
 from ..base import baseModule
 
@@ -111,5 +110,3 @@ class MRI(baseModule):
             self.metaFields_opt[mod] = {
                 key: None for key in
                 _MRI.optional_modality[mod]}
-
-

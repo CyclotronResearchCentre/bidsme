@@ -24,7 +24,6 @@
 
 
 import logging
-from bidsMeta import MetaField
 
 from ..base import baseModule
 

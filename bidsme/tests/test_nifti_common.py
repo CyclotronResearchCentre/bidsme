@@ -27,7 +27,7 @@ import unittest
 from Modules._nifti_common import isValidNIFTI
 from Modules._nifti_common import getEndType
 from Modules._nifti_common import parceNIFTIheader_1
-from Modules._nifti_common import parceNIFTIheader_2
+# from Modules._nifti_common import parceNIFTIheader_2
 
 
 class TestValidation(unittest.TestCase):
