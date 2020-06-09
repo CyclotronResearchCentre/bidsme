@@ -101,6 +101,7 @@ class bidsmeNIFTI(MRI):
                             "manufacturer": dicomdict["manufacturer"],
                             }
                     dicomdict["header"]
+                    self.custom = dicomdict["custom"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),

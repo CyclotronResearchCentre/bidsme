@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - PET: new module for PET images
   - PET: DICOM file format
   - PET: ECAT file format
+  - BaseModule: custom attributes, that can be set by `recording.custom[<name>]`,
+and accessed from bidsmap using `<<custom:name>>`
 
 ### Changed
   - baseModule: acquisition time is now stored in `_acqTime` attribute,
@@ -19,6 +21,11 @@ are moved to `_dicom_common.py`
   - selector: dictionary of aviable classes is now ordered
   - bidsmeNIFTI: changed the way the header is written
   - header is automatically created if `isBidsValid` is set to false
+
+### Fixed
+  - PET:ECAT Magic string test now "MATRIX" instead of "MATRIX72"
+  - PET:ECAT frames headers are now exported into json
+  - PET:ECAT FramesStart and Duration are now in s instead of ms
 
 ## [1.1.2] - 2020-05-22
 

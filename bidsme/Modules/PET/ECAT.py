@@ -81,7 +81,7 @@ class ECAT(PET):
                 with open(file, "rb") as f:
                     magic = f.read(14).decode()
                     magic = magic.strip(" \0")
-                    if magic.startswith("MATRIX72"):
+                    if magic.startswith("MATRIX"):
                         return True
             except Exception:
                 return False
@@ -93,6 +93,7 @@ class ECAT(PET):
             self._ECAT_CACHE = e.header
             self._SUB_CACHE = e.get_subheaders().subheaders
             self._FILE_CACHE = path
+            self.setManufacturer("Unknown", {})
             self.resetMetaFields()
             self.setupMetaFields(_ECAT.metafields)
             self.testMetaFields()
@@ -106,10 +107,10 @@ class ECAT(PET):
         res = dict()
         for key, val in self._ECAT_CACHE.items():
             res[key] = self.__transform(val)
-        # for index, im in enumerate(self._SUB_CACHE):
-        #     res[index] = dict()
-        #     for key, val in im.items():
-        #        res[index][key] = self.__transform(val)
+        for index, im in enumerate(self._SUB_CACHE):
+            res[index] = dict()
+            for key in im.dtype.names:
+                res[index][key] = self.__transform(im[key])
         for f in self.__specialFields:
             res[f] = self._getField([f])
 
@@ -187,10 +188,10 @@ class ECAT(PET):
     def _adaptMetaField(self, name):
         value = None
         if name == "FramesStart":
-            value = [self.__transform(frame["frame_start_time"])
+            value = [self.__transform(frame["frame_start_time"]) / 1000
                      for frame in self._SUB_CACHE]
             return value
         if name == "FramesDuration":
-            value = [self.__transform(frame["frame_duration"])
+            value = [self.__transform(frame["frame_duration"]) / 1000
                      for frame in self._SUB_CACHE]
             return value

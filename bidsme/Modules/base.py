@@ -57,6 +57,8 @@ class baseModule(object):
                  "suffix",
                  # recording attributes
                  "attributes",
+                 # user-defined attributes
+                 "custom",
                  # local file variables
                  "index",
                  "files",
@@ -120,6 +122,7 @@ class baseModule(object):
         self._recPath = ""
         self.index = -1
         self.attributes = dict()
+        self.custom = dict()
         self.labels = OrderedDict()
         self.suffix = ""
         self._modality = unknownmodality
@@ -299,6 +302,7 @@ class baseModule(object):
                 d["sesId"] = self._getSesId()
                 d["recNo"] = self.recNo()
                 d["recId"] = self.recId()
+                d["custom"] = self.custom
                 d["header"] = self.dump()
                 json.dump(d, f, indent=2, cls=ExtendEncoder)
         return os.path.join(destination, self.currentFile(False))
@@ -646,6 +650,8 @@ class baseModule(object):
                         result = self._getCharacteristic(query)
                     elif prefix == "bids":
                         result = self.labels[query]
+                    elif prefix == "custom":
+                        result = self.custom[query]
                     elif prefix == "sub_tsv":
                         result = self.sub_BIDSvalues[query]
                     elif prefix == "rec_tsv":
@@ -856,6 +862,7 @@ class baseModule(object):
             for man in manufacturers:
                 if man in lin:
                     manufacturer = manufacturers[man]
+                    break
 
         if self.manufacturer is None:
             # First time initialisation

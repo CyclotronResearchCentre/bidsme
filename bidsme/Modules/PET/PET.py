@@ -37,55 +37,10 @@ class PET(baseModule):
 
     bidsmodalities = _PET.modalities
 
-    __slots__ = ["manufacturer"]
-
     def __init__(self):
         super().__init__()
         self.resetMetaFields()
         self.manufacturer = None
-
-    def setManufacturer(self, line: str) -> bool:
-        """
-        Sets manufacturer accordingly to retrieved key line
-        Returns true if manufacturer changes
-
-        Actual manufacturer:
-            Siemens
-            Phillips
-            Unknown
-
-        Parameters
-        ----------
-        line: str
-            key line used to determine manufacturer
-
-        Returns
-        -------
-        bool:
-            True if manufacturer value changes
-        """
-        if line is None:
-            manufacturer = "Unknown"
-        else:
-            lin = line.lower()
-
-            if "siemens" in lin:
-                manufacturer = "Siemens"
-            elif "philips" in lin:
-                manufacturer = "Philips"
-            else:
-                manufacturer = "Unknown"
-
-        if self.manufacturer is None:
-            # First time initialisation
-            self.manufacturer = manufacturer
-            return True
-
-        if manufacturer == self.manufacturer:
-            return False
-        else:
-            self.manufacturer = manufacturer
-            return True
 
     def resetMetaFields(self) -> None:
         """

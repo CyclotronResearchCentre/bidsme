@@ -41,6 +41,8 @@ metafields = {
             "FrameTimesStart": ("<FramesStart>", None),
             "FrameTimesStartUnit": ("s", None),
             "FrameDuration": ("<FramesDuration>", None),
-            "FrameDurationStartUnit": ("s", None),
+            "FrameDurationUnit": ("s", None),
             },
         }
+
+manufacturers = {}

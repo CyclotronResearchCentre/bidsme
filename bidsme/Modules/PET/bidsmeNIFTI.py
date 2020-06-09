@@ -22,7 +22,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
+from ..common import retrieveFormDict, action_value
 from .PET import PET
 from . import _DICOM
 from . import _ECAT
@@ -102,6 +102,7 @@ class bidsmeNIFTI(PET):
                             "manufacturer": dicomdict["manufacturer"],
                             }
                     dicomdict["header"]
+                    self.custom = dicomdict["custom"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),
@@ -187,6 +188,22 @@ class bidsmeNIFTI(PET):
 
     def _getSesId(self) -> str:
         return self._headerData["sesId"]
+
+    def _transformField(self, value, prefix: str):
+        if prefix == "":
+            return value
+        if prefix == "datetime":
+            return datetime.fromtimestamp(value)
+        if prefix == "date":
+            return datetime.fromtimestamp(value).date()
+        if prefix == "time":
+            return datetime.fromtimestamp(value).time()
+        try:
+            return action_value(value, prefix)
+        except Exception as e:
+            logger.error("{}: Invalid field prefix {}: {}"
+                         .format(self.formatIdentity(),
+                                 prefix, e))
 
     ########################
     # Additional fonctions #
