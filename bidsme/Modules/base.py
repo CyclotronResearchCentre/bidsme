@@ -305,7 +305,7 @@ class baseModule(object):
                 d["custom"] = self.custom
                 d["header"] = self.dump()
                 json.dump(d, f, indent=2, cls=ExtendEncoder)
-        return os.path.join(destination, self.currentFile(False))
+        return os.path.join(destination, self.currentFile(True))
 
     def _transformField(self, value, prefix: str):
         """

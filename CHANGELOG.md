@@ -26,6 +26,7 @@ are moved to `_dicom_common.py`
   - PET:ECAT Magic string test now "MATRIX" instead of "MATRIX72"
   - PET:ECAT frames headers are now exported into json
   - PET:ECAT FramesStart and Duration are now in s instead of ms
+  - baseModule: fixed `copyRawFile` function to return correct path to copied file
 
 ## [1.1.2] - 2020-05-22
 
