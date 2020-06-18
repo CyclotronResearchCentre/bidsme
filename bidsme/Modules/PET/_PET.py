@@ -52,16 +52,17 @@ required_common = [
         "InjectedMass", "InjectedMassUnit", "SpecificRadioactivity",
         "SpecificRadioactivityUnit", "ModeOfAdministration",
         # Time
-        "ScanStart", "InjectionStart", "TimeZero",
-        "FrameTimesStart", "FrameTimesStartUnit",
-        "FrameDuration", "FrameDurationUnit",
+        "TimeZero", "ScanStart", "InjectionStart",
+        "FrameTimesStart", "FrameDuration",
         # Recon
         "AcquisitionMode", "ImageDecayCorrected",
-        "ImageDecayCorrectionTime", "ReconMatrixSize",
-        "ImageVoxelSize", "ReconMethodName",
+        "ImageDecayCorrectionTime", "ReconMethodName",
         "ReconMethodParameterLabels",
-        "ReconMethodParameterUnit", "ReconMethodParameterValues",
+        "ReconMethodParameterUnit",
+        "ReconMethodParameterValues",
         "ReconFilterType", "ReconFilterSize", "AttenuationCorrection",
+        # "ReconMatrixSize",
+        # "ImageVoxelSize",
         # Blood
         "PlasmaAvail", "MetaboliteAvail", "MetaboliteMethod",
         "MetaboliteRecoveryCorrectionApplied",
@@ -73,16 +74,16 @@ recommended_common = [
         "BodyPart", "TracerRadLex", "TracerSNOMED",
         "TracerMolecularWeight", "TracerMolecularWeightUnit",
         "PharmaceuticalDoseUnit", "PharmaceuticalDoseRegimen",
-        "PharmaceuticalDoseTime", "PharmaceuticalDoseTimeUnit",
+        "PharmaceuticalDoseTime",
         # Radiochem
-        "InjectedMassPerWeightUnit", "SpecificRadioactivityMeasTime",
+        "InjectedMassPerWeight", "InjectedMassPerWeightUnit",
+        "SpecificRadioactivityMeasTime",
         "MolarActivity", "MolarActivityUnit", "MolarActivityMeasTime",
         "InfusionSpeed", "InfusionSpeedUnit", "InjectedVolume",
         "InjectedVolumeUnit", "Purity", "PurityUnit",
         # Time
         "ScanDate", "InjectionEnd",
         # Recon
-        "DiameterFOV", "DiameterFOVUnit", "ImageOrientation",
         "ReconMethodImplementationVersion",
         "AttenuationCorrectionMethodReference",
         "ScaleFactor", "ScatterFraction", "DecayCorrectionFactor",
@@ -91,18 +92,14 @@ recommended_common = [
         "PlasmaFreeFraction", "PlasmaFreeFractionMethod",
         "ContinuousBloodWithdrawalRateUnit",
         "ContinuousBloodTubingType", "ContinuousBloodTubingLength",
-        "ContinuousBloodTubingLengthUnits",
+        "ContinuousBloodDispersionConstant",
         "BloodDiscreteHaematocrit", "BloodDiscreteDensity",
-        "BloodDiscreteDensityUnit",
         ]
 optional_common = [
         # Info
         "Anaesthesia",
         "PharmaceuticalName",
         "PharmaceuticalDoseAmount",
-        # Blood
-        "ContinuousBloodDispersionConstant",
-        "ContinuousBloodDispersionConstantUnits",
         ]
 
 required_modality = {}

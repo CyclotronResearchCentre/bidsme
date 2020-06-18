@@ -40,7 +40,8 @@ class ECAT(PET):
     _type = "ECAT"
 
     __slots__ = ["_ECAT_CACHE", "_SUB_CACHE", "_FILE_CACHE"]
-    __specialFields = {"FramesStart", "FramesDuration"}
+    __specialFields = {"ScanStart", "InjectionStart",
+                       "FramesStart", "FramesDuration"}
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -195,3 +196,8 @@ class ECAT(PET):
             value = [self.__transform(frame["frame_duration"]) / 1000
                      for frame in self._SUB_CACHE]
             return value
+        if name == "ScanStart":
+            return 0
+        if name == "InjectionStart":
+            return self.getField("dose_start_time")\
+                    - self.getField("scan_start_time")

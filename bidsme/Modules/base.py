@@ -653,9 +653,10 @@ class baseModule(object):
                     elif prefix == "custom":
                         result = self.custom[query]
                     elif prefix == "sub_tsv":
-                        result = self.sub_BIDSvalues[query]
+                        # result = self.sub_BIDSvalues[query]
+                        result = self._bidsSession.sub_values[query]
                     elif prefix == "rec_tsv":
-                        result = self.rec_BIDSvalues[query]
+                        result = self._bidsSession.rec_values[query]
                     elif prefix == "fname":
                         search = re.search("{}-([a-zA-Z0-9]+)".format(query),
                                            self.currentFile(False))
