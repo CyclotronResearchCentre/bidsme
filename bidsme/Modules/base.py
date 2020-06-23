@@ -28,9 +28,11 @@ import shutil
 import logging
 import json
 import re
+
 from datetime import datetime, date, time
 from collections import OrderedDict
 
+from .abstract import abstract
 from tools import tools
 from bidsMeta import MetaField
 from bidsMeta import BIDSfieldLibrary
@@ -45,7 +47,7 @@ from .common import action_value
 logger = logging.getLogger(__name__)
 
 
-class baseModule(object):
+class baseModule(abstract):
     """
     Base class from which all modules should inherit
     """
@@ -139,110 +141,6 @@ class baseModule(object):
         self.manufacturer = None
         self.isBidsValid = True
         self.encoding = "ascii"
-
-    #########################
-    # Pure virtual methodes #
-    #########################
-    @classmethod
-    def _isValidFile(cls, file: str) -> bool:
-        """
-        Virtual function that checks if file is valid one
-        """
-        raise NotImplementedError
-
-    def _loadFile(self, path: str) -> None:
-        """
-        Virtual function that load file at given path
-
-        Parameters
-        ----------
-        path: str
-            path to file to load
-        """
-        raise NotImplementedError
-
-    def _getAcqTime(self) -> datetime:
-        """
-        Virtual function that returns acquisition time, i.e.
-        time corresponding to the first data of file
-        """
-        raise NotImplementedError
-
-    def dump(self) -> dict:
-        """
-        Virtual function that created adictionary of all meta-data
-        associated with current file
-        """
-        raise NotImplementedError
-
-    def _getField(self, field: list, prefix: str = ""):
-        """
-        Virtual function that retrives the field value
-        from recording metadata. field is garanteed to be
-        non-empty
-
-        Parameters
-        ----------
-        field: list(str)
-            list of nested values (or just one element)
-            giving position of field to retrieve
-        prefix: str
-            prefix indicating the transformation function
-            to call on retrieved value
-
-        Returns
-        -------
-            retrieved value or None if field not found
-
-        Raises
-        ------
-        TypeError:
-            if field value is not applicable to prefix
-            function
-        KeyError:
-            if prefix function is not defined
-        """
-        raise NotImplementedError
-
-    def recNo(self):
-        """
-        Virtual function returning current serie number
-        (i.e. numero of scan in session).
-        recNo together with recId must uniquely
-        identify serie within session
-        """
-        raise NotImplementedError
-
-    def recId(self):
-        """
-        Virtual function returning current serie id
-        (i.e. name of scan in session).
-        recNo together with recId must uniquely
-        identify serie within session
-        """
-        raise NotImplementedError
-
-    def isCompleteRecording(self) -> bool:
-        """
-        Virtual function.
-        Returns True if current recording is complete,
-        False overwise.
-        """
-        raise NotImplementedError
-
-    def _getSubId(self) -> str:
-        """
-        Virtual function
-        Returns subject id as defined in metadata
-        """
-        raise NotImplementedError
-
-    def _getSesId(self) -> str:
-        """
-        Virtual function
-        Returns session id as defined in metadata
-        """
-        raise NotImplementedError
 
     #############################
     # Optional virtual methodes #

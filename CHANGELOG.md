@@ -13,6 +13,8 @@ dependancy module is not loaded
 and accessed from bidsmap using `<<custom:name>>`
 
 ### Changed
+  - baseModule: moved pure virtual methodes to `Module/abstract.py`,
+abstractmethode are now declared using ABC module 
   - baseModule: acquisition time is now stored in `_acqTime` attribute,
 so it can be directly set by `setAcqTime(datetime)` function. The value
 from header is retrieved via `_getAcqTime` virtual function
