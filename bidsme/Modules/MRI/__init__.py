@@ -1,3 +1,9 @@
+
+from .hmriNIFTI import hmriNIFTI
+from .bidsmeNIFTI import bidsmeNIFTI
+from .jsonNIFTI import jsonNIFTI
+from .NIFTI import NIFTI
+
 try:
     from .DICOM import DICOM
 except ModuleNotFoundError as e:
@@ -6,10 +12,5 @@ except ModuleNotFoundError as e:
         DICOM.classes["DICOM"] = e.name
     else:
         raise
-
-from .hmriNIFTI import hmriNIFTI
-from .bidsmeNIFTI import bidsmeNIFTI
-from .jsonNIFTI import jsonNIFTI
-from .NIFTI import NIFTI
 
 __all__ = ["DICOM", "hmriNIFTI", "bidsmeNIFTI", "jsonNIFTI", "NIFTI"]

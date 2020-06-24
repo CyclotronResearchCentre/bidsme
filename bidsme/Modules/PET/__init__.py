@@ -1,3 +1,6 @@
+from .bidsmeNIFTI import bidsmeNIFTI
+from .NIFTI import NIFTI
+
 try:
     from .DICOM import DICOM
 except ModuleNotFoundError as e:
@@ -16,7 +19,5 @@ except ModuleNotFoundError as e:
     else:
         raise
 
-from .bidsmeNIFTI import bidsmeNIFTI
-from .NIFTI import NIFTI
 
 __all__ = ["DICOM", "ECAT", "bidsmeNIFTI", "NIFTI"]
