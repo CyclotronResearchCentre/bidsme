@@ -1,0 +1,54 @@
+{
+  "name": {
+    "LongName": "Name",
+    "Description": "Channel name (e.g., MRT012, MEG023)"
+  },
+  "type": {
+    "LongName": "Type",
+    "Description": "Type of channel; MUST use the BIDS specified channel types"
+  },
+  "units": {
+    "LongName": "Units",
+    "Description": "Physical unit of the data values recorded by this channel in SI (see Appendix V: Units for allowed symbols)."
+  },
+  "description": {
+    "LongName": "Description",
+    "Description": "Brief free-text description of the channel, or other information of interest. See examples below."
+  },
+  "sampling_frequency": {
+    "LongName": "Sampling frequency",
+    "Description": "Sampling rate of the channel in Hz",
+    "Units": "Hz"
+  },
+  "reference": {
+    "LongName": "Reference electrode",
+    "Description": "Name of the reference electrode(s) (not needed when it is common to all channels, in that case it can be specified in *_eeg.json as EEGReference)."
+  },
+  "low_cutoff": {
+    "LongName": "Low cutoff",
+    "Description": "Frequencies used for the high-pass filter applied to the channel in Hz. If no high-pass filter applied, use n/a.",
+    "Units": "Hz"
+  },
+  "high_cutoff": {
+    "LongName": "High cutoff",
+    "Description": "Frequencies used for the low-pass filter applied to the channel in Hz. If no low-pass filter applied, use n/a. Note that hardware anti-aliasing in A/D conversion of all MEG/EEG electronics applies a low-pass filter; specify its frequency here if applicable.",
+    "Units": "Hz"
+  },
+  "notch": {
+    "LongName": "Notch filter",
+    "Description": "Frequencies used for the notch filter applied to the channel, in Hz. If no notch filter applied, use n/a.",
+    "Units": "Hz"
+  },
+  "software_filters": {
+    "LongName": "Software filters",
+    "Description": "List of temporal and/or spatial software filters applied (e.g. \"SSS\", \"SpatialCompensation\"). Note that parameters should be defined in the general MEG sidecar .json file. Indicate n/a in the absence of software filters applied."
+  },
+  "status": {
+    "LongName": "Status",
+    "Description": "Data quality observed on the channel (good/bad). A channel is considered bad if its data quality is compromised by excessive noise. Description of noise type SHOULD be provided in [status_description]."
+  },
+  "status_description": {
+    "LongName": "Status description",
+    "Description": "Freeform text description of noise or artifact affecting data quality on the channel. It is meant to explain why the channel was declared bad in [status]."
+  }
+}

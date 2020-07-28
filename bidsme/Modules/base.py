@@ -28,6 +28,7 @@ import shutil
 import logging
 import json
 import re
+import numpy
 
 from datetime import datetime, date, time
 from collections import OrderedDict
@@ -1493,4 +1494,6 @@ class ExtendEncoder(json.JSONEncoder):
                 return obj.decode(self.encoding)
             except UnicodeDecodeError:
                 return "<bytes>"
+        if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
         return json.JSONEncoder.default(self, obj)

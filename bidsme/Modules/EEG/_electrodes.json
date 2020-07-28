@@ -1,0 +1,34 @@
+{
+  "name": {
+    "LongName": "Name",
+    "Description": "Name of the electrode"
+  },
+  "x": {
+    "LongName": "x",
+    "Description": "Recorded position along the x-axis",
+    "Units": "n/a"
+  },
+  "y": {
+    "LongName": "y",
+    "Description": "Recorded position along the y-axis",
+    "Units": "n/a"
+  },
+  "z": {
+    "LongName": "z",
+    "Description": "Recorded position along the z-axis",
+    "Units": "n/a"
+  },
+  "type": {
+    "LongName": "Type",
+    "Description": "Type of the electrode (e.g., cup, ring, clip-on, wire, needle)"
+  },
+  "material": {
+    "LongName": "Material",
+    "Description": "Material of the electrode, e.g., Tin, Ag/AgCl, Gold"
+  },
+  "impedance": {
+    "LongName": "Impedance",
+    "Description": "Material of the electrode, e.g., Tin, Ag/AgCl, Gold",
+    "Units": "kOhm"
+  }
+}
