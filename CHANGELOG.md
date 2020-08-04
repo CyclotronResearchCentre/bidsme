@@ -25,6 +25,7 @@ are moved to `_dicom_common.py`
   - selector: dictionary of aviable classes is now ordered
   - bidsmeNIFTI: changed the way the header is written
   - header is automatically created if `isBidsValid` is set to false
+  - pyDicom is an optional dependency
 
 ### Fixed
   - PET:ECAT Magic string test now "MATRIX" instead of "MATRIX72"
