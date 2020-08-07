@@ -33,6 +33,7 @@ are moved to `_dicom_common.py`
   - PET:ECAT FramesStart and Duration are now in s instead of ms
   - baseModule: fixed `copyRawFile` function to return correct path to copied file
   - baseModule: fixed access values from participants and scans tables
+  - prepare: session.getPath returns correct session path is run with no-session option
 
 ## [1.1.2] - 2020-05-22
 

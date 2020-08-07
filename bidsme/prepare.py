@@ -291,6 +291,9 @@ def prepare(source: str, destination: str,
                 scan.unlock_session()
                 scan.session = os.path.basename(ses_dir)
                 scan.session = scan.session[len(ses_prefix):]
+            else:
+                scan.unlock_session()
+                scan.session = ""
             if plugins.RunPlugin("SessionEP", scan) < 0:
                 logger.warning("Session {} discarded by {}"
                                .format(scan.session, "SessionEP"))
