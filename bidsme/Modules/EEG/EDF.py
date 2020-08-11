@@ -114,7 +114,10 @@ class EDF(EEG, MNE):
             self.clearCache()
 
             self._ext = ".edf"
-            self._CACHE = self.load_raw(path, self._ext)
+            self._CACHE = self.load_raw(
+                    path, self._ext,
+                    eog=self.eog_channels,
+                    misc=self.misc_channels)
 
             base = self.path[:-len(self._ext)]
 

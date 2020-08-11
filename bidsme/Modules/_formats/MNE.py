@@ -40,7 +40,8 @@ class MNE(object):
         self._ext = ""
 
     @staticmethod
-    def load_raw(self, file: str, ext: str) -> mne.BaseRaw:
+    def load_raw(self, file: str, ext: str,
+                 eog: list=[], misc: list=[]) -> mne.BaseRaw:
         """
         load raw mne file
 
@@ -51,11 +52,16 @@ class MNE(object):
         ext: str
             extension of file, will determine loader,
             if not set, extension used in _ext used
+        eog: list
+            list of EOG channel names
+        misc: list
+            list of other channel names
 
         mne.BaseRaw
             loaded raw file
         """
-        return _MNE.reader[ext](file, preload=False)
+        return _MNE.reader[ext](file, preload=False,
+                                eog=eog, misc-misc)
 
     def load_events(self,
                     columns: list = [],
@@ -115,9 +121,7 @@ class MNE(object):
         df.sort_index(inplace=True, na_position="first")
         return df
 
-    def load_channels(self,
-                      columns: list = [],
-                      bad_channels: list = []) -> DataFrame:
+    def _load_channels(self) -> DataFrame:
         """
         loads channels from raw and put them into DataFrame
 
@@ -137,7 +141,6 @@ class MNE(object):
         """
         column_base = {"name", "type", "status", "low_cutoff", "high_cutoff",
                        "units", "sampling_frequency"}
-        columns = column_base.update(columns)
 
         n_channels = len(self._CACHE.info['chs'])
         d_chs = {key: [None] * n_channels for key in column_base}
@@ -149,11 +152,7 @@ class MNE(object):
                 ch_type = _MNE.COIL_TYPES_MNE.get(ch['coil_type'], ch_type)
             d_chs["type"][idx] = _MNE.CHANNELS_TYPE_MNE_BIDS.get(ch_type)
 
-            if ch["ch_name"] in self._CACHE.info['bads']\
-                    or ch["ch_name"] in bad_channels:
-                d_chs["status"][idx] = "bad"
-            else:
-                d_chs["status"][idx] = "good"
+            d_chs["status"][idx] = "good"
             d_chs["low_cutoff"][idx] = self._CACHE.info["highpass"]
             d_chs["high_cutoff"][idx] = self._CACHE.info["lowpass"]
 
@@ -162,7 +161,7 @@ class MNE(object):
                         .get(ch["ch_name"])
             d_chs["sampling_frequency"][idx] = self._CACHE.info["sfreq"]
 
-        df = DataFrame(d_chs, columns=columns)
+        df = DataFrame(d_chs, columns=colum_base)
         df.set_index('name', inplace=True)
 
         return df
