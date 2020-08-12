@@ -15,7 +15,7 @@ try:
 except ModuleNotFoundError as e:
     if e.name == "nibabel":
         from .._formats.dummy import dummy as ECAT
-        DICOM.classes["ECAT"] = e.name
+        ECAT.classes["ECAT"] = e.name
     else:
         raise
 
