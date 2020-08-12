@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - \_formats:dummy Fixed conditional imports 
+
+
 ## [1.2.0] - 2020-08-07
 
 ### Added
