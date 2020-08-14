@@ -211,7 +211,7 @@ class BidsSession(object):
             the default is loaded
         """
         if cls.__sub_columns is not None:
-            raise ValueError("Redefinition of participants template")
+            logger.warning("Redefinition of participants template")
         cls.__sub_columns = BIDSfieldLibrary()
         if not filename:
             cls.__sub_columns.AddField(
