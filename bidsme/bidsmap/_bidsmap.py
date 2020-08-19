@@ -288,6 +288,53 @@ class Bidsmap(object):
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
 
+    def checkSanity(self) -> tuple:
+        """
+        scans itself to check the sanity, in particular:
+            if one file triggers several runs
+            if several runs produce same example
+            if run has no provenance
+            if no suffix defined
+        returns dictionary of counts of files and examples,
+        and show warnings for no prevnance and empty suffix
+
+        Returns:
+        --------
+        tuple
+            (dict counters for files, dict counters for examples)
+        """
+        prov_duplicates = dict()
+        example_duplicates = dict()
+
+        for module in self.Modules:
+            for f_name, form in self.Modules[module].items():
+                for modality in form:
+                    if modality == Modules.ignoremodality:
+                        continue
+                    for ind, r in enumerate(form[modality]):
+                        if not r.suffix:
+                            logger.warning("{}/{}[{}]: Suffix not defined")
+                            continue
+                        if not r.example:
+                            logger.warning("{}/{}[{}]: No matched recordings")
+                            continue
+                        if r.provenance in prov_duplicates:
+                            prov_duplicates[r.provenance] += 1
+                        else:
+                            prov_duplicates[r.provenance] = 1
+                        if r.example in example_duplicates:
+                            example_duplicates[r.example] += 1
+                        else:
+                            example_duplicates[r.example] = 1
+
+        prov_duplicates = {key: val
+                           for key, val in prov_duplicates.items()
+                           if val > 1}
+        example_duplicates = {key: val
+                              for key, val in example_duplicates.items()
+                              if val > 1}
+        return (prov_duplicates, example_duplicates)
+
     def countRuns(self, module: str = "") -> tuple:
         """
         returns tuple (run, template, unchecked) of

@@ -332,10 +332,35 @@ def mapper(source: str, destination: str,
                                      .format(run))
                     recording.setBidsSession(scan)
                     createmap(recording, bidsmap_new, template, bidsmap_unk)
-
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)
+
+    # Sanity checks for map
+    prov_duplicates, example_duplicates = bidsmap_new.checkSanity()
+    dupl_counter = 0
+    logger.info("Sanity check:")
+    for dupl, count in prov_duplicates.items():
+        if count > 1:
+            logger.warning("{} matches {} runs"
+                           .format(dupl, count))
+            dupl_counter += 1
+    if dupl_counter == 0:
+        logger.info("Passed: No files matching several runs")
+    else:
+        logger.error("Failed: {} files matching several runs"
+                     .format(dupl_counter))
+    for dupl, count in example_duplicates.items():
+        if count > 1:
+            logger.warning("{} created by {} runs"
+                           .format(dupl, count))
+            dupl_counter += 1
+    dupl_counter = 0
+    if dupl_counter == 0:
+        logger.info("Passed: No examples matching several runs")
+    else:
+        logger.error("Failed: {} examples matching several runs"
+                     .format(dupl_counter))
 
     ntotal, ntemplate, nunchecked = bidsmap_new.countRuns()
     logger.info("Map contains {} runs".format(ntotal))
