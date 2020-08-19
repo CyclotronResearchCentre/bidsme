@@ -313,10 +313,17 @@ class Bidsmap(object):
                         continue
                     for ind, r in enumerate(form[modality]):
                         if not r.suffix:
-                            logger.warning("{}/{}[{}]: Suffix not defined")
+                            logger.warning("{}/{}/{}[{}]: Suffix not defined"
+                                           .format(module, f_name,
+                                                   modality, ind)
+                                           )
                             continue
                         if not r.example:
-                            logger.warning("{}/{}[{}]: No matched recordings")
+                            logger.warning("{}/{}/{}[{}]: No matched "
+                                           "recordings"
+                                           .format(module, f_name,
+                                                   modality, ind)
+                                           )
                             continue
                         if r.provenance in prov_duplicates:
                             prov_duplicates[r.provenance] += 1

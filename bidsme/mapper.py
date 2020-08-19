@@ -350,12 +350,12 @@ def mapper(source: str, destination: str,
     else:
         logger.error("Failed: {} files matching several runs"
                      .format(dupl_counter))
+    dupl_counter = 0
     for dupl, count in example_duplicates.items():
         if count > 1:
             logger.warning("{} created by {} runs"
                            .format(dupl, count))
             dupl_counter += 1
-    dupl_counter = 0
     if dupl_counter == 0:
         logger.info("Passed: No examples matching several runs")
     else:
