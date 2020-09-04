@@ -996,7 +996,7 @@ class baseModule(abstract):
             self.rec_BIDSvalues["acq_time"] = None
         else:
             self.rec_BIDSvalues["acq_time"] = self.acqTime().replace(
-                    microsecond=self.microsecond,
+                    microsecond=0,
                     tzinfo=None)
 
         scans = os.path.join(bidsfolder,

@@ -24,9 +24,13 @@
 ##############################################################################
 
 
+import logging
+
 from collections import OrderedDict
 
 from tools.tools import check_type
+
+logger = logging.getLogger(__name__)
 
 
 class Run(object):
@@ -96,6 +100,17 @@ class Run(object):
         self._suffix = check_type("suffix", str, suffix)
         self.attribute = dict(check_type("attribute", dict, attribute))
         self.entity = OrderedDict(check_type("entity", dict, entity))
+        # Checking if values of entity are strings
+        for key in self.entity:
+            if self.entity[key] is None:
+                continue
+            if not isinstance(self.entity[key], str):
+                logger.warning("Modality {} ({}): bids entity {} value "
+                               "is not string. "
+                               "May lead to unexpected results."
+                               .format(self._modality, self.provenance,
+                                       key))
+                self.entity[key] = str(self.entity[key])
         self.json = OrderedDict(check_type("json", dict, json))
 
     def __bool__(self) -> bool:
