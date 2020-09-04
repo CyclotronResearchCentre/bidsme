@@ -992,7 +992,12 @@ class baseModule(abstract):
         self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
                                                        bidsname
                                                        + ext)
-        self.rec_BIDSvalues["acq_time"] = self.acqTime()
+        if self.acqTime() is None:
+            self.rec_BIDSvalues["acq_time"] = None
+        else:
+            self.rec_BIDSvalues["acq_time"] = self.acqTime().replace(
+                    microsecond=self.microsecond,
+                    tzinfo=None)
 
         scans = os.path.join(bidsfolder,
                              self.getBidsPrefix('/'),
