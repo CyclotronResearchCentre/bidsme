@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
   - map: map sanity checking, detecting duplicated provenance an examples
   - bidsmap: warning if bids value is not string, and forcefull convertion into string
+  - plugins: tools to use in pligins. To import use `import plugins.tools.General.<toolname>`
 
 ## [1.2.1] - 2020-08-18
 
