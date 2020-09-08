@@ -27,6 +27,9 @@
 from mne import io
 from mne.io.constants import FIFF
 
+# log level for mne messages
+log_level = 40
+
 # file-extension map to mne-python readers
 reader = {'.con': io.read_raw_kit, '.sqd': io.read_raw_kit,
           '.fif': io.read_raw_fif, '.pdf': io.read_raw_bti,

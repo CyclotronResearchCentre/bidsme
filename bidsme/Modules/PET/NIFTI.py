@@ -31,6 +31,8 @@ from .. import _nifti_common
 import os
 import logging
 import shutil
+import gzip
+
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -143,12 +145,21 @@ class NIFTI(PET):
             shutil.copy2(data_file, destination)
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
-        shutil.copy2(self.currentFile(),
-                     os.path.join(directory, bidsname + ext))
         if self._nii_type == "ni1":
+            shutil.copy2(self.currentFile(),
+                         os.path.join(directory, bidsname + ext))
             data_file = tools.change_ext(self.currentFile(), "img")
             shutil.copy2(data_file,
                          os.path.join(directory, bidsname + ".img"))
+        else:
+            out_fname = os.path.join(directory, bidsname + ext)
+            if self.zip:
+                with open(self.currentFile(), 'rb') as f_in:
+                    with gzip.open(out_fname, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+            else:
+                shutil.copy2(self.currentFile(),
+                             os.path.join(directory, bidsname + ext))
 
     def _getAcqTime(self) -> datetime:
         return None

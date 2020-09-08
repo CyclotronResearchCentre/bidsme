@@ -45,7 +45,10 @@ class MRI(baseModule):
         super().__init__()
         self.resetMetaFields()
 
-    def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
+    def _post_copy_bidsified(self,
+                             directory: str,
+                             bidsname: str,
+                             ext: str) -> None:
         """
         Copies bidsified data files to its destinattion.
 
@@ -65,8 +68,6 @@ class MRI(baseModule):
             extention of the data file
         """
         bids_base = os.path.join(directory, bidsname)
-        shutil.copy2(self.currentFile(),
-                     bids_base + ext)
 
         if self.Modality() == "dwi":
             bvec = tools.change_ext(self.currentFile(), "bvec")

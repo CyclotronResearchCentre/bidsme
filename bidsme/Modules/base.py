@@ -29,6 +29,7 @@ import logging
 import json
 import re
 import numpy
+import gzip
 
 from datetime import datetime, date, time
 from collections import OrderedDict
@@ -78,7 +79,8 @@ class baseModule(abstract):
                  "_acqTime",
                  "manufacturer",
                  "isBidsValid",
-                 "encoding"
+                 "encoding",
+                 "zip"
                  ]
 
     _module = "base"
@@ -143,6 +145,8 @@ class baseModule(abstract):
         self.isBidsValid = True
         self.encoding = "ascii"
 
+        self.zip = False
+
     #############################
     # Optional virtual methodes #
     #############################
@@ -167,8 +171,36 @@ class baseModule(abstract):
         ext: str
             extention of the data file
         """
-        shutil.copy2(self.currentFile(),
-                     os.path.join(directory, bidsname + ext))
+
+        out_fname = os.path.join(directory, bidsname + ext)
+        if self.zip:
+            with open(self.currentFile(), 'rb') as f_in:
+                with gzip.open(out_fname + ".gz", 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy2(self.currentFile(), out_fname)
+
+    def _post_copy_bidsified(self,
+                             directory: str,
+                             bidsname: str,
+                             ext: str) -> None:
+        """
+        Virtual function that performs all post-copy tasks, for ex.
+        copy needed auxiliary files or change some internal values
+        on copied file. It uses same parameters as _copy_bidsified
+        and is executed just after it.
+
+        Parameters:
+        -----------
+        directory: str
+            destination directory where files should be copies,
+            including modality folder. Assured to exists.
+        bidsname: str
+            bidsified name without extention
+        ext: str
+            extention of the data file
+        """
+        pass
 
     def copyRawFile(self, destination: str) -> str:
         """
@@ -260,7 +292,7 @@ class baseModule(abstract):
                                   .format(file))
         try:
             return cls._isValidFile(file)
-        except:
+        except Exception:
             return False
 
     @classmethod
@@ -985,6 +1017,7 @@ class baseModule(abstract):
                                                     ext))
 
         self._copy_bidsified(outdir, bidsname, ext)
+        self._post_copy_bidsified(outdir, bidsname, ext)
 
         with open(os.path.join(outdir, bidsname + ".json"), "w") as f:
             js_dict = self.exportMeta()

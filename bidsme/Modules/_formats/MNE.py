@@ -30,6 +30,7 @@ from mne.io.constants import FIFF
 from . import _MNE
 
 logger = logging.getLogger(__name__)
+mne.set_log_level(_MNE.log_level)
 
 
 class MNE(object):

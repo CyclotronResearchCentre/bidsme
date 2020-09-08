@@ -25,12 +25,12 @@
 
 import os
 import logging
-
+import shutil
+import re
+from datetime import datetime
 import pandas
 
-from datetime import datetime
-
-from ..common import action_value, retrieveFormDict
+from ..common import retrieveFormDict
 from .EEG import EEG, channel_types
 from . import _EDF
 from .._formats import MNE, _MNE
@@ -42,6 +42,8 @@ class BrainVision(EEG):
 
     __slots__ = ["_FILE_CACHE",
                  "_mne",
+                 "_data_file",
+                 "_marker_file"
                  ]
 
     __specialFields = {"RecordingDuration",
@@ -62,6 +64,8 @@ class BrainVision(EEG):
 
         self._FILE_CACHE = None
         self.mne = MNE()
+        self._data_file = None
+        self._marker_file = None
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -115,6 +119,24 @@ class BrainVision(EEG):
             self.count_channels()
             self.load_events(base)
 
+            self._marker_file = None
+            self._data_file = None
+            with open(path, "r") as f:
+                for line in f.readlines():
+                    line = line.strip()
+                    if line.startswith(';'):
+                        continue
+                    res = re.match("DataFile=([\w. -]+)", line)
+                    if res:
+                        self._data_file = res.group(1).strip()
+                        continue
+                    res = re.match("MarkerFile=([\w. -]+)", line)
+                    if res:
+                        self._marker_file = res.group(1).strip()
+                        continue
+                    if self._marker_file and self._data_file:
+                        break
+
             if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
                 self.resetMetaFields()
                 self.setupMetaFields(_EDF.metafields)
@@ -136,7 +158,7 @@ class BrainVision(EEG):
         datetime
             datetime of acquisition of current scan
         """
-        return self.mne.CACHE.info["meas_date"]
+        return self.mne.CACHE.info["meas_date"].replace(tzinfo=None)
 
     def dump(self) -> dict:
         """
@@ -243,3 +265,150 @@ class BrainVision(EEG):
             else:
                 return "epoched"
         return None
+
+    def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
+        """
+        Virtual function that copies bidsified data files to
+        its destinattion.
+
+        Parameters
+        ----------
+        directory: str
+            destination directory where files should be copies,
+            including modality folder. Assured to exists.
+        bidsname: str
+            bidsified name without extention
+        ext: str
+            extention of the data file
+        """
+
+        out_base = os.path.join(directory, bidsname)
+        f_in = open(self.currentFile(), "r")
+        f_out = open(out_base + ext, "w")
+        for line in f_in.readlines():
+            ln = line.strip()
+            if ln.startswith(";"):
+                f_out.write(line)
+                continue
+            res = re.match("DataFile=([\w. -]+)", ln)
+            if res:
+                if self._data_file:
+                    print("DataFile={}".format(bidsname + ".eeg"), file=f_out)
+                else:
+                    logger.warning("{}: Missing data file"
+                                   .format(self.recIdentity()))
+                    f_out.write(line)
+                continue
+            res = re.match("MarkerFile=([\w. -]+)", ln)
+            if res:
+                if self._data_file:
+                    print("MarkerFile={}".format(bidsname + ".vmrk"),
+                          file=f_out)
+                else:
+                    logger.warning("{}: Missing marker file"
+                                   .format(self.recIdentity()))
+                    f_out.write(line)
+                continue
+            f_out.write(line)
+        f_in.close()
+        f_out.close()
+
+        if self._data_file:
+            f = os.path.join(self._recPath, self._data_file)
+            shutil.copy2(f, out_base + ".eeg")
+
+        if self._marker_file:
+            f_in = open(os.path.join(self._recPath, self._marker_file), "r")
+            f_out = open(out_base + ".vmrk", "w")
+            for line in f_in.readlines():
+                ln = line.strip()
+                if ln.startswith(";"):
+                    f_out.write(line)
+                    continue
+                res = re.match("DataFile=([\w. -]+)", ln)
+                if res:
+                    if self._data_file:
+                        print("DataFile={}".format(bidsname + ".eeg"),
+                              file=f_out)
+                    else:
+                        logger.warning("{}: Missing data file"
+                                       .format(self.recIdentity()))
+                        f_out.write(line)
+                    continue
+                f_out.write(line)
+            f_in.close()
+            f_out.close()
+
+        dest_base = out_base.rsplit("_", 1)[0]
+
+        if self.TableChannels is not None and\
+                not self.TableChannels.index.empty:
+            active = self._chan_BIDS.GetActive()
+            columns = self.TableChannels.columns
+
+            for col in active:
+                if col not in columns:
+                    self._chan_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableChannels[col].notna().any()]
+
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      columns=active,
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
+            self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
+
+        if self.TableEvents is not None and\
+                not self.TableEvents.index.empty:
+            active = self._task_BIDS.GetActive()
+            columns = self.TableEvents.columns
+
+            for col in active:
+                if col not in columns:
+                    self._task_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableEvents[col].notna().any()]
+
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    columns=active,
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
+            self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
+
+    def copyRawFile(self, destination: str) -> str:
+        """
+        Virtual function to Copy raw (non-bidsified) file
+        to destination.
+        Destination is an existing writable directory
+
+        Parameters
+        ----------
+        destination: str
+            output folder to copied files
+
+        Returns
+        -------
+        str:
+            path to copied file
+        """
+        shutil.copy2(self.currentFile(), destination)
+        if self._data_file:
+            f = os.path.join(self._recPath, self._data_file)
+            shutil.copy2(f, destination)
+        if self._marker_file:
+            f = os.path.join(self._recPath, self._marker_file)
+            shutil.copy2(f, destination)
+
+        base = os.path.splitext(self.currentFile(True))[0]
+        dest_base = os.path.join(destination, base)
+        if self.TableChannels is not None:
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
+        if self.TableEvents is not None:
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
+        return os.path.join(destination, self.currentFile(True))
