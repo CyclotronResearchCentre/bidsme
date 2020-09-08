@@ -33,6 +33,7 @@ import logging
 import shutil
 import json
 import math
+import gzip
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -296,8 +297,14 @@ class BrainVision(EEG):
                               line)
                 f_out.write(line)
         # copiyng data file
-        shutil.copy2(self._datafile,
-                     os.path.join(directory, bidsname + ".eeg"))
+        out_name = os.path.join(directory, bidsname + ".eeg")
+        if self.zip:
+            with open(self._datafile, 'rb') as f_in:
+                with gzip.open(out_name + ".gz", 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+        else:
+            shutil.copy2(self._datafile,
+                         os.path.join(out_name))
 
         # Getting channels info
         base = bidsname.rsplit("_", 1)[0]
