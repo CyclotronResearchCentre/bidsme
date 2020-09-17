@@ -33,15 +33,31 @@ logger = logging.getLogger(__name__)
 
 
 class MNE(object):
-    __slots__ = ["_CACHE"]
+    __slots__ = ["CACHE", "_ext"]
 
     def __init__(self):
-        self._CACHE = None
+        self.CACHE = None
         self._ext = ""
 
     @staticmethod
+    def test_raw(file: str, ext: str):
+        """
+        test if file can be loaded by mne, just loads
+        and see if its crashes
+
+        Parameters
+        ----------
+        file: str
+            path to file to load
+        ext: str
+            extension of file, will determine loader,
+            if not set, extension used in _ext used
+
+        """
+        _MNE.reader[ext](file, preload=False)
+
     def load_raw(self, file: str, ext: str,
-                 eog: list=[], misc: list=[]) -> mne.BaseRaw:
+                 eog: list=[], misc: list=[]) -> mne.io.BaseRaw:
         """
         load raw mne file
 
@@ -60,8 +76,9 @@ class MNE(object):
         mne.BaseRaw
             loaded raw file
         """
-        return _MNE.reader[ext](file, preload=False,
-                                eog=eog, misc-misc)
+        self.CACHE = _MNE.reader[ext](file, preload=False,
+                                      eog=eog, misc=misc)
+        self._ext = ext
 
     def load_events(self,
                     columns: list = [],
@@ -85,11 +102,11 @@ class MNE(object):
         """
         column_base = {"onset", "duration", "trial_type", "sample", "value"}
         columns = column_base.update(columns)
-        sfreq = self._CACHE.info['sfreq']
-        first_time = self._CACHE.first_time
-        first_samp = self._CACHE.first_samp
+        sfreq = self.CACHE.info['sfreq']
+        first_time = self.CACHE.first_time
+        first_samp = self.CACHE.first_samp
 
-        evts = self._CACHE.annotations
+        evts = self.CACHE.annotations
         n_evts = len(evts)
 
         d_evts = {key: [None] * n_evts for key in column_base}
@@ -102,10 +119,10 @@ class MNE(object):
 
         df = DataFrame(d_evts, columns=columns)
 
-        for ch in self._CACHE.info["chs"]:
+        for ch in self.CACHE.info["chs"]:
             if ch["ch_name"] not in stim_channels and ch["kind"] != "sitm":
                 continue
-            evts = mne.find_events(self._CACHE, stim_channel=ch["ch_name"])
+            evts = mne.find_events(self.CACHE, stim_channel=ch["ch_name"])
             n_evts = len(n_evts)
 
             d_evts = {key: [None] * n_evts for key in column_base}
@@ -121,7 +138,7 @@ class MNE(object):
         df.sort_index(inplace=True, na_position="first")
         return df
 
-    def _load_channels(self) -> DataFrame:
+    def load_channels(self) -> DataFrame:
         """
         loads channels from raw and put them into DataFrame
 
@@ -142,26 +159,26 @@ class MNE(object):
         column_base = {"name", "type", "status", "low_cutoff", "high_cutoff",
                        "units", "sampling_frequency"}
 
-        n_channels = len(self._CACHE.info['chs'])
+        n_channels = len(self.CACHE.info['chs'])
         d_chs = {key: [None] * n_channels for key in column_base}
 
-        for idx, ch in enumerate(self._CACHE.info['chs']):
+        for idx, ch in enumerate(self.CACHE.info['chs']):
             d_chs["name"][idx] = ch["ch_name"]
-            ch_type = mne.io.pick.channel_type(self._CACHE.info, idx)
+            ch_type = mne.io.pick.channel_type(self.CACHE.info, idx)
             if ch_type in ('mag', 'ref_meg', 'grad'):
                 ch_type = _MNE.COIL_TYPES_MNE.get(ch['coil_type'], ch_type)
             d_chs["type"][idx] = _MNE.CHANNELS_TYPE_MNE_BIDS.get(ch_type)
 
             d_chs["status"][idx] = "good"
-            d_chs["low_cutoff"][idx] = self._CACHE.info["highpass"]
-            d_chs["high_cutoff"][idx] = self._CACHE.info["lowpass"]
+            d_chs["low_cutoff"][idx] = self.CACHE.info["highpass"]
+            d_chs["high_cutoff"][idx] = self.CACHE.info["lowpass"]
 
-            if self._CACHE._orig_units:
-                d_chs["units"][idx] = self._CACHE._orig_units\
+            if self.CACHE._orig_units:
+                d_chs["units"][idx] = self.CACHE._orig_units\
                         .get(ch["ch_name"])
-            d_chs["sampling_frequency"][idx] = self._CACHE.info["sfreq"]
+            d_chs["sampling_frequency"][idx] = self.CACHE.info["sfreq"]
 
-        df = DataFrame(d_chs, columns=colum_base)
+        df = DataFrame(d_chs, columns=column_base)
         df.set_index('name', inplace=True)
 
         return df
@@ -182,17 +199,17 @@ class MNE(object):
         DataFrame
             resulting dataframe
         """
-
-        if self._CACHE.info['dig'] is None:
+        pass
+        if self.CACHE.info['dig'] is None:
             # raw file don't have coordinate info
             return None
 
         column_base = {"name", "x", "y", "z"}
         columns = column_base.update(columns)
-        n_channels = len(self._CACHE.info['chs'])
+        n_channels = len(self.CACHE.info['chs'])
         d_chs = {key: [None] * n_channels for key in column_base}
 
-        for ch in self._CACHE.info['chs']:
+        for ch in self.CACHE.info['chs']:
             d_chs["name"][idx] = ch['ch_name']
             if mne.utils._check_ch_locs([ch]):
                 d_chs["x"][idx] = ch['loc'][0]
@@ -216,8 +233,9 @@ class MNE(object):
         --------
         dict
         """
+        pass
         coords = dict() 
-        dig = self._CACHE.info['dig']
+        dig = self.CACHE.info['dig']
 
         if not dig:
             return coords
@@ -265,44 +283,44 @@ class MNE(object):
             }
 
 
-    def _mne_adaptMetaField(self, field):
+    def adaptMetaField(self, field):
         res = None
         if field == "RecordingDuration":
-            return self._CACHE.times[-1]
+            return self.CACHE.times[-1]
         if field == "RecordingType":
-            if isinstance(self._CACHE, mne.io.BaseRaw):
+            if isinstance(self.CACHE, mne.io.BaseRaw):
                 return "continuous"
-            elif isinstance(self._CACHE, mne.Epochs):
+            elif isinstance(self.CACHE, mne.Epochs):
                 return "epoched"
             return None
         if field == "MEGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_MEG_CH])
         if field == "MEGREFChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_REF_MEG_CH])
         if field == "ECOGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_ECOG_CH])
         if field == "SEEGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_SEEG_CH])
         if field == "EEGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EEG_CH])
         if field == "EOGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EOG_CH])
         if field == "ECGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_ECG_CH])
         if field == "EMGChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EMG_CH])
         if field == "MiscChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_MISC_CH])
         if field == "TriggerChannelCount":
-            return len([ch for ch in self._CACHE.info['chs']
+            return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_STIM_CH])
         return res

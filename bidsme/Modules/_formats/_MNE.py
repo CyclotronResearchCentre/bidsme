@@ -65,6 +65,22 @@ COIL_TYPES_MNE = {
         FIFF.FIFFV_COIL_NONE: "misc"
     }
 
+CHANNELS_TYPE_MNE_BIDS = {
+    "eeg": "EEG",
+    "misc": "MISC",
+    "stim": "TRIG",
+    "emg": "EMG",
+    "ecog": "ECOG",
+    "seeg": "SEEG",
+    "eog": "EOG",
+    "ecg": "ECG",
+    "meggradaxial": "MEGGRADAXIAL",
+    "megmag": "MEGMAG",
+    "megrefgradaxial": "MEGREFGRADAXIAL",
+    "meggradplanar": "MEGGRADPLANAR",
+    "megrefmag": "MEGREFMAG"
+    }
+
 meg_manufacturers = {'.sqd': 'KIT/Yokogawa', '.con': 'KIT/Yokogawa',
                      '.fif': 'Elekta', '.pdf': '4D Magnes', '.ds': 'CTF',
                      '.meg4': 'CTF'}

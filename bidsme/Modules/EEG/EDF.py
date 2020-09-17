@@ -24,26 +24,24 @@
 
 import os
 import logging
-import shutil
-import mne
-import json
-import pandas
-from mne.io.constants import FIFF
-
 from datetime import datetime
+
+import pandas
 
 from ..common import action_value, retrieveFormDict
 from .EEG import EEG
-from ..formats import _MNE
-from ..formats import MNE
+from . import _EDF
+from .._formats import MNE, _MNE
 
 logger = logging.getLogger(__name__)
 
 
-class EDF(EEG, MNE):
+class EDF(EEG):
+
     _type = "BrainVision"
 
     __slots__ = ["_FILE_CACHE",
+                 "_mne",
                  "_sub_info", "_rec_info",
                  ]
 
@@ -63,9 +61,9 @@ class EDF(EEG, MNE):
     def __init__(self, rec_path=""):
 
         EEG.__init__(self)
-        MNE.__init__(self)
 
         self._FILE_CACHE = None
+        self.mne = MNE()
 
         self._sub_info = list()
         self._ses_info = list()
@@ -97,7 +95,7 @@ class EDF(EEG, MNE):
                                .format(cls.formatIdentity(),
                                        file))
 
-            cls.load_raw(file, ".edf")
+            MNE.test_raw(file, ".edf")
             return True
         return False
 
@@ -114,29 +112,12 @@ class EDF(EEG, MNE):
             self.clearCache()
 
             self._ext = ".edf"
-            self._CACHE = self.load_raw(
-                    path, self._ext,
-                    eog=self.eog_channels,
-                    misc=self.misc_channels)
+            self.mne.load_raw(path, self._ext)
 
-            base = self.path[:-len(self._ext)]
+            base = path[:-len(self._ext)]
 
             # Loading channels information
-            if os.path.isfile(base + "_channels.tsv"):
-                self.TableChannels = pandas.DataFrame\
-                        .read_csv(base + "_channels.tsv",
-                                  sep="\t",
-                                  header=0,
-                                  index=["name"],
-                                  na_values="n/a")
-            else:
-                self.TableChannels = self.load_channels(
-                        columns=self._chan_BIDS.getActive())
-            if self.TableChannels is not None:
-                for col_name in ("name", "type", "units"):
-                    if col_name not in self.TableChannels.columns:
-                        logger.warning("{}: Missing mandatory channel column {}"
-                                       .format(self.recIdentity(), col_name))
+            self.load_channels(base)
 
             # mne do not retrieve subject and recording info
             with open(path, "rb") as f:
@@ -148,8 +129,11 @@ class EDF(EEG, MNE):
 
             if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
                 self.resetMetaFields()
-                self.setupMetaFields(_MNE.metafields)
+                self.setupMetaFields(_EDF.metafields)
                 self.testMetaFields()
+
+    def _load_channels(self) -> pandas.DataFrame:
+        return self.mne.load_channels()
 
     def _getAcqTime(self) -> datetime:
         """
@@ -161,7 +145,7 @@ class EDF(EEG, MNE):
         datetime
             datetime of acquisition of current scan
         """
-        return self._CACHE.info["meas_date"]
+        return self.mne.CACHE.info["meas_date"]
 
     def dump(self) -> dict:
         """
@@ -175,7 +159,7 @@ class EDF(EEG, MNE):
             all data must be of basic python class: str, int, float,
             date, time, datetime
         """
-        d = dict(self._CACHE.info)
+        d = dict(self.mne.CACHE.info)
         return d
 
     def _getField(self, field: list, prefix: str = ""):
@@ -210,7 +194,7 @@ class EDF(EEG, MNE):
             if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                res = retrieveFormDict(field, self._CACHE.info,
+                res = retrieveFormDict(field, self.mne.CACHE.info,
                                        fail_on_not_found=True,
                                        fail_on_last_not_found=True)
         except Exception:
@@ -293,8 +277,10 @@ class EDF(EEG, MNE):
         return ""
 
     def _adaptMetaField(self, field):
-        return self._mne_adaptMetaField(field)
+        return self.mne.adaptMetaField(field)
 
+
+"""
     def copyRawFile(self, destination: str) -> None:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
@@ -419,3 +405,4 @@ class EDF(EEG, MNE):
                     events["sample"] = ev["onset"] - first_samp
                     f.write(self._task_BIDS.GetLine(events) + "\n")
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
+"""

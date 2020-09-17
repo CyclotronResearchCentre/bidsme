@@ -25,6 +25,8 @@
 
 import os
 import logging
+import shutil
+import pandas
 from abc import abstractmethod
 
 from ..base import baseModule
@@ -157,7 +159,7 @@ class EEG(baseModule):
             # Additional MEG channels
             "MEGMAG": [],
             "MEGGRADAXIAL": [],
-            "MEGGRADPLANAR": [], 
+            "MEGGRADPLANAR": [],
             "MEGREFMAG": [],
             "MEGREFGRADAXIAL": [],
             "MEGREFGRADPLANAR": [],
@@ -170,8 +172,6 @@ class EEG(baseModule):
             "__ignore__": [],
             "__bad__": []
             }
-    eog_channels = []
-    misc_channels = []
 
     def __init__(self):
         super().__init__()
@@ -208,7 +208,7 @@ class EEG(baseModule):
         Loads channels data into TableChannels dataframe.
         If _channels.tsv is found together with loaded file,
         then data is loaded from this file, else virtual function
-        _load_channels is used to extract channels info from 
+        _load_channels is used to extract channels info from
         data files.
 
         Parameters
@@ -216,7 +216,7 @@ class EEG(baseModule):
         base_name: str
             file path without extention
         """
-        
+
         if os.path.isfile(base_name + "_channels.tsv"):
             self.TableChannels = pandas.DataFrame\
                     .read_csv(base_name + "_channels.tsv",
@@ -227,16 +227,20 @@ class EEG(baseModule):
         else:
             self.TableChannels = self._load_channels()
         if self.TableChannels is not None:
-            for col_name in ("name", "type", "units"):
+            if self.TableChannels.index.name != "name":
+                logger.warning("{}: Index column is not 'name'"
+                               .format(self.recIdentity()))
+
+            for col_name in ("type", "units"):
                 if col_name not in self.TableChannels.columns:
                     logger.warning("{}: Missing mandatory channel "
-                                   "column {}"
+                                   "column '{}'"
                                    .format(self.recIdentity(), col_name))
             # Setting manual types
-            if channel_types["__ignore__"]:
-                self.TableChannels.drop(index=channel_types["__ignore__"],
+            if self.channel_types["__ignore__"]:
+                self.TableChannels.drop(index=self.channel_types["__ignore__"],
                                         inplace=True, errors="ignore")
-            for types, channels in channel_types.items():
+            for types, channels in self.channel_types.items():
                 if types.startswith("__"):
                     if types == "__bad__"\
                             and "status" in self.TableChannels.columns:
@@ -253,13 +257,17 @@ class EEG(baseModule):
     def copyRawFile(self, destination: str) -> None:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
+        self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                  sep="\t", na_rep="n/a",
+                                  header=True, index=True)
+        shutil.copy2(self.currentFile(), destination)
 
 
     @abstractmethod
-    def _load_channels(self) -> DataFrame:
+    def _load_channels(self) -> pandas.DataFrame:
         """
         Virtual function that loads channel list from data file
-        into Dataframe with passed list of columns 
+        into Dataframe with passed list of columns
 
         Resulting DataFrame must have "name" as index, and contain
         columns "type" and "units"
