@@ -29,7 +29,7 @@ from datetime import datetime
 import pandas
 
 from ..common import action_value, retrieveFormDict
-from .EEG import EEG
+from .EEG import EEG, channel_types
 from . import _EDF
 from .._formats import MNE, _MNE
 
@@ -118,6 +118,7 @@ class EDF(EEG):
 
             # Loading channels information
             self.load_channels(base)
+            self.load_events(base)
 
             # mne do not retrieve subject and recording info
             with open(path, "rb") as f:
@@ -134,6 +135,9 @@ class EDF(EEG):
 
     def _load_channels(self) -> pandas.DataFrame:
         return self.mne.load_channels()
+
+    def _load_events(self) -> pandas.DataFrame:
+        return self.mne.load_events(stim_channels=channel_types["TRIG"])
 
     def _getAcqTime(self) -> datetime:
         """

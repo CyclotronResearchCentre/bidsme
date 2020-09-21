@@ -255,6 +255,40 @@ class EEG(baseModule):
                 if chs:
                     self.TableChannels.loc[chs, "type"] = types
 
+    def load_events(self, base_name: str, ):
+        """
+        Loads events data into TableEvents dataframe.
+        If _channels.tsv is found together with loaded file,
+        then data is loaded from this file, else virtual function
+        _load_channels is used to extract channels info from
+        data files.
+
+        Parameters
+        ----------
+        base_name: str
+            file path without extention
+        """
+
+        if os.path.isfile(base_name + "_channels.tsv"):
+            self.TableEvents = pandas.read_csv(
+                              base_name + "_events.tsv",
+                              sep="\t",
+                              header=0,
+                              index_col=["onset"],
+                              na_values="n/a")
+        else:
+            self.TableEvents = self._load_events()
+        if self.TableEvents is not None:
+            # Checking columns validity
+            if self.TableEvents.index.name != "onset":
+                logger.warning("{}: Index column is not 'onset'"
+                               .format(self.recIdentity()))
+            for col_name in ("duration", "trial_type"):
+                if col_name not in self.TableEvents.columns:
+                    logger.warning("{}: Missing mandatory channel "
+                                   "column '{}'"
+                                   .format(self.recIdentity(), col_name))
+
     def copyRawFile(self, destination: str) -> None:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
@@ -262,6 +296,10 @@ class EEG(baseModule):
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True)
+        if self.TableEvents is not None:
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
         shutil.copy2(self.currentFile(), destination)
 
     def _copy_bidsified(self, directory: str,
@@ -285,24 +323,43 @@ class EEG(baseModule):
 
         shutil.copy2(self.currentFile(), dest_base + ext)
 
-        dest_base = dest_base.split("_")[0]
+        dest_base = dest_base.rsplit("_", 1)[0]
 
-        if self.TableChannels is not None:
-            self.TableChannels.dropna(axis="columns", how="all")
-
+        if self.TableChannels is not None and\
+                not self.TableChannels.index.empty:
             active = self._chan_BIDS.GetActive()
             columns = self.TableChannels.columns
 
             for col in active:
                 if col not in columns:
                     self._chan_BIDS.Activate(col, False)
-            active = [col for col in active if col in columns]
+            active = [col for col in active
+                      if col in columns
+                      and self.TableChannels[col].notna().any()]
 
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       columns=active,
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True)
             self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
+
+        if self.TableEvents is not None and\
+                not self.TableEvents.index.empty:
+            active = self._task_BIDS.GetActive()
+            columns = self.TableEvents.columns
+
+            for col in active:
+                if col not in columns:
+                    self._task_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableEvents[col].notna().any()]
+
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    columns=active,
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
+            self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
     @abstractmethod
     def _load_channels(self) -> pandas.DataFrame:
