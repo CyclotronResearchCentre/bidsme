@@ -100,6 +100,50 @@ eeg_meta_optional_modality = {
         "ieeg": ["ElectricalStimulation", "ElectricalStimulationParameters"]
     }
 
+channel_types = {
+        # EEG channels
+        "AUDIO": [],
+        "TEMP": [],
+        "SYSCLOCK": [],
+        "TRIG": [],
+        "REF": [],
+        "EEG": [],
+        "EOG": [],
+        "ECG": [],
+        "EMG": [],
+        "GSR": [],
+        "HEOG": [],
+        "VEOG": [],
+        "MISC": [],
+        "EYEGAZE": [],
+        "PUPIL": [],
+        "RESP": [],
+
+        # Additional iEEG channels
+        "SEEG": [],
+        "ECOG": [],
+        "DBS": [],
+        "PD": [],
+        "ADC": [],
+        "DAC": [],
+
+        # Additional MEG channels
+        "MEGMAG": [],
+        "MEGGRADAXIAL": [],
+        "MEGGRADPLANAR": [],
+        "MEGREFMAG": [],
+        "MEGREFGRADAXIAL": [],
+        "MEGREFGRADPLANAR": [],
+        "MEGOTHER": [],
+        "HLU": [],
+        "FITERR": [],
+        "OTHER": [],
+
+        # Channels to ignore
+        "__ignore__": [],
+        "__bad__": []
+        }
+
 
 class EEG(baseModule):
     _module = "EEG"
@@ -129,50 +173,6 @@ class EEG(baseModule):
     __slots__ = ["TableChannels", "TableElectrodes", "TableEvents"]
 
     # Lists of EOG and Misc channels names
-    channel_types = {
-            # EEG channels
-            "AUDIO": [],
-            "TEMP": [],
-            "SYSCLOCK": [],
-            "TRIG": [],
-            "REF": [],
-            "EEG": [],
-            "EOG": [],
-            "ECG": [],
-            "EMG": [],
-            "GSR": [],
-            "HEOG": [],
-            "VEOG": [],
-            "MISC": [],
-            "EYEGAZE": [],
-            "PUPIL": [],
-            "RESP": [],
-
-            # Additional iEEG channels
-            "SEEG": [],
-            "ECOG": [],
-            "DBS": [],
-            "PD": [],
-            "ADC": [],
-            "DAC": [],
-
-            # Additional MEG channels
-            "MEGMAG": [],
-            "MEGGRADAXIAL": [],
-            "MEGGRADPLANAR": [],
-            "MEGREFMAG": [],
-            "MEGREFGRADAXIAL": [],
-            "MEGREFGRADPLANAR": [],
-            "MEGOTHER": [],
-            "HLU": [],
-            "FITERR": [],
-            "OTHER": [],
-
-            # Channels to ignore
-            "__ignore__": [],
-            "__bad__": []
-            }
-
     def __init__(self):
         super().__init__()
         self.resetMetaFields()
@@ -218,29 +218,30 @@ class EEG(baseModule):
         """
 
         if os.path.isfile(base_name + "_channels.tsv"):
-            self.TableChannels = pandas.DataFrame\
-                    .read_csv(base_name + "_channels.tsv",
+            self.TableChannels = pandas.read_csv(
+                              base_name + "_channels.tsv",
                               sep="\t",
                               header=0,
-                              index=["name"],
+                              index_col=["name"],
                               na_values="n/a")
         else:
             self.TableChannels = self._load_channels()
         if self.TableChannels is not None:
+            # Checking columns validity
             if self.TableChannels.index.name != "name":
                 logger.warning("{}: Index column is not 'name'"
                                .format(self.recIdentity()))
-
             for col_name in ("type", "units"):
                 if col_name not in self.TableChannels.columns:
                     logger.warning("{}: Missing mandatory channel "
                                    "column '{}'"
                                    .format(self.recIdentity(), col_name))
+
             # Setting manual types
-            if self.channel_types["__ignore__"]:
-                self.TableChannels.drop(index=self.channel_types["__ignore__"],
+            if channel_types["__ignore__"]:
+                self.TableChannels.drop(index=channel_types["__ignore__"],
                                         inplace=True, errors="ignore")
-            for types, channels in self.channel_types.items():
+            for types, channels in channel_types.items():
                 if types.startswith("__"):
                     if types == "__bad__"\
                             and "status" in self.TableChannels.columns:
@@ -257,11 +258,51 @@ class EEG(baseModule):
     def copyRawFile(self, destination: str) -> None:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
-        self.TableChannels.to_csv(dest_base + "_channels.tsv",
-                                  sep="\t", na_rep="n/a",
-                                  header=True, index=True)
+        if self.TableChannels is not None:
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
         shutil.copy2(self.currentFile(), destination)
 
+    def _copy_bidsified(self, directory: str,
+                        bidsname: str, ext: str) -> None:
+        """
+        Function that copies bidsified data files to
+        its destinattion, with additional export of
+        channels, events and coordinates.
+
+        Parameters
+        ----------
+        directory: str
+            destination directory where files should be copies,
+            including modality folder. Assured to exists.
+        bidsname: str
+            bidsified name without extention
+        ext: str
+            extention of the data file
+        """
+        dest_base = os.path.join(directory, bidsname)
+
+        shutil.copy2(self.currentFile(), dest_base + ext)
+
+        dest_base = dest_base.split("_")[0]
+
+        if self.TableChannels is not None:
+            self.TableChannels.dropna(axis="columns", how="all")
+
+            active = self._chan_BIDS.GetActive()
+            columns = self.TableChannels.columns
+
+            for col in active:
+                if col not in columns:
+                    self._chan_BIDS.Activate(col, False)
+            active = [col for col in active if col in columns]
+
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      columns=active,
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
+            self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
 
     @abstractmethod
     def _load_channels(self) -> pandas.DataFrame:
