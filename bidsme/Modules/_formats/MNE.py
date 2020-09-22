@@ -208,7 +208,7 @@ class MNE(object):
         columns = column_base.update(columns)
         n_channels = len(self.CACHE.info['chs'])
         d_chs = {key: [None] * n_channels for key in column_base}
-
+        idx = 0
         for ch in self.CACHE.info['chs']:
             d_chs["name"][idx] = ch['ch_name']
             if mne.utils._check_ch_locs([ch]):
@@ -234,7 +234,7 @@ class MNE(object):
         dict
         """
         pass
-        coords = dict() 
+        coords = dict()
         dig = self.CACHE.info['dig']
 
         if not dig:
@@ -243,7 +243,6 @@ class MNE(object):
         orient = _MNE.ORIENTATION.get(self._ext, 'n/a')
         unit = _MNE.UNITS.get(self._ext, 'n/a')
         manufacturer = _MNE.MANUFACTURERS.get(self._ext, 'n/a')
-
 
         landmarks = {d['ident']: d for d in dig
                      if d['kind'] == FIFF.FIFFV_POINT_CARDINAL}
@@ -282,45 +281,41 @@ class MNE(object):
             'LandmarkCoordinateUnits': unit
             }
 
+    def getDuration(self):
+        return self.CACHE.times[-1]
 
-    def adaptMetaField(self, field):
-        res = None
-        if field == "RecordingDuration":
-            return self.CACHE.times[-1]
-        if field == "RecordingType":
-            if isinstance(self.CACHE, mne.io.BaseRaw):
-                return "continuous"
-            elif isinstance(self.CACHE, mne.Epochs):
-                return "epoched"
-            return None
-        if field == "MEGChannelCount":
+    def isContinious(self):
+        return isinstance(self.CACHE, mne.io.BaseRaw)
+
+    def countChannels(self, ch_type):
+        if ch_type == "MEG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_MEG_CH])
-        if field == "MEGREFChannelCount":
+        if ch_type == "MEGREF":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_REF_MEG_CH])
-        if field == "ECOGChannelCount":
+        if ch_type == "ECOG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_ECOG_CH])
-        if field == "SEEGChannelCount":
+        if ch_type == "SEEG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_SEEG_CH])
-        if field == "EEGChannelCount":
+        if ch_type == "EEG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EEG_CH])
-        if field == "EOGChannelCount":
+        if ch_type == "EOG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EOG_CH])
-        if field == "ECGChannelCount":
+        if ch_type == "ECG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_ECG_CH])
-        if field == "EMGChannelCount":
+        if ch_type == "EMG":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_EMG_CH])
-        if field == "MiscChannelCount":
+        if ch_type == "Misc":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_MISC_CH])
-        if field == "TriggerChannelCount":
+        if ch_type == "Trigger":
             return len([ch for ch in self.CACHE.info['chs']
                        if ch['kind'] == FIFF.FIFFV_STIM_CH])
-        return res
+        return -1

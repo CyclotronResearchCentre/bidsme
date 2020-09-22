@@ -42,7 +42,7 @@ class EDF(EEG):
 
     __slots__ = ["_FILE_CACHE",
                  "_mne",
-                 "_sub_info", "_rec_info",
+                 "_sub_info", "_rec_info"
                  ]
 
     __specialFields = {"RecordingDuration",
@@ -118,6 +118,8 @@ class EDF(EEG):
 
             # Loading channels information
             self.load_channels(base)
+            self.count_channels()
+
             self.load_events(base)
 
             # mne do not retrieve subject and recording info
@@ -281,7 +283,17 @@ class EDF(EEG):
         return ""
 
     def _adaptMetaField(self, field):
-        return self.mne.adaptMetaField(field)
+        if field.endswith("ChannelCount"):
+            field = field[:-len("ChannelCount")]
+            return self._channels_count.get(field, 0)
+        if field == "RecordingDuration":
+            return self.mne.getDuration()
+        if field == "RecordingType":
+            if self.mne.isContinious():
+                return "continuous"
+            else:
+                return "epoched"
+        return None
 
 
 """

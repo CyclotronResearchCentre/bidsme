@@ -75,10 +75,11 @@ CHANNELS_TYPE_MNE_BIDS = {
     "eog": "EOG",
     "ecg": "ECG",
     "meggradaxial": "MEGGRADAXIAL",
-    "megmag": "MEGMAG",
     "megrefgradaxial": "MEGREFGRADAXIAL",
+    "megmag": "MEGMAG",
+    "megrefmag": "MEGREFMAG",
     "meggradplanar": "MEGGRADPLANAR",
-    "megrefmag": "MEGREFMAG"
+    "megrefgradplanar": "MEGREFGRADPLANAR"
     }
 
 meg_manufacturers = {'.sqd': 'KIT/Yokogawa', '.con': 'KIT/Yokogawa',
@@ -97,4 +98,3 @@ MANUFACTURERS = dict()
 MANUFACTURERS.update(meg_manufacturers)
 MANUFACTURERS.update(eeg_manufacturers)
 MANUFACTURERS.update(ieeg_manufacturers)
-

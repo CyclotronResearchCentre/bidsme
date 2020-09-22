@@ -100,6 +100,19 @@ eeg_meta_optional_modality = {
         "ieeg": ["ElectricalStimulation", "ElectricalStimulationParameters"]
     }
 
+channel_kinds = {
+        "MEG": ["MEGGRADAXIAL", "MEGMAG", "MEGGRADPLANAR", "MEGOTHER"],
+        "MEGREF": ["MEGREFGRADAXIAL", "MEGREFMAG", "MEGREFGRADPLANAR"],
+        "ECOG": ["ECOG"],
+        "SEEG": ["SEEG"],
+        "EEG": ["EEG", "DBS"],
+        "EOG": ["EOG", "VEOG", "HEOG"],
+        "ECG": ["ECG"],
+        "EMG": ["EMG"],
+        "Trigger": ["TRIG"],
+        "Misc": ["MISC"]
+    }
+
 channel_types = {
         # EEG channels
         "AUDIO": [],
@@ -170,7 +183,8 @@ class EEG(baseModule):
                                             "Modules", "EEG",
                                             "_events.json"))
 
-    __slots__ = ["TableChannels", "TableElectrodes", "TableEvents"]
+    __slots__ = ["TableChannels", "TableElectrodes", "TableEvents",
+                 "_channels_count"]
 
     # Lists of EOG and Misc channels names
     def __init__(self):
@@ -181,6 +195,8 @@ class EEG(baseModule):
         self.TableChannels = None
         self.TableElectrodes = None
         self.TableEvents = None
+
+        self._channels_count = dict.fromkeys(channel_kinds, 0)
 
     def resetMetaFields(self) -> None:
         """
@@ -254,6 +270,21 @@ class EEG(baseModule):
                        if ch in self.TableChannels.index]
                 if chs:
                     self.TableChannels.loc[chs, "type"] = types
+
+    def count_channels(self):
+        if "type" not in self.TableChannels.columns:
+            return
+
+        counts = self.TableChannels["type"].value_counts()
+        self._channels_count = dict.fromkeys(channel_kinds, 0)
+        for ch, count in counts.items():
+            found = False
+            for kind, types in channel_kinds.items():
+                if ch in types:
+                    self._channels_count[kind] += count
+                    found = True
+            if not found:
+                self._channels_count["Misc"] += count
 
     def load_events(self, base_name: str, ):
         """
