@@ -258,7 +258,10 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
-        return cls._isValidFile(file)
+        try:
+            return cls._isValidFile(file)
+        except:
+            return False
 
     @classmethod
     def Module(cls):
