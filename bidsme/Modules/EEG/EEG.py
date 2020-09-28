@@ -32,73 +32,9 @@ from abc import abstractmethod
 from ..base import baseModule
 from bidsMeta import BIDSfieldLibrary
 from tools import paths
+from . import _EEG
 
 logger = logging.getLogger(__name__)
-
-
-eeg_meta_required_common = [
-        "TaskName",
-        "PowerLineFrequency",
-        ]
-eeg_meta_recommended_common = [
-        "InstitutionName", "InstitutionAddress",
-        "Manufacturer", "ManufacturersModelName",
-        "SoftwareVersions",
-        "TaskDescription",
-        "Instructions",
-        "CogAtlasID", "CogPOID",
-        "DeviceSerialNumber",
-        ]
-eeg_meta_optional_common = []
-
-eeg_meta_required_modality = {
-        "eeg": ["EEGReference", "SamplingFrequency",
-                "SoftwareFilters"],
-        "meg": ["SamplingFrequency",
-                "DewarPosition", "SoftwareFilters",
-                "DigitizedLandmarks", "DigitizedHeadPoints"],
-        "ieeg": ["iEEGReference", "SamplingFrequency",
-                 "SoftwareFilters"]
-        }
-
-eeg_meta_recommended_modality = {
-        "eeg": ["CapManufacturer", "CapManufacturersModelName",
-                "EEGChannelCount", "ECGChannelCount",
-                "EMGChannelCount", "EOGChannelCount",
-                "MiscChannelCount", "TriggerChannelCount",
-                "RecordingDuration", "RecordingType",
-                "EpochLength", "HeadCircumference",
-                "EEGPlacementScheme", "EEGGround",
-                "HardwareFilters", "SubjectArtefactDescription"],
-        "meg": ["MEGChannelCount", "MEGREFChannelCount",
-                "EEGChannelCount", "ECOGChannelCount",
-                "SEEGChannelCount", "EOGChannelCount",
-                "ECGChannelCount", "EMGChannelCount",
-                "MiscChannelCount", "TriggerChannelCount",
-                "RecordingDuration", "RecordingType",
-                "EpochLength", "ContinuousHeadLocalization",
-                "HeadCoilFrequency", "MaxMovement",
-                "SubjectArtefactDescription",
-                "AssociatedEmptyRoom",
-                "HardwareFilters"],
-        "ieeg": ["DCOffsetCorrection", "HardwareFilters",
-                 "ElectrodeManufacturer", "ElectrodeManufacturersModelName",
-                 "ECOGChannelCount", "SEEGChannelCount",
-                 "EEGChannelCount", "EOGChannelCount",
-                 "ECGChannelCount", "EMGChannelCount",
-                 "MiscChannelCount", "TriggerChannelCount",
-                 "RecordingDuration", "RecordingType",
-                 "EpochLength", "iEEGGround",
-                 "iEEGPlacementScheme", "iEEGElectrodeGroups",
-                 "SubjectArtefactDescription"]
-        }
-
-eeg_meta_optional_modality = {
-        "meg": ["EEGPlacementScheme", "ManufacturersAmplifierModelName",
-                "CapManufacturer", "CapManufacturersModelName",
-                "EEGReference"],
-        "ieeg": ["ElectricalStimulation", "ElectricalStimulationParameters"]
-    }
 
 channel_kinds = {
         "MEG": ["MEGGRADAXIAL", "MEGMAG", "MEGGRADPLANAR", "MEGOTHER"],
@@ -204,20 +140,21 @@ class EEG(baseModule):
         to None values
         """
         self.metaFields_req["__common__"] = {key: None for key in
-                                             eeg_meta_required_common}
-        for mod in eeg_meta_required_modality:
+                                             _EEG.eeg_meta_required_common}
+        for mod in _EEG.eeg_meta_required_modality:
             self.metaFields_req[mod] = {key: None for key in
-                                        eeg_meta_required_modality[mod]}
+                                        _EEG.eeg_meta_required_modality[mod]}
         self.metaFields_rec["__common__"] = {key: None for key in
-                                             eeg_meta_recommended_common}
-        for mod in eeg_meta_recommended_modality:
+                                             _EEG.eeg_meta_recommended_common}
+        for mod in _EEG.eeg_meta_recommended_modality:
             self.metaFields_rec[mod] = {key: None for key in
-                                        eeg_meta_recommended_modality[mod]}
+                                        _EEG.eeg_meta_recommended_modality[mod]
+                                        }
         self.metaFields_opt["__common__"] = {key: None for key in
-                                             eeg_meta_optional_common}
-        for mod in eeg_meta_optional_modality:
+                                             _EEG.eeg_meta_optional_common}
+        for mod in _EEG.eeg_meta_optional_modality:
             self.metaFields_opt[mod] = {key: None for key in
-                                        eeg_meta_optional_modality[mod]}
+                                        _EEG.eeg_meta_optional_modality[mod]}
 
     def load_channels(self, base_name: str, ):
         """
