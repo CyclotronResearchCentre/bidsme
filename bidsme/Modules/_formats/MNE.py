@@ -208,7 +208,8 @@ class MNE(object):
             # raw file don't have coordinate info
             return None
 
-        column_base = {"name", "x", "y", "z"}
+        column_base = {"name", "x", "y", "z", 
+                       "type", "material", "impedance"}
         columns = column_base.update(columns)
         n_channels = len(self.CACHE.info['chs'])
         d_chs = {key: [None] * n_channels for key in column_base}

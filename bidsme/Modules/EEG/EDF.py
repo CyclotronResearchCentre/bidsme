@@ -121,6 +121,7 @@ class EDF(EEG):
             self.count_channels()
 
             self.load_events(base)
+            self.load_electrodes(base)
 
             # mne do not retrieve subject and recording info
             with open(path, "rb") as f:
@@ -140,6 +141,9 @@ class EDF(EEG):
 
     def _load_events(self) -> pandas.DataFrame:
         return self.mne.load_events(stim_channels=channel_types["TRIG"])
+
+    def _load_electrodes(self) -> pandas.DataFrame:
+        return self.mne.load_electrodes()
 
     def _getAcqTime(self) -> datetime:
         """

@@ -271,7 +271,13 @@ class EEG(baseModule):
                 if chs:
                     self.TableChannels.loc[chs, "type"] = types
 
-    def count_channels(self):
+    def count_channels(self) -> None:
+        """
+        Fills _channels_count field with count channels per type
+
+        Must be called once after loading channels, and when channels
+        are updated
+        """
         if "type" not in self.TableChannels.columns:
             return
 
@@ -286,7 +292,7 @@ class EEG(baseModule):
             if not found:
                 self._channels_count["Misc"] += count
 
-    def load_events(self, base_name: str, ):
+    def load_events(self, base_name: str):
         """
         Loads events data into TableEvents dataframe.
         If _channels.tsv is found together with loaded file,
@@ -320,6 +326,39 @@ class EEG(baseModule):
                                    "column '{}'"
                                    .format(self.recIdentity(), col_name))
 
+    def load_electrodes(self, base_name: str) -> None:
+        """
+        Loads electrodes data into TableElectrodes dataframe.
+        If _electrodes.tsv is found together with loaded file,
+        then data is loaded from this file, else virtual function
+        _load_electrodes is used to extract channels info from
+        data files.
+
+        Parameters
+        ----------
+        base_name: str
+            file path without extention
+        """
+        if os.path.isfile(base_name + "_electrodes.tsv"):
+            self.TableElectrodes = pandas.read_csv(
+                              base_name + "_electrodes.tsv",
+                              sep="\t",
+                              header=0,
+                              index_col=["name"],
+                              na_values="n/a")
+        else:
+            self.TableElectrodes = self._load_electrodes()
+        if self.TableElectrodes is not None:
+            # Checking columns validity
+            if self.TableElectrodes.index.name != "name":
+                logger.warning("{}: Index column is not 'name'"
+                               .format(self.recIdentity()))
+            for col_name in ("x", "y", "z"):
+                if col_name not in self.TableElectrodes:
+                    logger.warning("{}: Missing mandatory channel "
+                                   "column '{}'"
+                                   .format(self.recIdentity(), col_name))
+
     def copyRawFile(self, destination: str) -> None:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
@@ -331,6 +370,10 @@ class EEG(baseModule):
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True)
+        if self.TableElectrodes is not None:
+            self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
         shutil.copy2(self.currentFile(), destination)
 
     def _copy_bidsified(self, directory: str,
@@ -392,6 +435,24 @@ class EEG(baseModule):
                                     header=True, index=True)
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
+        if self.TableElectrodes is not None and\
+                not self.TableElectrodes.index.empty:
+            active = self._elec_BIDS.GetActive()
+            columns = self.TableElectrodes.columns
+
+            for col in active:
+                if col not in columns:
+                    self._elec_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableElectrodes[col].notna().any()]
+
+            self.TableElectrodes.to_csv(dest_base + "_events.tsv",
+                                        columns=active,
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
+            self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
+
     @abstractmethod
     def _load_channels(self) -> pandas.DataFrame:
         """
@@ -400,6 +461,21 @@ class EEG(baseModule):
 
         Resulting DataFrame must have "name" as index, and contain
         columns "type" and "units"
+
+        Returns
+        -------
+        DataFrame
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _load_electrodes(self) -> pandas.DataFrame:
+        """
+        Virtual function that loads electrodes list from data file
+        into Dataframe with passed list of columns
+
+        Resulting DataFrame must have "name" as index, and contain
+        columns "x", "y" and "z"
 
         Returns
         -------

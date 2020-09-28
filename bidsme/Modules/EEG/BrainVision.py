@@ -118,6 +118,7 @@ class BrainVision(EEG):
             self.load_channels(base)
             self.count_channels()
             self.load_events(base)
+            self.load_electrodes(base)
 
             self._marker_file = None
             self._data_file = None
@@ -147,6 +148,9 @@ class BrainVision(EEG):
 
     def _load_events(self) -> pandas.DataFrame:
         return self.mne.load_events(stim_channels=channel_types["TRIG"])
+
+    def _load_electrodes(self) -> pandas.DataFrame:
+        return self.mne.load_electrodes()
 
     def _getAcqTime(self) -> datetime:
         """
@@ -377,6 +381,24 @@ class BrainVision(EEG):
                                     header=True, index=True)
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
+        if self.TableElectrodes is not None and\
+                not self.TableElectrodes.index.empty:
+            active = self._elec_BIDS.GetActive()
+            columns = self.TableElectrodes.columns
+
+            for col in active:
+                if col not in columns:
+                    self._elec_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableElectrodes[col].notna().any()]
+
+            self.TableElectrodes.to_csv(dest_base + "_events.tsv",
+                                        columns=active,
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
+            self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
+
     def copyRawFile(self, destination: str) -> str:
         """
         Virtual function to Copy raw (non-bidsified) file
@@ -411,4 +433,8 @@ class BrainVision(EEG):
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True)
+        if self.TableElectrodes is not None:
+            self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
         return os.path.join(destination, self.currentFile(True))
