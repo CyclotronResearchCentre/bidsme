@@ -3,10 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.0] - 2020-09-28
 ### Fixed
   - Removed miliseconds in acqTime output, as BIDS requires
 
 ### Added
+  - EEG/EDF implementation using mne interface. Channels and events incorporated
+  - EEG/BV implementation using mne interface.
   - map: map sanity checking, detecting duplicated provenance an examples
   - bidsmap: warning if bids value is not string, and forcefull convertion into string
   - baseModule: New public boolean switch `zip`, which is set to `False` by default.
@@ -22,28 +25,6 @@ this should allow multiple execution in same session
 
 ### Fixed
   - \_formats:dummy Fixed conditional imports 
-
-
-## [1.2.0] - 2020-08-07
-
-### Added
-  - EEG/EDF implementation using mne interface. Channels and events incorporated
-  - EEG/BV implementation using mne interface.
-  - map: map sanity checking, detecting duplicated provenance an examples
-  - bidsmap: warning if bids value is not string, and forcefull convertion into string
-  - baseModule: New public boolean switch `zip`, which is set to `False` by default.
-If in plugin (in RecordingEP) is set to `True`, then data file will be zipped during
-bidsification (provided is zipping is implemented for given type)
-
-## [1.2.1] - 2020-08-18
-
-### Changed
-  - Reloading participant template now produce warning instead of raising exception,
-this should allow multiple execution in same session
-
-### Fixed
-  - \_formats:dummy Fixed conditional imports 
-
 
 ## [1.2.0] - 2020-08-07
 
