@@ -23,63 +23,52 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import action_value
-from .EEG import EEG
-from bidsMeta import MetaField
-
 import os
-import re
 import logging
 import shutil
-import json
-import math
-import gzip
-from datetime import datetime, timedelta
+from datetime import datetime
+import re
+import pandas
 
+from ..common import retrieveFormDict
+from .EEG import EEG, channel_types
+from . import _EDF
+from .._formats import MNE, _MNE
 logger = logging.getLogger(__name__)
 
 
 class BrainVision(EEG):
     _type = "BrainVision"
 
-    __slots__ = ["_CACHE", "_FILE_CACHE",
-                 "_MRK_CACHE",
-                 "_datafile", "_markfile",
-                 "_chanValues"
+    __slots__ = ["_FILE_CACHE",
+                 "_mne",
+                 "_data_file",
+                 "_marker_file"
                  ]
-    __spetialFields = {
-                       "SamplingFrequency",
-                       "SamplingInterval"
-                       }
-    __fileversion = "Brain Vision Data Exchange Header File Version 1.0"
+
+    __specialFields = {"RecordingDuration",
+                       "RecordingType",
+                       "MEGChannelCount",
+                       "MEGREFChannelCount",
+                       "ECOGChannelCount",
+                       "SEEGChannelCount",
+                       "EEGChannelCount",
+                       "EOGChannelCount",
+                       "ECGChannelCount",
+                       "EMGChannelCount",
+                       "MiscChannelCount",
+                       "TriggerChannelCount"}
 
     def __init__(self, rec_path=""):
-        from configparser import ConfigParser
         super().__init__()
 
-        self._CACHE = ConfigParser(allow_no_value=True, strict=False)
-        self._MRK_CACHE = ConfigParser()
-        self._FILE_CACHE = ""
-        self._datafile = None
-        self.__markfile = None
-        # Series number and secription is not defined
-
-        self._chan_BIDS.Activate("sampling_frequency")
-        self._chan_BIDS.Activate("reference")
-        self._chan_BIDS.AddField(
-                name="resolution",
-                longName="Channel signal resolution",
-                override=True
-                )
-
-        self._task_BIDS.Activate("sample")
-        self._task_BIDS.Activate("trial_type")
+        self._FILE_CACHE = None
+        self.mne = MNE()
+        self._data_file = None
+        self._marker_file = None
 
         if rec_path:
             self.setRecPath(rec_path)
-
-        self.metaFields["SamplingFrequency"]\
-            = MetaField("<SamplingFrequency>", 1.)
 
     ################################
     # reimplementation of virtuals #
@@ -87,135 +76,149 @@ class BrainVision(EEG):
     @classmethod
     def _isValidFile(cls, file: str) -> bool:
         """
-        Checks whether a file is a Brain vision file
-        with .vhdr extention and with an existing
-        data and marker files
+        Virtual function that checks if file is valid one
+
+        Parameters
+        ----------
+        file: str
+            path to file to test
+
+        Returns
+        -------
+        bool:
+            True if file is valid for current class
         """
         if os.path.isfile(file) and file.endswith(".vhdr"):
             if os.path.basename(file).startswith("."):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
                                        file))
-            with open(file, "r", encoding="utf-8") as f:
-                decl = f.readline().strip()
-                if decl != cls.__fileversion:
-                    return False
+            MNE.test_raw(file, ".vhdr")
             return True
         return False
 
     def _loadFile(self, path: str) -> None:
+        """
+        Virtual function that load file at given path
+
+        Parameters
+        ----------
+        path: str
+            path to file to load
+        """
         if path != self._FILE_CACHE:
             self.clearCache()
-            dirpath, base = os.path.split(path)
-            base = os.path.splitext(base)[0]
 
-            with open(path, "r", encoding="utf-8") as f:
-                f.readline()
-                self._CACHE.read_file(self._readline_generator(f),
-                                      source=path)
+            self._ext = ".vhdr"
+            self.mne.load_raw(path, self._ext)
 
-            self._datafile = self._genPath(
-                    dirpath,
-                    base,
-                    self._CACHE["Common Infos"]["DataFile"])
-            if not self._datafile:
-                raise ValueError("{}: {} DataFile not defined"
-                                 .format(self.formatIdentity(),
-                                         path))
-            if not self.getField("SamplingInterval"):
-                raise KeyError("{}: Sampling interval not defined"
-                               .format(self.formatIdentity()))
+            base = path[:-len(self._ext)]
 
-            if not os.path.isfile(self._datafile):
-                raise FileNotFoundError("{}: DataFile {} not found"
-                                        .format(self.formatIdentity(),
-                                                self._datafile))
-            self._markfile = self._genPath(
-                    dirpath,
-                    base,
-                    self._CACHE["Common Infos"].get("MarkerFile"))
-            if self._markfile:
-                if not os.path.isfile(self._markfile):
-                    raise FileNotFoundError("{}: MarkerFile {} not found"
-                                            .format(self.formatIdentity(),
-                                                    self._markfile))
+            # Loading channels information
+            self.load_channels(base)
+            self.count_channels()
+            self.load_events(base)
+            self.load_electrodes(base)
+
+            self._marker_file = None
+            self._data_file = None
+            with open(path, "r") as f:
+                for line in f.readlines():
+                    line = line.strip()
+                    if line.startswith(';'):
+                        continue
+                    res = re.match("DataFile=([\w. -]+)", line)
+                    if res:
+                        self._data_file = res.group(1).strip()
+                        continue
+                    res = re.match("MarkerFile=([\w. -]+)", line)
+                    if res:
+                        self._marker_file = res.group(1).strip()
+                        continue
+                    if self._marker_file and self._data_file:
+                        break
+
+            if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
+                self.resetMetaFields()
+                self.setupMetaFields(_EDF.metafields)
+                self.testMetaFields()
+
+    def _load_channels(self) -> pandas.DataFrame:
+        return self.mne.load_channels()
+
+    def _load_events(self) -> pandas.DataFrame:
+        return self.mne.load_events(stim_channels=channel_types["TRIG"])
+
+    def _load_electrodes(self) -> pandas.DataFrame:
+        return self.mne.load_electrodes()
 
     def _getAcqTime(self) -> datetime:
-        t = None
-        if self._markfile:
-            with open(self._markfile, "r", encoding="utf-8") as f:
-                decl = f.readline().strip()
-                if not decl != self.__fileversion:
-                    raise ValueError("{}: Incorrect Marker file version {}"
-                                     .format(self.formatIdentity(),
-                                             decl))
-                self._MRK_CACHE.read_file(f, source=self._markfile)
-                for mk, val in self._MRK_CACHE["Marker Infos"].items():
-                    val = val.split(",")
-                    if val[0].strip() == "New Segment":
-                        t = datetime.strptime(val[5], "%Y%m%d%H%M%S%f")
-                        dt = timedelta(microseconds=self.getField(
-                            "SamplingInterval"))
-                        dt = int(val[2]) * dt
-                        t = t - dt
-                        break
-        if t is None:
-            logger.warning("{}: Marker file do not contain any "
-                           "'New Segment' markers"
-                           .format(self.formatIdentity()))
-        return t
+        """
+        Virtual function that returns acquisition time, i.e.
+        time corresponding to the first data of file
 
-    def dump(self):
-        if not self._FILE_CACHE:
-            if len(self.files) > 0:
-                self.loadFile(0)
-            else:
-                logger.error("{}: No defined files"
-                             .format(self.recIdentity()))
-                return "No defined files"
-        res = ""
-        for section in self._CACHE.sections():
-            line = "[{}]\n".format(section)
-            res += line
-            for key, val in self._CACHE.items(section):
-                line = "{} = {}\n".format(key, val)
-                res += line
-            res += '\n'
-        return res
+        Returns
+        -------
+        datetime
+            datetime of acquisition of current scan
+        """
+        return self.mne.CACHE.info["meas_date"].replace(tzinfo=None)
 
-    def _getField(self, field: list):
+    def dump(self) -> dict:
+        """
+        Virtual function that created adictionary of all meta-data
+        associated with current file
+
+        Returns
+        -------
+        dict:
+            dictionary with parced values from current scan header,
+            all data must be of basic python class: str, int, float,
+            date, time, datetime
+        """
+        d = dict(self.mne.CACHE.info)
+        return d
+
+    def _getField(self, field: list, prefix: str = ""):
+        """
+        Virtual function that retrives the field value
+        from recording metadata. field is garanteed to be
+        non-empty
+
+        Parameters
+        ----------
+        field: list(str)
+            list of nested values (or just one element)
+            giving position of field to retrieve
+        prefix: str
+            prefix indicating the transformation function
+            to call on retrieved value
+
+        Returns
+        -------
+            retrieved value or None if field not found
+
+        Raises
+        ------
+        TypeError:
+            if field value is not applicable to prefix
+            function
+        KeyError:
+            if prefix function is not defined
+        """
         res = None
         try:
-            if field[0] in self.__spetialFields:
+            if field[0] in self.__specialFields:
                 res = self._adaptMetaField(field[0])
             else:
-                res = self._CACHE[field[0]][field[1]]
+                res = retrieveFormDict(field, self.mne.CACHE.info,
+                                       fail_on_not_found=True,
+                                       fail_on_last_not_found=True)
         except Exception:
             logger.warning("{}: Could not parse '{}'"
                            .format(self.recIdentity(), field))
             res = None
         return res
-
-    def _transformField(self, value, prefix: str):
-        if prefix.startswith("ch_"):
-            det = prefix[len("ch_"):]
-            val = value.split(',')
-            if det == "name":
-                return val[0]
-            elif det == "ref":
-                return val[1]
-            elif det == "resolution":
-                return float(val[2])
-            elif det == "unit":
-                return val[3]
-
-        try:
-            return action_value(value, prefix)
-        except Exception as e:
-            logger.error("{}: Invalid field prefix {}:{}"
-                         .format(self.formatIdentity(),
-                                 prefix, e))
-            raise
 
     def recNo(self):
         return self.index
@@ -226,56 +229,51 @@ class BrainVision(EEG):
     def isCompleteRecording(self):
         return True
 
-    def clearCache(self) -> None:
-        from configparser import ConfigParser
-        self._CACHE = ConfigParser()
-        self._MRK_CACHE = ConfigParser()
-        self._FILE_CACHE = ""
+    def _getSubId(self) -> str:
+        """
+        Virtual function
+        Returns subject id as defined in metadata
 
-    def copyRawFile(self, destination: str) -> None:
-        base = os.path.splitext(self.currentFile(True))[0]
-        dest_base = os.path.join(destination, base)
+        Returns
+        -------
+        str:
+            string representing Id of current subject as
+            defined in header or None if such information
+            is not defined
+        """
+        return None
 
-        # Copiyng header
-        dest_vhdr = dest_base + ".vhdr"
-        if os.path.isfile(dest_vhdr):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
+    def _getSesId(self) -> str:
+        """
+        Virtual function
+        Returns session id as defined in metadata
 
-        with open(self.currentFile(), "r") as f_in,\
-                open(dest_vhdr, "w") as f_out:
-            for line in f_in.readlines():
-                line = re.sub("DataFile *=.*",
-                              "DataFile={}.eeg".format(base),
-                              line)
-                if self._markfile:
-                    line = re.sub("MarkerFile *=.*",
-                                  "MarkerFile={}.vmrk".format(base),
-                                  line)
-                else:
-                    line = re.sub("MarkerFile *=.*", "")
-                f_out.write(line)
+        Returns
+        -------
+        str:
+            string representing Id of current session as
+            defined in header or None if such information
+            is not defined
+        """
+        return ""
 
-        # Copying marker file
-        dest_vmrk = dest_base + ".vmrk"
-        if self._markfile:
-            with open(self._markfile, "r") as f_in,\
-                    open(dest_vmrk, "w") as f_out:
-                for line in f_in.readlines():
-                    line = re.sub("DataFile *=.*",
-                                  "DataFile={}.eeg".format(base),
-                                  line)
-                    f_out.write(line)
-
-        # Copiyng data file
-        dest_vhdr = dest_base + ".eeg"
-        shutil.copy2(self._datafile, dest_vhdr)
+    def _adaptMetaField(self, field):
+        if field.endswith("ChannelCount"):
+            field = field[:-len("ChannelCount")]
+            return self._channels_count.get(field, 0)
+        if field == "RecordingDuration":
+            return self.mne.getDuration()
+        if field == "RecordingType":
+            if self.mne.isContinious():
+                return "continuous"
+            else:
+                return "epoched"
+        return None
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         """
-        Copy all data files to destination, and adapt file references.
-        Also creates channels, electrodes and events tsv files
+        Virtual function that copies bidsified data files to
+        its destinattion.
 
         Parameters
         ----------
@@ -287,167 +285,156 @@ class BrainVision(EEG):
         ext: str
             extention of the data file
         """
-        # Copiyng header
-        dest_vhdr = os.path.join(directory, bidsname + ext)
-        with open(self.currentFile(), "r") as f_in,\
-                open(dest_vhdr, "w") as f_out:
-            for line in f_in.readlines():
-                line = re.sub("DataFile *=.*",
-                              "DataFile={}.eeg".format(bidsname),
-                              line)
+
+        out_base = os.path.join(directory, bidsname)
+        f_in = open(self.currentFile(), "r")
+        f_out = open(out_base + ext, "w")
+        for line in f_in.readlines():
+            ln = line.strip()
+            if ln.startswith(";"):
                 f_out.write(line)
-        # copiyng data file
-        out_name = os.path.join(directory, bidsname + ".eeg")
-        if self.zip:
-            with open(self._datafile, 'rb') as f_in:
-                with gzip.open(out_name + ".gz", 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
-        else:
-            shutil.copy2(self._datafile,
-                         os.path.join(out_name))
-
-        # Getting channels info
-        base = bidsname.rsplit("_", 1)[0]
-        dest_chan = os.path.join(directory, base + "_channels")
-        with open(dest_chan + ".tsv", "w") as f:
-            f.write(self._chan_BIDS.GetHeader())
-            f.write("\n")
-            for key, val in self._CACHE["Channel Infos"].items():
-                chanValues = self._chan_BIDS.GetTemplate()
-                val = val.split(",")
-                chanValues["name"] = val[0]
-                chanValues["type"] = None
-                chanValues["reference"] = val[1]
-                chanValues["sampling_frequency"] = \
-                    self.getField("SamplingFrequency")
-                chanValues["resolution"] = float(val[2])
-                if len(val) >= 4:
-                    chanValues["units"] = val[3]
-                f.write(self._chan_BIDS.GetLine(chanValues))
-                f.write("\n")
-            self._chan_BIDS.DumpDefinitions(dest_chan + ".json")
-
-        # Getting electrodes info
-        if "Coordinates" in self._CACHE:
-            dest_elec = os.path.join(directory, base)
-            dest_elec = re.sub("task-", "acq-", )
-            with open(dest_elec + ".tsv", "w") as f:
-                f.write(self._elec_BIDS.GetHeader())
-                f.write("\n")
-                for key, val in self._CACHE["Coordinates"].items():
-                    chanValues = self._elec_BIDS.GetTemplate()
-                    val = val.split(",")
-                    chanValues["name"] = self._CACHE["Channel Infos"]\
-                        .get(key).split(",")[0]
-                    r = float(val[0])
-
-                    theta = math.pi * float(val[1]) / 180
-                    phi = math.pi * float(val[2]) / 180
-                    if r == 0:
-                        chanValues["x"] = None
-                        chanValues["y"] = None
-                        chanValues["z"] = None
-                    else:
-                        chanValues["x"] = r * math.sin(theta) * math.cos(phi)
-                        chanValues["y"] = r * math.sin(theta) * math.sin(phi)
-                        chanValues["z"] = r * math.cos(theta)
-                    f.write(self._elec_BIDS.GetLine(chanValues))
-                    f.write("\n")
-                self._elec_BIDS.DumpDefinitions(dest_elec + ".json")
-                dest_coord = os.path.join(directory,
-                                          "{}_acq-{}_coordsystem.json"
-                                          .format(self.getBidsPrefix(),
-                                                  self.labels["task"]))
-                d = {"EEGCoordinateSystem": "BESA",
-                     "EEGCoordinateSystemUnits": "mm"}
-                with open(dest_coord, "w") as f:
-                    json.dump(d, f, indent="  ", separators=(',', ':'))
-
-        # Gettin markers info
-        if self._markfile:
-            dest_vmrk = os.path.join(directory, bidsname + ".vmrk")
-            with open(self._markfile, "r") as f_in,\
-                    open(dest_vmrk, "w") as f_out:
-                for line in f_in.readlines():
-                    line = re.sub("DataFile *=.*",
-                                  "DataFile={}.eeg".format(bidsname),
-                                  line)
+                continue
+            res = re.match("DataFile=([\w. -]+)", ln)
+            if res:
+                if self._data_file:
+                    print("DataFile={}".format(bidsname + ".eeg"), file=f_out)
+                else:
+                    logger.warning("{}: Missing data file"
+                                   .format(self.recIdentity()))
                     f_out.write(line)
+                continue
+            res = re.match("MarkerFile=([\w. -]+)", ln)
+            if res:
+                if self._data_file:
+                    print("MarkerFile={}".format(bidsname + ".vmrk"),
+                          file=f_out)
+                else:
+                    logger.warning("{}: Missing marker file"
+                                   .format(self.recIdentity()))
+                    f_out.write(line)
+                continue
+            f_out.write(line)
+        f_in.close()
+        f_out.close()
 
-            dest_vmrk = os.path.join(directory, base + "_events")
-            with open(dest_vmrk + ".tsv", "w") as f:
-                last_onset = 0
-                last_onset = 0
-                dt = timedelta(
-                        microseconds=self.getField("SamplingInterval"))
-                f.write(self._task_BIDS.GetHeader())
-                f.write("\n")
-                for mk, val in self._MRK_CACHE["Marker Infos"].items():
-                    mrkValues = self._task_BIDS.GetTemplate()
-                    val = val.split(",")
-                    name = val[0]
-                    # descr = val[1]
-                    pos = int(val[2])
-                    dur = dt * int(val[3])
-                    # chan = val[4]
+        if self._data_file:
+            f = os.path.join(self._recPath, self._data_file)
+            shutil.copy2(f, out_base + ".eeg")
 
-                    if name.strip() == "New Segment":
-                        last_onset = datetime.strptime(val[5],
-                                                       "%Y%m%d%H%M%S%f")\
-                                - self.acqTime()
-                        last_seg = pos
-                    mrkValues["onset"] = ((pos - last_seg) * dt + last_onset)\
-                        .total_seconds()
-                    mrkValues["duration"] = dur
-                    mrkValues["sample"] = pos
-                    mrkValues["trial_type"] = name
-                    f.write(self._task_BIDS.GetLine(mrkValues))
-                    f.write("\n")
-            self._task_BIDS.DumpDefinitions(dest_vmrk + ".json")
+        if self._marker_file:
+            f_in = open(os.path.join(self._recPath, self._marker_file), "r")
+            f_out = open(out_base + ".vmrk", "w")
+            for line in f_in.readlines():
+                ln = line.strip()
+                if ln.startswith(";"):
+                    f_out.write(line)
+                    continue
+                res = re.match("DataFile=([\w. -]+)", ln)
+                if res:
+                    if self._data_file:
+                        print("DataFile={}".format(bidsname + ".eeg"),
+                              file=f_out)
+                    else:
+                        logger.warning("{}: Missing data file"
+                                       .format(self.recIdentity()))
+                        f_out.write(line)
+                    continue
+                f_out.write(line)
+            f_in.close()
+            f_out.close()
 
-    def _getSubId(self) -> str:
-        return None
+        dest_base = out_base.rsplit("_", 1)[0]
 
-    def _getSesId(self) -> str:
-        return ""
+        if self.TableChannels is not None and\
+                not self.TableChannels.index.empty:
+            active = self._chan_BIDS.GetActive()
+            columns = self.TableChannels.columns
 
-    ########################
-    # Additional fonctions #
-    ########################
-    def _genPath(self, dirpath: str, base: str, name: str) -> str:
+            for col in active:
+                if col not in columns:
+                    self._chan_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableChannels[col].notna().any()]
+
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      columns=active,
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
+            self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
+
+        if self.TableEvents is not None and\
+                not self.TableEvents.index.empty:
+            active = self._task_BIDS.GetActive()
+            columns = self.TableEvents.columns
+
+            for col in active:
+                if col not in columns:
+                    self._task_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableEvents[col].notna().any()]
+
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    columns=active,
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
+            self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
+
+        if self.TableElectrodes is not None and\
+                not self.TableElectrodes.index.empty:
+            active = self._elec_BIDS.GetActive()
+            columns = self.TableElectrodes.columns
+
+            for col in active:
+                if col not in columns:
+                    self._elec_BIDS.Activate(col, False)
+            active = [col for col in active
+                      if col in columns
+                      and self.TableElectrodes[col].notna().any()]
+
+            self.TableElectrodes.to_csv(dest_base + "_events.tsv",
+                                        columns=active,
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
+            self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
+
+    def copyRawFile(self, destination: str) -> str:
         """
-        Generates a path to dile based on Data/MarkerFile
-        entry in header
+        Virtual function to Copy raw (non-bidsified) file
+        to destination.
+        Destination is an existing writable directory
 
         Parameters
         ----------
-        dirpath: str
-            path to directory containing header file
-        base: str
-            header file base name
-        name: str
-            name of file as found in header file
+        destination: str
+            output folder to copied files
 
-        Returnds
-        --------
+        Returns
+        -------
         str:
-            path to referenced file
+            path to copied file
         """
-        name = re.sub("\\$b", base, name)
-        return os.path.join(dirpath, name)
+        shutil.copy2(self.currentFile(), destination)
+        if self._data_file:
+            f = os.path.join(self._recPath, self._data_file)
+            shutil.copy2(f, destination)
+        if self._marker_file:
+            f = os.path.join(self._recPath, self._marker_file)
+            shutil.copy2(f, destination)
 
-    def _adaptMetaField(self, field: str):
-        if field == "SamplingFrequency":
-            return 1e6 / self.getField("SamplingInterval")
-        if field == "SamplingInterval":
-            return float(self.getField("Common Infos/SamplingInterval"))
-        return None
-
-    def _readline_generator(self, fp):
-        line = fp.readline()
-        while line:
-            if '[Comment]' in line:
-                break
-            else:
-                yield line
-                line = fp.readline()
+        base = os.path.splitext(self.currentFile(True))[0]
+        dest_base = os.path.join(destination, base)
+        if self.TableChannels is not None:
+            self.TableChannels.to_csv(dest_base + "_channels.tsv",
+                                      sep="\t", na_rep="n/a",
+                                      header=True, index=True)
+        if self.TableEvents is not None:
+            self.TableEvents.to_csv(dest_base + "_events.tsv",
+                                    sep="\t", na_rep="n/a",
+                                    header=True, index=True)
+        if self.TableElectrodes is not None:
+            self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
+                                        sep="\t", na_rep="n/a",
+                                        header=True, index=True)
+        return os.path.join(destination, self.currentFile(True))

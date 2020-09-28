@@ -1,0 +1,37 @@
+{
+  "onset": {
+    "LongName": "Onset",
+    "Descripion": "Onset (in seconds) of the event measured from the beginning of the acquisition of the first volume in the corresponding task imaging data file. If any acquired scans have been discarded before forming the imaging data file, ensure that a time of 0 corresponds to the first image stored. In other words negative numbers in \"onset\" are allowed.",
+    "Units": "s"
+  },
+  "duration": {
+    "LongName": "Duration",
+    "Description": "Duration of the event (measured from onset) in seconds. Must always be either zero or positive. A \"duration\" value of zero implies that the delta function or event is so short as to be effectively modeled as an impulse.",
+    "Units": "s"
+  },
+  "sample": {
+    "LongName": "Sample",
+    "Description": "Onset of the event according to the sampling scheme of the recorded modality (i.e., referring to the raw data file that the events.tsv file accompanies)."
+  },
+  "trial_type": {
+    "LongName": "Trial type",
+    "Description": "Primary categorisation of each trial to identify them as instances of the experimental conditions. For example: for a response inhibition task, it could take on values \"go\" and \"no-go\" to refer to response initiation and response inhibition experimental conditions."
+  },
+  "response_time": {
+    "LongName": "Responce time",
+    "Description": "Response time measured in seconds. A negative response time can be used to represent preemptive responses and \"n/a\" denotes a missed response.",
+    "Units": "s"
+  },
+  "stim_file": {
+    "LongName": "Stimulus file",
+    "Description": "Represents the location of the stimulus file (image, video, sound etc.) presented at the given onset time. There are no restrictions on the file formats of the stimuli files, but they should be stored in the /stimuli folder (under the root folder of the dataset; with optional subfolders). The values under the stim_file column correspond to a path relative to \"/stimuli\". For example \"images/cat03.jpg\" will be translated to \"/stimuli/images/cat03.jpg\"."
+  },
+  "value": {
+    "LongName": "Value",
+    "Description": "Marker value associated with the event (e.g., the value of a TTL trigger that was recorded at the onset of the event)."
+  },
+  "HED": {
+    "LongName": "HED",
+    "Description": "Hierarchical Event Descriptor (HED) Tag. See Appendix III for details."
+  }
+}

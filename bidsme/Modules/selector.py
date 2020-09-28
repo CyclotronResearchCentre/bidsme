@@ -34,7 +34,7 @@ types_list = OrderedDict(
               "PET": (PET.DICOM, PET.ECAT,
                       PET.bidsmeNIFTI,
                       PET.NIFTI),
-              "EEG": (EEG.BrainVision,)}
+              "EEG": (EEG.BrainVision, EEG.EDF)}
              )
 
 

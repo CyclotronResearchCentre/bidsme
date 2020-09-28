@@ -28,6 +28,7 @@ import shutil
 import logging
 import json
 import re
+import numpy
 import gzip
 
 from datetime import datetime, date, time
@@ -289,7 +290,10 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
-        return cls._isValidFile(file)
+        try:
+            return cls._isValidFile(file)
+        except Exception:
+            return False
 
     @classmethod
     def Module(cls):
@@ -1531,4 +1535,6 @@ class ExtendEncoder(json.JSONEncoder):
                 return obj.decode(self.encoding)
             except UnicodeDecodeError:
                 return "<bytes>"
+        if isinstance(obj, numpy.ndarray):
+            return obj.tolist()
         return json.JSONEncoder.default(self, obj)
