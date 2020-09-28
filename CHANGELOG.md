@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 If in plugin (in `RecordingEP` or in `SequenceEP`) is set to `True`,
 then data file will be zipped during bidsification
 (provided is zipping is implemented for given type)
+  - plugins: tools to use in pligins. To import use `import plugins.tools.General.<toolname>`
 
 ## [1.2.1] - 2020-08-18
 
