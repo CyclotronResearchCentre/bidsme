@@ -115,7 +115,10 @@ class MNE(object):
         for idx, ev in enumerate(evts):
             d_evts["onset"][idx] = ev["onset"] - first_time
             d_evts["duration"][idx] = ev["duration"]
-            d_evts["trial_type"][idx] = ev["description"]
+            if ev["description"].endswith("/"):
+                d_evts["trial_type"][idx] = ev["description"][:-1]
+            else:
+                d_evts["trial_type"][idx] = ev["description"]
             d_evts["sample"][idx] = int(ev["onset"] * sfreq)
 
         df = DataFrame(d_evts, columns=columns)
