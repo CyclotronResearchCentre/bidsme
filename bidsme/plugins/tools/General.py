@@ -25,6 +25,7 @@
 
 import os
 import logging
+import zipfile
 
 logger = logging.getLogger(__name__)
 
@@ -118,3 +119,87 @@ def CheckSeries(path: str,
             matches[s] = series.index(s)
 
     return passed
+
+
+def StoreSource(series_path: str, bidsified_path,
+                compression=zipfile.ZIP_DEFLATED,
+                mode="override"):
+    """
+    Archive current series into sourcedata folder in the bidsified dataset
+    Only files in series folder are archived. It is assumed that working
+    directory is structured in standartd way for prepeared dataset.
+
+    Must be run only once within SequenceEP and SequenceEndEP
+
+    Parameters:
+    -----------
+    series_path: str
+        path to current series
+    bidsified_path: str
+        path to bidsified dataset
+    compression: int
+        numerical constant indicating algorythm to use, from fastest
+        to more performing:
+            zipfile.ZIP_STORED -- uncompressed
+            zipfile.ZIP_DEFLATED -- standard zip
+            zipfile.ZIP_BZIP2 -- bzip
+            zipfile.ZIP_LZMA -- lzma
+    mode: str
+        mode to use then archive already exists, one of the next:
+            error -- raise FileExistsError
+            override -- replace archive
+            append -- append files to existing archive
+            increment -- add a counter to extention, up to 20
+
+    Example:
+    --------
+    # In SequenceEP, given
+    #   recording is BaseModule object
+    #   bidsified is the path to bidsified dataset
+    if not dry_run:
+        StoreSource(recording.recPath(), bidsified)
+    """
+    path = os.path.normalpath(series_path)
+    path, series = os.path.split(path)
+    path, rec_type = os.path.split(path)
+    path, ses = os.path.split(path)
+    path, sub = os.path.split(path)
+
+    out_path = os.path.join(bidsified_path, "sourcedata", 
+                            sub, ses, rec_type)
+    os.makedirs(out_path, exist_ok=True)
+
+    out_name = os.path.join(out_path, series + '.zip')
+    m = "w"
+    if os.path.isfile(out_name):
+        if mode == "error":
+            raise FileExistsError("Archive {} already exists"
+                                  .format(out_name))
+        elif mode == "append":
+            m = "a"
+        elif mode == "increment":
+            found = False
+            for count in range(21):
+                out_name = os.path.join(out_path,
+                                        "{}.{}.zip".format(series, count))
+                if not os.path.isfile(out_name):
+                    found = True
+                    break
+            if not found:
+                raise FileExistsError("Archive {} already exists"
+                                      .format(out_name))
+        elif mode != "override":
+            raise ValueError("Unknown mode: {}".format(mode))
+
+    zip_file = zipfile.ZipFile(out_name, m, compression)
+
+    path_sep = series_path + os.path.sep
+    for root, directories, files in os.walk(path_sep):
+        root_trunc = root[len(path_sep):]
+        for directory in directories:
+            zip_file.write(os.path.join(root, directory),
+                           os.path.join(root_trunc, directory))
+        for file in files:
+            zip_file.write(os.path.join(root, file),
+                           os.path.join(root_trunc, file))
+    zip_file.close()
