@@ -24,6 +24,7 @@
 ##############################################################################
 
 import os
+import math
 import logging
 import zipfile
 
@@ -222,3 +223,27 @@ def StoreSource(source_path: str, bidsified_path,
             zip_file.write(os.path.join(root, file),
                            os.path.join(root_trunc, file))
     zip_file.close()
+
+
+def ExtractBval(recording):
+    """
+    Extracts Bval and Bvec values from a DWI recording
+    Might work only on Siemens files
+
+    Parameters:
+    -----------
+    recording: Modules.baseModule
+        recording from which extract values
+
+    Returns:
+    --------
+    (float, [float, float, float])
+        (bval, [bvec_x, bvec_y, bvec_z])
+    """
+    bval = recording.getField("SAImageHeaderInfo/B_value", default=0)
+    bvec = recording.getField("SAImageHeaderInfo/DiffusionGradientDirection",
+                              default=[0, 0, 0])
+    norm = math.sqrt(sum(x**2 for x in bvec))
+    if norm > 0:
+        bvec = [bvec[0] / norm, -bvec[1] / norm, -bvec[2] / norm]
+    return bval, bvec

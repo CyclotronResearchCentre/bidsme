@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+  - plugins/tools/General: ExtractBval function to extract bval/vec from DWI recording
+
+
 ## [1.3.0] - 2020-09-28
 ### Fixed
   - Removed miliseconds in acqTime output, as BIDS requires
