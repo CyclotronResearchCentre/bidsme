@@ -121,7 +121,8 @@ def CheckSeries(path: str,
     return passed
 
 
-def StoreSource(series_path: str, bidsified_path,
+def StoreSource(source_path: str, bidsified_path,
+                level: str="series", 
                 compression=zipfile.ZIP_DEFLATED,
                 mode="override"):
     """
@@ -133,10 +134,16 @@ def StoreSource(series_path: str, bidsified_path,
 
     Parameters:
     -----------
-    series_path: str
-        path to current series
+    source_path: str
+        path to folder to archive
     bidsified_path: str
         path to bidsified dataset
+    level: str
+        folder level in which place the archive
+            sourcedata -- in sourcedata(root) directory
+            sub -- in subject folders (sourcedata/sub-001)
+            ses -- in session folders (sourcedata/sub-001/ses-AAA)
+            type -- in data type folder (sourcedata/sub-001/ses-AAA/MRI)
     compression: int
         numerical constant indicating algorythm to use, from fastest
         to more performing:
@@ -159,17 +166,29 @@ def StoreSource(series_path: str, bidsified_path,
     if not dry_run:
         StoreSource(recording.recPath(), bidsified)
     """
-    path = os.path.normalpath(series_path)
-    path, series = os.path.split(path)
-    path, rec_type = os.path.split(path)
-    path, ses = os.path.split(path)
-    path, sub = os.path.split(path)
+    if level == "sourcedata":
+        level = 0
+    elif level == "sub":
+        level = 1
+    elif level == "ses":
+        level = 2
+    elif level == "type":
+        level = 3
+    else:
+        raise ValueError("Unknown level for archiving: {}"
+                         .format(level))
 
-    out_path = os.path.join(bidsified_path, "sourcedata", 
-                            sub, ses, rec_type)
+    path = os.path.normpath(source_path)
+    # path, series = os.path.split(path)
+    path, archive = os.path.split(path)
+    out_path = [None] * (level)
+    for i in range(level - 1, -1, -1):
+        path, out_path[i] = os.path.split(path)
+
+    out_path = os.path.join(bidsified_path, "sourcedata", *out_path)
     os.makedirs(out_path, exist_ok=True)
 
-    out_name = os.path.join(out_path, series + '.zip')
+    out_name = os.path.join(out_path, archive + '.zip')
     m = "w"
     if os.path.isfile(out_name):
         if mode == "error":
@@ -181,7 +200,7 @@ def StoreSource(series_path: str, bidsified_path,
             found = False
             for count in range(21):
                 out_name = os.path.join(out_path,
-                                        "{}.{}.zip".format(series, count))
+                                        "{}.{}.zip".format(archive, count))
                 if not os.path.isfile(out_name):
                     found = True
                     break
@@ -193,7 +212,7 @@ def StoreSource(series_path: str, bidsified_path,
 
     zip_file = zipfile.ZipFile(out_name, m, compression)
 
-    path_sep = series_path + os.path.sep
+    path_sep = source_path + os.path.sep
     for root, directories, files in os.walk(path_sep):
         root_trunc = root[len(path_sep):]
         for directory in directories:
