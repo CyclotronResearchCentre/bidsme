@@ -239,11 +239,86 @@ def ExtractBval(recording):
     --------
     (float, [float, float, float])
         (bval, [bvec_x, bvec_y, bvec_z])
+
+    Example:
+    --------
+    # In FileEP, given
+    #   recording is BaseModule object
+    #   bval is a list for b-values,
+    #   bvec_x, bvec_y, bvec_z are lists for b-vector composantes x,y,z
+    if mod == "dwi":
+        val, vec = ExtractBval(recording)
+        bval.append(val)
+        bvec_x.append(vec[0])
+        bvec_y.append(vec[1])
+        bvec_z.append(vec[2])
     """
-    bval = recording.getField("SAImageHeaderInfo/B_value", default=0)
-    bvec = recording.getField("SAImageHeaderInfo/DiffusionGradientDirection",
+    bval = recording.getField("CSAImageHeaderInfo/B_value", default=0)
+    bvec = recording.getField("CSAImageHeaderInfo/DiffusionGradientDirection",
                               default=[0, 0, 0])
     norm = math.sqrt(sum(x**2 for x in bvec))
     if norm > 0:
         bvec = [bvec[0] / norm, -bvec[1] / norm, -bvec[2] / norm]
     return bval, bvec
+
+
+def SaveBval(fname: str,
+             bval: list,
+             bvec_x: list, bvec_y: list, bvec_z: list,
+             precision: int=4):
+    """
+    Saves b-values and vector given in bval, bvec_x, y, z
+    parameters into file derived from fname by changing extension.
+
+    Parameters:
+    -----------
+    fname: str
+        name of current recording file in destination directory
+    bval: list(float)
+        list of b-values
+    bvec_x: list(float)
+        list of x components of b-vector
+    bvec_y: list(float)
+        list of y components of b-vector
+    bvec_z: list(float)
+        list of z components of b-vector
+
+    Raises:
+    -------
+    IndexError:
+        if lenghts of passed lists mismatches
+
+    Example:
+    --------
+    # In SequenceEndEP, given
+    #   recording is BaseModule object
+    #   bval is a list for b-values,
+    #   bvec_x, bvec_y, bvec_z are lists for b-vector composantes x,y,z
+    if mod == "dwi":
+        val, vec = ExtractBval(recording)
+        bval.append(val)
+        bvec_x.append(vec[0])
+        bvec_y.append(vec[1])
+        bvec_z.append(vec[2])
+    """
+    out_base = os.path.splitext(fname)[0]
+
+    size = len(bval)
+    if size != len(bvec_x) or size != len(bvec_y) or size != len(bvec_z):
+        raise IndexError("Bval vector mismach size with Bvec")
+
+    f_bval = open(out_base + ".bval", "w")
+    f_bvec = open(out_base + ".bvec", "w")
+    float_format = "{:." + str(precision) + "f}"
+
+    for val in bval[:-1]:
+        f_bval.write(float_format.format(val) + " ")
+    f_bval.write(float_format.format(bval[-1]) + "\n")
+
+    for vec in (bvec_x, bvec_y, bvec_z):
+        for val in vec[:-1]:
+            f_bvec.write(float_format.format(val) + " ")
+        f_bvec.write(float_format.format(vec[-1]) + "\n")
+
+    f_bval.close()
+    f_bvec.close()

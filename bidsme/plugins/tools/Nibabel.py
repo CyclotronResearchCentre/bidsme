@@ -32,9 +32,10 @@ from Modules import baseModule
 logger = logging.getLogger(__name__)
 
 
-def Convert3Dto4D(recording: baseModule, 
+def Convert3Dto4D(outfolder: str,
+                  recording: baseModule, 
                   skip: int=0, keep: int=0,
-                  check_affines: bool=True, axis: int=None):
+                  check_affines: bool=True, axis: int=None) -> str:
     """
     Concat nii images from recording into one 4D image, using
     nibabel.funcs.concat_images function
@@ -45,14 +46,16 @@ def Convert3Dto4D(recording: baseModule,
     Original 3D images are removed, and filelist in recording
     is adapted.
 
-    This function is intended to be run in SequennceEndEP or
-    in SequenceEP,in order to avoid conflicts due to file removal
+    This function is intended to be run in SequennceEndEP, in order
+    to avoid conflicts due to file removal
 
     Resulting file will be named as first file used to concatenation
     in order to conserve naming in case of use of header dumps
 
     Parameters:
     -----------
+    outfolder: str
+        path to output folder where data files has been copied
     recording: Modules.baseModule
         recording object to concat
     skip: int
@@ -69,28 +72,41 @@ def Convert3Dto4D(recording: baseModule,
         all images to be the same shape. If not None, concatenates
         on the specified dimension. This requires all images
         to be the same shape, except on the specified dimension.
+
+    Returns:
+    --------
+    str:
+        path to merged file
+
+    Example:
+    --------
+    # In SequenceEndEP, given
+    #   recording is BaseModule object
+    #   outfolder is the path where files are copied
+    if not dry_run:
+        Convert3Dto4D(outfolder, recording)
     """
 
     # Generating file list
-    recPath = recording.RecPath()
     if len(recording.files) <= 1:
         logger.warning("No files to concat")
         return
     f_list = recording.files[skip:]
     if keep > 0:
-        flist = flist[:keep]
+        f_list = f_list[:keep]
     if len(f_list) == 0:
         logger.warning("No files to concat after selection")
-        return
-    f_list = [os.path.join(recPath, file)
+        return ""
+    f_list = [os.path.join(outfolder, file)
               for file in f_list
               ]
+    f_list = [file for file in f_list
+              if os.path.exists(file)]
 
     img = nibabel.funcs.concat_images(f_list,
                                       check_affines=check_affines,
                                       axis=axis)
     for file in recording.files:
-        os.remove(os.path.join(recPath, file))
+        os.remove(os.path.join(outfolder, file))
     img.to_filename(f_list[0])
-    recording.files = [os.path.basename(f_list[0])]
-    recording.loadFile(0)
+    return f_list[0]
