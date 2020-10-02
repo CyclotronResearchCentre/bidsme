@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
   - plugins/tools/General: ExtractBval function to extract bval/vec from DWI recording
+  - plugins/tools/Nibabel: Convert3Dto4D function to merge 3D nii files into 4D
 
 
 ## [1.3.0] - 2020-09-28
