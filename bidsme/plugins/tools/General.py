@@ -123,7 +123,7 @@ def CheckSeries(path: str,
 
 
 def StoreSource(source_path: str, bidsified_path,
-                level: str="series", 
+                level: str="type", 
                 compression=zipfile.ZIP_DEFLATED,
                 mode="override"):
     """
