@@ -3,12 +3,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.1] - 2020-10-08
+
 ### Added
   - plugins/tools/General: ExtractBval function to extract bval/vec from DWI recording
+  - plugin/tools/General: storeSource function that allows store prepared data into bidsified folder
   - plugins/tools/Nibabel: Convert3Dto4D function to merge 3D nii files into 4D
 
 
 ## [1.3.0] - 2020-09-28
+
 ### Fixed
   - Removed miliseconds in acqTime output, as BIDS requires
 
