@@ -90,7 +90,6 @@ def CheckSeries(path: str,
     logger.debug("Matching against: {}".format(expected_series))
 
     for ind, s in enumerate(series):
-        print(matches)
         offset = matches[s] + 1
         if s not in expected_series[offset:]:
             logger.log(level, "Invalid serie [{}] {}".format(ind, s))
