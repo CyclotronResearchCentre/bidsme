@@ -33,7 +33,8 @@ import pandas
 from ..common import retrieveFormDict
 from .EEG import EEG, channel_types
 from . import _EDF
-from .._formats import MNE, _MNE
+from .._formats import _MNE
+from .._formats.MNE import MNE
 logger = logging.getLogger(__name__)
 
 

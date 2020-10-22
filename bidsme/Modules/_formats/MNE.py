@@ -208,7 +208,7 @@ class MNE(object):
             # raw file don't have coordinate info
             return None
 
-        column_base = {"name", "x", "y", "z", 
+        column_base = {"name", "x", "y", "z",
                        "type", "material", "impedance"}
         columns = column_base.update(columns)
         n_channels = len(self.CACHE.info['chs'])
@@ -245,9 +245,9 @@ class MNE(object):
         if not dig:
             return coords
 
-        orient = _MNE.ORIENTATION.get(self._ext, 'n/a')
-        unit = _MNE.UNITS.get(self._ext, 'n/a')
-        manufacturer = _MNE.MANUFACTURERS.get(self._ext, 'n/a')
+        # orient = _MNE.ORIENTATION.get(self._ext, 'n/a')
+        # unit = _MNE.UNITS.get(self._ext, 'n/a')
+        # manufacturer = _MNE.MANUFACTURERS.get(self._ext, 'n/a')
 
         landmarks = {d['ident']: d for d in dig
                      if d['kind'] == FIFF.FIFFV_POINT_CARDINAL}
@@ -275,8 +275,10 @@ class MNE(object):
                              'must be in the '
                              'same coordinate frame. Found: "{}"'
                              .format(coord_frame))
-        coordsystem_desc = _MNE.COORD_FRAME_DESCRIPTIONS\
-            .get(coord_frame[0], "n/a")
+        # coordsystem_desc = _MNE.COORD_FRAME_DESCRIPTIONS\
+        #     .get(coord_frame[0], "n/a")
+
+        """
         fid_json = {
             'CoordinateSystem': coord_frame[0],
             'CoordinateUnits': unit,
@@ -285,6 +287,7 @@ class MNE(object):
             'LandmarkCoordinateSystem': orient,
             'LandmarkCoordinateUnits': unit
             }
+        """
 
     def getDuration(self):
         return self.CACHE.times[-1]

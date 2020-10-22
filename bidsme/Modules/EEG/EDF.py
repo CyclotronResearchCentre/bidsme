@@ -28,10 +28,11 @@ from datetime import datetime
 
 import pandas
 
-from ..common import action_value, retrieveFormDict
+from ..common import retrieveFormDict
 from .EEG import EEG, channel_types
 from . import _EDF
-from .._formats import MNE, _MNE
+from .._formats import _MNE
+from .._formats.MNE import MNE
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class EDF(EEG):
         EEG.__init__(self)
 
         self._FILE_CACHE = None
-        self.mne = MNE()
+        self.mne = MNE.MNE()
 
         self._sub_info = list()
         self._ses_info = list()
