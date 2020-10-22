@@ -128,11 +128,11 @@ class BrainVision(EEG):
                     line = line.strip()
                     if line.startswith(';'):
                         continue
-                    res = re.match("DataFile=([\w. -]+)", line)
+                    res = re.match("DataFile=([\\w. -]+)", line)
                     if res:
                         self._data_file = res.group(1).strip()
                         continue
-                    res = re.match("MarkerFile=([\w. -]+)", line)
+                    res = re.match("MarkerFile=([\\w. -]+)", line)
                     if res:
                         self._marker_file = res.group(1).strip()
                         continue
