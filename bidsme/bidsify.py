@@ -107,7 +107,7 @@ def coin(destination: str,
         if not dry_run:
             outfile = recording.bidsify(destination)
             plugins.RunPlugin("FileEP", outfile, recording)
-    if dry_run:
+    if not dry_run:
         plugins.RunPlugin("SequenceEndEP", out_path, recording)
     else:
         plugins.RunPlugin("SequenceEndEP", None, recording)

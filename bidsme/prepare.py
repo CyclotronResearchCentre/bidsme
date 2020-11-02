@@ -86,6 +86,9 @@ def sortsession(outfolder: str,
             os.makedirs(serie, exist_ok=True)
             outfile = recording.copyRawFile(serie)
             plugins.RunPlugin("FileEP", outfile, recording)
+        else:
+            plugins.RunPlugin("FileEP", None, recording)
+
     plugins.RunPlugin("SequenceEndEP", outfolder, recording)
 
 
