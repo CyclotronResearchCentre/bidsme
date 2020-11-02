@@ -33,10 +33,10 @@ logger = logging.getLogger(__name__)
 
 def CheckSeries(path: str,
                 expected_series: list,
-                strict: bool=True,
-                complete: bool=True,
-                order: bool=True,
-                level: int=logging.ERROR) -> bool:
+                strict: bool = True,
+                complete: bool = True,
+                order: bool = True,
+                level: int = logging.ERROR) -> bool:
     """
     Tool for checking the series in the prepared dataset
     to be conformed with passed list. It may be used
@@ -122,9 +122,9 @@ def CheckSeries(path: str,
 
 
 def StoreSource(source_path: str, bidsified_path,
-                level: str="type",
-                compression=zipfile.ZIP_DEFLATED,
-                mode="override"):
+                level: str = "type",
+                compression: int =zipfile.ZIP_DEFLATED,
+                mode: str = "override"):
     """
     Archive current series into sourcedata folder in the bidsified dataset
     Only files in series folder are archived. It is assumed that working
@@ -264,7 +264,7 @@ def ExtractBval(recording):
 def SaveBval(fname: str,
              bval: list,
              bvec_x: list, bvec_y: list, bvec_z: list,
-             precision: int=4):
+             precision: int = 4):
     """
     Saves b-values and vector given in bval, bvec_x, y, z
     parameters into file derived from fname by changing extension.

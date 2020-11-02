@@ -124,7 +124,7 @@ def site_data_dir(appname, appauthor=None, version=None):
     else:
         # XDG default for $XDG_CONFIG_DIRS[0]. Perhaps should actually
         # *use* that envvar, if defined.
-        path = "/etc/xdg/"+appname.lower()
+        path = "/etc/xdg/" + appname.lower()
     if version:
         path = os.path.join(path, version)
     return path

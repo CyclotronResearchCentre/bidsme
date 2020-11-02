@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
   - Bug when SequenceEndEP called without outfolder parameter in bidsification step
+  - Several flake8 issues
 
 ## [1.3.1r1] - 2020-10-22
 

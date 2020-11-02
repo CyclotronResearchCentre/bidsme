@@ -58,7 +58,7 @@ class MNE(object):
         _MNE.reader[ext](file, preload=False)
 
     def load_raw(self, file: str, ext: str,
-                 eog: list=[], misc: list=[]) -> mne.io.BaseRaw:
+                 eog: list = [], misc: list = []) -> mne.io.BaseRaw:
         """
         load raw mne file
 
@@ -188,7 +188,7 @@ class MNE(object):
         return df
 
     def load_electrodes(self,
-                        columns: list=[]) -> DataFrame:
+                        columns: list = []) -> DataFrame:
         """
         loads hannels coordinates fron raw and put them into DataFrame
 

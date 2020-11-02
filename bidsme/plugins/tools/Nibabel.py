@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 
 def Convert3Dto4D(outfolder: str,
                   recording: baseModule,
-                  skip: int=0, keep: int=0,
-                  check_affines: bool=True, axis: int=None) -> str:
+                  skip: int = 0, keep: int = 0,
+                  check_affines: bool = True, axis: int = None) -> str:
     """
     Concat nii images from recording into one 4D image, using
     nibabel.funcs.concat_images function

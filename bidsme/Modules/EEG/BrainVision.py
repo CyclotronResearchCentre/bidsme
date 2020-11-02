@@ -295,7 +295,7 @@ class BrainVision(EEG):
             if ln.startswith(";"):
                 f_out.write(line)
                 continue
-            res = re.match("DataFile=([\w. -]+)", ln)
+            res = re.match("DataFile=([\\w. -]+)", ln)
             if res:
                 if self._data_file:
                     print("DataFile={}".format(bidsname + ".eeg"), file=f_out)
@@ -304,7 +304,7 @@ class BrainVision(EEG):
                                    .format(self.recIdentity()))
                     f_out.write(line)
                 continue
-            res = re.match("MarkerFile=([\w. -]+)", ln)
+            res = re.match("MarkerFile=([\\w. -]+)", ln)
             if res:
                 if self._data_file:
                     print("MarkerFile={}".format(bidsname + ".vmrk"),
@@ -330,7 +330,7 @@ class BrainVision(EEG):
                 if ln.startswith(";"):
                     f_out.write(line)
                     continue
-                res = re.match("DataFile=([\w. -]+)", ln)
+                res = re.match("DataFile=([\\w. -]+)", ln)
                 if res:
                     if self._data_file:
                         print("DataFile={}".format(bidsname + ".eeg"),
