@@ -33,7 +33,8 @@ import pandas
 from ..common import retrieveFormDict
 from .EEG import EEG, channel_types
 from . import _EDF
-from .._formats import MNE, _MNE
+from .._formats import _MNE
+from .._formats.MNE import MNE
 logger = logging.getLogger(__name__)
 
 
@@ -127,11 +128,11 @@ class BrainVision(EEG):
                     line = line.strip()
                     if line.startswith(';'):
                         continue
-                    res = re.match("DataFile=([\w. -]+)", line)
+                    res = re.match("DataFile=([\\w. -]+)", line)
                     if res:
                         self._data_file = res.group(1).strip()
                         continue
-                    res = re.match("MarkerFile=([\w. -]+)", line)
+                    res = re.match("MarkerFile=([\\w. -]+)", line)
                     if res:
                         self._marker_file = res.group(1).strip()
                         continue

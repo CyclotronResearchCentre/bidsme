@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def Convert3Dto4D(outfolder: str,
-                  recording: baseModule, 
+                  recording: baseModule,
                   skip: int=0, keep: int=0,
                   check_affines: bool=True, axis: int=None) -> str:
     """
@@ -64,7 +64,7 @@ def Convert3Dto4D(outfolder: str,
     keep: int
         maximum number of files to merge
     check_affines: bool
-        If True, then check that all the affines for images 
+        If True, then check that all the affines for images
         are nearly the same, raising a ValueError otherwise.
         Default is True
     axis: None or int
