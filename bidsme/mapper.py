@@ -258,7 +258,9 @@ def mapper(source: str, destination: str,
     # Subjects loop
     ##############################
     n_subjects = len(df_sub["participant_id"])
-    for sub_no, sub_id in enumerate(df_sub["participant_id"], 1):
+    for index, sub_row in df_sub.iterrows():
+        sub_no = index + 1
+        sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
         if not os.path.isdir(sub_dir):
             logger.error("{}: Not found in {}"
@@ -268,6 +270,13 @@ def mapper(source: str, destination: str,
         scan = BidsSession()
         scan.in_path = sub_dir
         scan.subject = sub_id
+
+        #################################################
+        # Cloning df_sub row values in scans sub_values
+        #################################################
+        for column in df_sub.columns:
+            scan.sub_values[column] = sub_row[column]
+
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
                            .format(scan.subject, "SubjectEP"))

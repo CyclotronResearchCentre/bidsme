@@ -226,7 +226,7 @@ class hmriNIFTI(MRI):
         value = None
         if self.manufacturer == "Siemens":
             if name == "NumberOfMeasurements":
-                value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
+                value = self.__phoenix.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingDirection":
                 value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
                         .get("PhaseEncodingDirectionPositive", 0)
@@ -244,6 +244,8 @@ class hmriNIFTI(MRI):
                                    .format(self.recIdentity(),
                                            name, self.__seqName))
                     value = []
+                nMeas = self.__phoenix.get("lRepetitions", 0)
+                value = [x / 2 for x in value[:nMeas + 1]]
             elif name == "B1mapMixingTime":
                 if self.__seqName in ("b1v2d3d2", "b1epi2d3d2"):
                     value = self.__alFree[0] * 1e-6
