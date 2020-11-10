@@ -44,7 +44,7 @@ class hmriNIFTI(MRI):
     _type = "hmriNIFTI"
 
     __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE",
-                 "__csas", "__phoenix",
+                 "__csas", "__csai", "__phoenix",
                  "__adFree", "__alFree", "__seqName"]
 
     __spetialFields = {"NumberOfMeasurements",
@@ -53,7 +53,10 @@ class hmriNIFTI(MRI):
                        "B1mapMixingTime",
                        "RFSpoilingPhaseIncrement",
                        "MTState",
-                       "ReceiveCoilActiveElements"
+                       "ReceiveCoilActiveElements",
+                       "PhaseEncodingSign",
+                       "EffectiveEchoSpacing",
+                       "TotalReadoutTime"
                        }
 
     def __init__(self, rec_path=""):
@@ -64,6 +67,7 @@ class hmriNIFTI(MRI):
         self.__alFree = list()
         self.__adFree = list()
         self.__csas = dict()
+        self.__csai = dict()
         self.__phoenix = dict()
         self.__seqName = ""
 
@@ -130,6 +134,7 @@ class hmriNIFTI(MRI):
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
             if self.manufacturer == "Siemens":
                 self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
+                self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
                 self.__phoenix = self.__csas["MrPhoenixProtocol"]
                 if "sWipMemBlock" in self.__phoenix:
                     self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
@@ -225,7 +230,8 @@ class hmriNIFTI(MRI):
     def _adaptMetaField(self, name):
         value = None
         if name == "PhaseEncodingDirection":
-            value = self._DICOMDICT_CACHE.get("InPlanePhaseEncodingDirection")
+            value = self._DICOMDICT_CACHE.get("InPlanePhaseEncodingDirection")\
+                    .strip()
             if value == "ROW":
                 return "i"
             elif value == "COL":
@@ -235,8 +241,7 @@ class hmriNIFTI(MRI):
             if name == "NumberOfMeasurements":
                 value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingSign":
-                value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
-                        .get("PhaseEncodingDirectionPositive", 1)
+                value = self.__csai.get("PhaseEncodingDirectionPositive", 1)
                 if value == 1:
                     return "+"
                 else:
@@ -287,11 +292,9 @@ class hmriNIFTI(MRI):
                 else:
                     value = "On"
             elif name == "ReceiveCoilActiveElements":
-                value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
-                        .get("CoilString", "")
+                value = self.__csai.get("CoilString", "")
             elif name == "EffectiveEchoSpacing":
-                BPPPE = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
-                        .get("BandwidthPerPixelPhaseEncode", 0)
+                BPPPE = self.__csai.get("BandwidthPerPixelPhaseEncode", 0)
                 MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
                 msp = MSP[-1]
                 if msp != 0 and BPPPE != 0:
@@ -299,8 +302,7 @@ class hmriNIFTI(MRI):
                 else:
                     return None
             elif name == "TotalReadoutTime":
-                BPPPE = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
-                        .get("BandwidthPerPixelPhaseEncode", 0)
+                BPPPE = self.__csai.get("BandwidthPerPixelPhaseEncode", 0)
                 MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
                 msp = MSP[-1]
                 if msp != 0 and BPPPE != 0:
