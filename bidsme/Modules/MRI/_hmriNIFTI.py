@@ -45,6 +45,11 @@ metafields = {
             },
         "Siemens": {
             "SequenceName": ("<SequenceName>", None),
+            "PhaseEncodingDirection": ("<PhaseEncodingDirection>"
+                                       "<PhaseEncodingSign>",
+                                       None),
+            "EffectiveEchoSpacing": ("<EffectiveEchoSpacing>", None),
+            "TotalReadoutTime": ("<TotalReadoutTime>", None),
             }
 
         }

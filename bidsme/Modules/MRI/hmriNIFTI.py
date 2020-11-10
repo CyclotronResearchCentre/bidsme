@@ -224,14 +224,23 @@ class hmriNIFTI(MRI):
     ########################
     def _adaptMetaField(self, name):
         value = None
+        if name == "PhaseEncodingDirection":
+            value = self._DICOMDICT_CACHE.get("InPlanePhaseEncodingDirection")
+            if value == "ROW":
+                return "i"
+            elif value == "COL":
+                return "j"
+            return None
         if self.manufacturer == "Siemens":
             if name == "NumberOfMeasurements":
                 value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
-            elif name == "PhaseEncodingDirection":
+            elif name == "PhaseEncodingSign":
                 value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
-                        .get("PhaseEncodingDirectionPositive", 0)
-                if value == 0:
-                    value = -1
+                        .get("PhaseEncodingDirectionPositive", 1)
+                if value == 1:
+                    return "+"
+                else:
+                    return "-"
             elif name == "B1mapNominalFAValues":
                 if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2b3d2",
                                       "b1epi2d3d2"):
@@ -280,6 +289,24 @@ class hmriNIFTI(MRI):
             elif name == "ReceiveCoilActiveElements":
                 value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
                         .get("CoilString", "")
+            elif name == "EffectiveEchoSpacing":
+                BPPPE = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
+                        .get("BandwidthPerPixelPhaseEncode", 0)
+                MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
+                msp = MSP[-1]
+                if msp != 0 and BPPPE != 0:
+                    return 1. / (BPPPE * msp)
+                else:
+                    return None
+            elif name == "TotalReadoutTime":
+                BPPPE = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
+                        .get("BandwidthPerPixelPhaseEncode", 0)
+                MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
+                msp = MSP[-1]
+                if msp != 0 and BPPPE != 0:
+                    return (msp - 1) / (BPPPE * msp)
+                else:
+                    return None
 
         return value
 

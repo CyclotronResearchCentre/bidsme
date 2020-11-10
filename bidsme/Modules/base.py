@@ -1075,8 +1075,8 @@ class baseModule(abstract):
 
         if run.modality in self.bidsmodalities:
             self._modality = run.modality
-            tags = set(self.bidsmodalities[run.modality]) \
-                - set(run.entity)
+            tags = set(run.entity)\
+                - set(self.bidsmodalities[run.modality])
             if tags:
                 if not run.checked:
                     logger.warning("{}: Naming schema not BIDS"
