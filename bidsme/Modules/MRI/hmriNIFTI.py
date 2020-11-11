@@ -245,7 +245,7 @@ class hmriNIFTI(MRI):
                                            name, self.__seqName))
                     value = []
                 nMeas = self.__phoenix.get("lRepetitions", 0)
-                value = [x / 2 for x in value[:nMeas + 1]]
+                value = sorted([x / 2 for x in value[:nMeas + 1]])
             elif name == "B1mapMixingTime":
                 if self.__seqName in ("b1v2d3d2", "b1epi2d3d2"):
                     value = self.__alFree[0] * 1e-6
