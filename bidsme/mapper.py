@@ -98,7 +98,7 @@ def createmap(destination,
                                     recording.getBidsPrefix("/"))
             bidsname = recording.getBidsname()
             bidsmodality = os.path.join(out_path, recording.Modality())
-            
+
             if os.path.isfile(os.path.join(bidsmodality,
                                            bidsname + '.json')):
                 # checking the IntendedFor validity
@@ -109,7 +109,7 @@ def createmap(destination,
                     if len(res) == 0:
                         logger.error("{}/{}({}): IntendedFor value {} "
                                      "not found"
-                                     .format(modality, r_index, 
+                                     .format(modality, r_index,
                                              run.example, i.value))
 
     plugins.RunPlugin("SequenceEndEP", None, recording)

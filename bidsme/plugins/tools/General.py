@@ -123,7 +123,7 @@ def CheckSeries(path: str,
 
 def StoreSource(source_path: str, bidsified_path,
                 level: str = "type",
-                compression: int =zipfile.ZIP_DEFLATED,
+                compression: int = zipfile.ZIP_DEFLATED,
                 mode: str = "override"):
     """
     Archive current series into sourcedata folder in the bidsified dataset
