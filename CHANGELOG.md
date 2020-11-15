@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
   - base:getField: can have multiple prefixes, that are executed from right to left
+  - mapper.py:implemented check for `IntendedFor` JSON fields. If during `map` bidsified
+file exists, mapper checks if all files in IntendedFor also exist
 
 ### Changed
   - MRI:hmriNIFTI: B1FAValues vector is no longer sorted
