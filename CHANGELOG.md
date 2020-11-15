@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.2] - 2020-11-15
 ### Added
   - base:getField: can have multiple prefixes, that are executed from right to left
   - mapper.py:implemented check for `IntendedFor` JSON fields. If during `map` bidsified
