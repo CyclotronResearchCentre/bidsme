@@ -460,17 +460,15 @@ class baseModule(abstract):
         -------
         retrieved value or default
         """
-        field = field.split(prefix, 1)
-        if len(field) == 2:
-            prefix, field = field
-        else:
-            prefix = ""
-            field = field[0]
+        fields = field.split(prefix)
+        actions = fields[0:-1]
+        field = fields[-1]
+
         result = self._getField(field.split(separator))
 
         if result is None:
             return default
-        if prefix != "":
+        for prefix in reversed(actions):
             if isinstance(result, list):
                 for i, val in enumerate(result):
                     result[i] = self._transformField(val, prefix)
