@@ -25,6 +25,7 @@
 
 import os
 import logging
+import glob
 import pandas
 
 from tools import paths
@@ -38,7 +39,8 @@ from bids.BidsSession import BidsSession
 logger = logging.getLogger(__name__)
 
 
-def createmap(recording: Modules.baseModule,
+def createmap(destination,
+              recording: Modules.baseModule,
               bidsmap,
               template,
               bidsmap_unk) -> None:
@@ -91,6 +93,25 @@ def createmap(recording: Modules.baseModule,
             if not run.entity:
                 run.genEntities(recording.bidsmodalities.get(modality, []))
             recording.fillMissingJSON(run)
+        elif "IntendedFor" in recording.metaAuxiliary:
+            out_path = os.path.join(destination,
+                                    recording.getBidsPrefix("/"))
+            bidsname = recording.getBidsname()
+            bidsmodality = os.path.join(out_path, recording.Modality())
+            
+            if os.path.isfile(os.path.join(bidsmodality,
+                                           bidsname + '.json')):
+                # checking the IntendedFor validity
+                intended = recording.metaAuxiliary["IntendedFor"]
+                for i in intended:
+                    dest = os.path.join(out_path, i.value)
+                    res = glob.glob(dest)
+                    if len(res) == 0:
+                        logger.error("{}/{}({}): IntendedFor value {} "
+                                     "not found"
+                                     .format(modality, r_index, 
+                                             run.example, i.value))
+
     plugins.RunPlugin("SequenceEndEP", None, recording)
 
 
@@ -340,7 +361,8 @@ def mapper(source: str, destination: str,
                         logger.error("unable to load data in folder {}"
                                      .format(run))
                     recording.setBidsSession(scan)
-                    createmap(recording, bidsmap_new, template, bidsmap_unk)
+                    createmap(destination, recording,
+                              bidsmap_new, template, bidsmap_unk)
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)
