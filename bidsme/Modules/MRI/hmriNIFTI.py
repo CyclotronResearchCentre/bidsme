@@ -245,14 +245,14 @@ class hmriNIFTI(MRI):
                                            name, self.__seqName))
                     value = []
                 nMeas = self.__phoenix.get("lRepetitions", 0)
-                value = sorted([x / 2 for x in value[:nMeas + 1]])
+                value = [x / 2 for x in value[:nMeas + 1]]
             elif name == "B1mapMixingTime":
                 if self.__seqName in ("b1v2d3d2", "b1epi2d3d2"):
-                    value = self.__alFree[0] * 1e-6
+                    value = self.__alFree[0] / 1e6
                 elif self.__seqName in ("b1epi4a3d2", "b1epi2b3d2"):
-                    value = self.__alFree[1] * 1e-6
+                    value = self.__alFree[1] / 1e6
                 elif self.__seqName == "seste1d3d2":
-                    value = self.__alFree[13] * 1e-6
+                    value = self.__alFree[13] / 1e6
                 else:
                     logger.warning("{}: Unable to get {}: sequence {} "
                                    "not defined"
@@ -265,7 +265,7 @@ class hmriNIFTI(MRI):
                 elif self.__seqName in ("fl3d_2l3d8", "fl3d_2d3d6"):
                     value = self.__adFree[2]
                 elif self.__seqName == "seste1d3d2":
-                    value = self.__adFree[11] * 1e-6
+                    value = self.__adFree[11] / 1e6
                 else:
                     logger.warning("{}: Unable to get {}: sequence {} "
                                    "not defined"
