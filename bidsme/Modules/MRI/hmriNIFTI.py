@@ -125,13 +125,11 @@ class hmriNIFTI(MRI):
             dicomdict = self.__loadJsonDump(path)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
-            if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"],
-                                    _hmriNIFTI.manufacturers):
-                self.resetMetaFields()
-                self.setupMetaFields(_hmriNIFTI.metafields)
-                self.testMetaFields()
 
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
+            manufacturer = self._DICOMDICT_CACHE["Manufacturer"]
+            manuf_changed = self.setManufacturer(manufacturer,
+                                                 _hmriNIFTI.manufacturers)
             if self.manufacturer == "Siemens":
                 self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
                 self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
@@ -139,6 +137,13 @@ class hmriNIFTI(MRI):
                 if "sWipMemBlock" in self.__phoenix:
                     self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
                     self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
+
+            if manuf_changed:
+                self.resetMetaFields()
+                self.setupMetaFields(_hmriNIFTI.metafields)
+                self.testMetaFields()
+
+
 
     def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
