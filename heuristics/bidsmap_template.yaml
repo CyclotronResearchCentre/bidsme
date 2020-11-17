@@ -17,263 +17,210 @@
 
 __bids__: '1.2.0'
 
-__templates__:
-  # sMRI
-  - &mri_bids_anat !!omap
-    # [_ce-<label>][_rec-<label>][_run-<index>]_<modality_label>.nii[.gz]
-    # [_ce-<label>][_rec-<label>][_run-<index>][_mod-<label>]_defacemask.nii[.gz]
-    - acq: ~
-    - ce: ~
-    - rec: ~
-    - run: <AcquisitionNumber>
-    - mod: ~
-  - &mri_anat
-    provenance: ~
-    suffix: ~
-    attributes: {}
-    bids:
-      <<: *mri_bids_anat
-    json: {}
-  # sMRI for MPM
-  - &mri_bids_anat_mpm !!omap
-    - acq: ~
-    - ce: ~
-    - rec: ~
-    - part: ~
-    - run: ~
-    - echo: <EchoNumbers>
-    - mod: ~
-  - &mri_json_anat_mpm !!omap
-    - RepetitionTime: <RepetitionTime>
-    - FlipAngle: <FlipAngle>
-    - RFSpoilingPhaseIncrement: <RFSpoilingPhaseIncrement>
-    - MTState: <MTState>
-  - &mri_anat_mpm
-    provenance: ~
-    suffix: MPM
-    attributes: {}
-    bids: 
-      <<: *mri_bids_anat_mpm
-    json:
-      <<: *mri_json_anat_mpm
-
-  # fMRI
-  - &mri_bids_func !!omap
-    # task-<label>[_acq-<label>][_ce-<label>][_dir-<label>][_rec-<label>]
-    # [_run-<index>][_echo-<index>]_<contrast_label>.nii[.gz]
-    - task: <<placeholder>>
-    - acq: <SeriesDescription>
-    - ce: ~
-    - dir: ~
-    - rec: ~
-    - run: <AcquisitionNumber>
-    - echo: <EchoNumbers>
-  - &mri_func
-    provenance: ~
-    suffix: bold
-    attributes: {}
-    bids: 
-      <<: *mri_bids_func
-    json:
-      TaskName: <<bids:task>>
-      RepetitionTime: <RepetitionTime>
-
-  # diffusion MRI
-  - &mri_bids_dwi !!omap
-    # [_acq-<label>][_dir-<label>][_run-<index>]_dwi.nii[.gz]
-    - acq: ~
-    - dir: ~
-    - run: <AcquisitionNumber>
-  - &mri_dwi
-    provenance: ~
-    suffix: dwi
-    attributes: {}
-    bids: 
-      <<: *mri_bids_dwi
-
-  # MRI fieldmaps
-  - &mri_bids_fmap !!omap
-    # Phase difference image and at least one magnitude image
-    # [_acq-<label>][_run-<index>]_phasediff.nii[.gz]
-    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
-    # Two phase images and two magnitude images
-    # [_acq-<label>][_run-<index>]_phase1.nii[.gz]
-    # [_acq-<label>][_run-<index>]_phase2.nii[.gz]
-    # [_acq-<label>][_run-<index>]_magnitude1.nii[.gz]
-    # [_acq-<label>][_run-<index>]_magnitude2.nii[.gz]
-    # Multiple phase encoded directions ("pepolar")
-    # [_acq-<label>][_ce-<label>]_dir-<label>[_run-<index>]_epi.nii[.gz]
-    - acq: <SeriesDescription>
-    - ce: ~
-    - dir: ~
-    - run: <AcquisitionNumber>
-  - &mri_json_fmap !!omap
-    - IntendedFor: 
-      - "func/<<subject>>_<<session>>_task-<<placeholder>>_bold.nii"
-  - &mri_fmap_diff
-    provenance: ~
-    suffix: phasediff
-    attributes: {}
-    bids: 
-      <<: *mri_bids_fmap
-    json:
-      <<: *mri_json_fmap
-      EchoTime1: <<placeholder>>
-      EchoTime2: <<placeholder>>
-  - &mri_fmap_phase
-    provenance: ~
-    suffix: phase<EchoNumbers>
-    attributes: {}
-    bids: 
-      <<: *mri_bids_fmap
-    json:
-      <<: *mri_json_fmap
-  - &mri_fmap_magnitude
-    provenance: ~
-    suffix: magnitude<EchoNumbers>
-    attributes: {}
-    bids: 
-      <<: *mri_bids_fmap
-    json:
-      <<: *mri_json_fmap
-  - &mri_fmap_pepolar
-    provenance: ~
-    suffix: epi
-    attributes: {}
-    bids: 
-      <<: *mri_bids_fmap
-      ce: <<placeholder>>
-    json:
-      <<: *mri_json_fmap
-      PhaseEncodingDirection: <<placeholder>>
-  - &mri_bids_fmap_mpm_minus
-    - acq: ~
-    - mod: ~
-  - &mri_fmap_mpm_minus
-    provenance: ~
-    suffix: B1minus
-    attributes:
-    bids:
-      <<: *mri_bids_fmap_mpm_minus
-    json:
-      IntendedFor:
-        - "anat/<<subject>>_<<session>>_acq-<<bids:mod>>_echo-*_MPM.nii"
-  - &mri_bids_fmap_mpm_plus
-    - echo: ~
-    - fa: ~
-  - &mri_fmap_mpm_plus
-    provenance: ~
-    suffix: B1plus
-    attributes: {}
-    bids: 
-      <<: *mri_bids_fmap_mpm_plus
-    json:
-      EchoTime: <EchoTime>
-      B1mapNominalFAValues: <B1mapNominalFAValues>
+__templates__: {}
 
 MRI:
   hmriNIFTI:
-    anat:
-    - <<: *mri_anat
-      suffix: T1w
-      attributes:
-        ProtocolName: ['t1.*', '.*mtflash3d_T1w.*'] 
-    - <<: *mri_anat
-      suffix: FLAIR
-      attributes: 
-        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
-    - <<: *mri_anat_mpm
-      attributes:
-        ProtocolName: 'al_mtflash3d_T1w'
-      bids:
-        <<: *mri_bids_anat_mpm
-        acq: T1w
-      json:
-        <<: *mri_json_anat_mpm
-        MTState: "Off"
-    - <<: *mri_anat_mpm
-      attributes:
-        ProtocolName: 'al_mtflash3d_MTw'
-      bids:
-        <<: *mri_bids_anat_mpm
-        acq: MTw
-      json:
-        <<: *mri_json_anat_mpm
-        MTState: "On"
-    - <<: *mri_anat_mpm
-      attributes:
-        ProtocolName: 'al_mtflash3d_PDw'
-      bids:
-        <<: *mri_bids_anat_mpm
-        acq: PDw
-      json:
-        <<: *mri_json_anat_mpm
-        MTState: "Off"
-    func:
-    - <<: *mri_func
-      attributes: 
-        ProtocolName: '.*_bold_.*_invertpe'
-        ImageType: '.*MOSAIC'
-      bids: 
-        <<: *mri_bids_func
-        dir: PA
-    - <<: *mri_func
-      attributes: 
-        ProtocolName: '.*_bold_.*'
-        ImageType: '.*MOSAIC'
-      bids: 
-        <<: *mri_bids_func
-        dir: AP
-    dwi:
-    - <<: *mri_dwi
-      attributes: 
-        ProtocolName: '.*_diff_.*_invertpe'
-      bids: 
-        <<: *mri_bids_dwi
-        dir: PA
-    - <<: *mri_dwi
-      attributes: 
-        ProtocolName: '.*_diff_.*'
-      bids: 
-        <<: *mri_bids_dwi
-        dir: AP
-    fmap:
-    - <<: *mri_fmap_phase
-      attributes:
-        ProtocolName: 'gre_field_mapping'
-        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND'
-    - <<: *mri_fmap_magnitude
-      attributes:
-        ProtocolName: 'gre_field_mapping'
-        ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
-    - <<: *mri_fmap_mpm_plus
-      attributes:
-        ProtocolName: 'al_B1mapping'
-      bids:
-        <<: *mri_bids_fmap_mpm_plus
-        echo: <EchoNumbers>
-        fa: <AcquisitionNumber>
-    - <<: *mri_fmap_mpm_minus
-      attributes:
-        ProtocolName: 'al_mtflash3d_sensBody'
-      bids:
-        <<: *mri_bids_fmap_mpm_minus
-        acq: Body
-        mod: <<placeholder>>
-    - <<: *mri_fmap_mpm_minus
-      attributes:
-        ProtocolName: 'al_mtflash3d_sensArray'
-      bids:
-        <<: *mri_bids_fmap_mpm_minus
-        acq: Head
-        mod: <<placeholder>>
-
     __ignore__:
     - provenance: ~
       suffix: ""
       attributes:
         ProtocolName: 'localizer'
       bids: {}
+
+    anat:
+    - provenance: ~ # T1w 
+      suffix: T1w
+      attributes:
+        ProtocolName: t1_mpr_sag_p2_iso
+      bids: !!omap
+        - acq: <SeriesDescription>
+        - ce: ~
+        - rec: ~
+        - run: ~
+        - mod: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+
+    - provenance: ~ # Flair (T2)
+      suffix: FLAIR
+      attributes:
+        ProtocolName: 't2_spc_da-fl_sag_p2_iso'
+      bids: !!omap
+          - acq: <SeriesDescription>
+          - ce: ~
+          - rec: ~
+          - run: ~
+          - mod: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+
+    - provenance: ~ # MPM anatomical images
+      suffix: MPM
+      attributes: 
+        ProtocolName: "al_mtflash3d_(?!sens).*"
+      bids: !!omap
+        - echo: <EchoNumbers>
+        - flip: ~
+        - acq: <<placeholder>>
+        - part: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        MTState: <MTState>
+        EchoTimeSeries: <<placeholder>>
+
+    fmap:
+    - provenance: ~  # standard magnitude map
+      suffix: magnitude<EchoNumbers>
+      attributes:
+        ProtocolName: 'gre_field_mapping'
+        ImageType: 'ORIGINAL\\PRIMARY\\M\\ND'
+      bids: !!omap
+        - acq: '<SeriesDescription>'
+        - ce: ~
+        - dir: ~
+        - run: ~
+      json:
+        IntendedFor:
+          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+
+    - provenance: ~  # standard phase difference map
+      suffix: phasediff
+      attributes:
+        ProtocolName: 'gre_field_mapping'
+        ImageType: 'ORIGINAL\\PRIMARY\\P\\ND'
+      bids: !!omap
+        - acq: '<SeriesDescription>'
+        - ce: ~
+        - dir: ~
+        - run: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        EchoTime: ~
+        EchoTime1: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/0>'
+        EchoTime2: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/1>'
+        IntendedFor:
+          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+
+    - provenance: ~ # top-up fMRI with inverted encoding direction
+      suffix: epi
+      attributes:
+        ProtocolName: "cmrr_mbep2d_bold_mb2_invertpe"
+      bids: !!omap
+       - dir: PA
+       - acq: '<SeriesDescription>'
+       - ce: ~
+       - rec: ~
+       - run: ~
+       - echo: ~ 
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        NumberOfVolumesDiscardedByUser: <<placeholder>>
+        IntendedFor:
+          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+    - provenance: ~ # top-up diffusion with inverted encoding direction
+      suffix: epi
+      attributes:
+        ProtocolName: "cmrr_mbep2d_diff_NODDI_invertpe"
+      bids: !!omap
+       - acq: <<placeholder>>
+       - dir: PA
+       - ce: ~
+       - rec: ~
+       - run: ~
+       - echo: ~ 
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        NumberOfVolumesDiscardedByUser: <<placeholder>>
+        IntendedFor:
+          - "dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
+    - provenance: ~ # top-up diffusion without RF pulse
+      suffix: epi
+      attributes:
+        ProtocolName: "cmrr_mbep2d_diff_NODDI_noise"
+      bids: !!omap
+       - acq: <<placeholder>>
+       - dir: PA
+       - ce: ~
+       - rec: ~
+       - run: ~
+       - echo: ~ 
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        NumberOfVolumesDiscardedByUser: <<placeholder>>
+        IntendedFor:
+          - "dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
+
+    - provenance: ~ # sensBody/Array map for MPM
+      suffix: RB1COR
+      attributes:
+        ProtocolName: 'al_mtflash3d_sens.*'
+      bids: !!omap
+        - acq: '<SeriesDescription>'
+        - ce: ~
+        - dir: ~
+        - run: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        IntendedFor:
+          - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+    - provenance: ~ # B1 map for MPM
+      suffix: TB1EPI
+      attributes:
+        ProtocolName: 'al_B1mapping'
+      bids: !!omap
+        - echo: <EchoNumbers>
+        - flip: <<placeholder>>
+        - acq: '<SeriesDescription>'
+        - ce: ~
+        - dir: ~
+        - run: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        IntendedFor:
+          - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+
+    func:
+    - provenance: ~ # standard functional MRI
+      suffix: bold
+      attributes: 
+        ProtocolName: "cmrr_mbep2d_bold_mb2_.*"
+      bids: !!omap
+        - task: <<placeholder>>
+        - dir: AP
+        - acq: '<SeriesDescription>'
+        - ce: ~
+        - rec: ~
+        - run: ~
+        - echo: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        NumberOfVolumesDiscardedByUser: <<placeholder>>
+        TaskName: <<placeholder>>
+
+    dwi:
+    - provenance: ~ # NODDI
+      suffix: dwi
+      attributes: 
+        ProtocolName: "cmrr_mbep2d_diff_NODDI"
+      bids: !!omap
+        - acq: '<SeriesDescription>'
+        - dir: AP
+        - run: ~
+      json:
+        EffectiveEchoSpacing: <EffectiveEchoSpacing>
+        TotalReadoutTime: <TotalReadoutTime>
+        NumberOfVolumesDiscardedByUser: <<placeholder>>
 
 EEG:
   BrainVision:

@@ -33,14 +33,14 @@ metafields = {
             "ScanningSequence": ("<ScanningSequence>", None),
             "SequenceVariant": ("<SequenceVariant>", None),
             "ScanOptions": ("<ScanOptions>", ""),
-            "EchoTime": ("<scale-3:EchoTime>", None),
-            "InversionTime": ("<scale-3:InversionTime>", 0),
+            "EchoTime": ("<round10:scale-3:EchoTime>", None),
+            "InversionTime": ("<round10:scale-3:InversionTime>", None),
             "FlipAngle": ("<FlipAngle>", None),
             "InstitutionName": ("<InstitutionName>", None),
             "InstitutionAddress": ("<InstitutionAddress>", None),
             "InstitutionalDepartmentName": ("<InstitutionalDepartmentName>",
                                             None),
-            "RepetitionTime": ("<scale-3:RepetitionTime>", None),
+            "RepetitionTime": ("<round10:scale-3:RepetitionTime>", None),
             "TaskName": ("<<bids:task>>", None)
             },
         "Siemens": {
@@ -48,8 +48,6 @@ metafields = {
             "PhaseEncodingDirection": ("<PhaseEncodingDirection>"
                                        "<PhaseEncodingSign>",
                                        None),
-            "EffectiveEchoSpacing": ("<EffectiveEchoSpacing>", None),
-            "TotalReadoutTime": ("<TotalReadoutTime>", None),
             }
 
         }

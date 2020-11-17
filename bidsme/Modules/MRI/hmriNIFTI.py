@@ -244,7 +244,7 @@ class hmriNIFTI(MRI):
             return None
         if self.manufacturer == "Siemens":
             if name == "NumberOfMeasurements":
-                value = self._DICOMDICT_CACHE.get("lRepetitions", 0) + 1
+                value = self.__phoenix.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingSign":
                 value = self.__csai.get("PhaseEncodingDirectionPositive", 1)
                 if value == 1:
