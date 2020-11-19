@@ -524,7 +524,8 @@ class baseModule(abstract):
 
     def getDynamicField(self, field: str,
                         default: object = None,
-                        cleanup: bool = True, raw: bool = False):
+                        cleanup: bool = True, raw: bool = False,
+                        warning: bool = True):
         """
         Dynamically retrieves metadata field from recording
 
@@ -539,7 +540,14 @@ class baseModule(abstract):
             to be bids-compatible
         raw: bool
             if False, a str(value) will be returned
+        warning: bool
+            if True, missing attributes will be reported as warning
         """
+        if warning:
+            log_lvl = logging.WARNING
+        else:
+            log_lvl = logging.DEBUG
+
         if not isinstance(field, str) or field == "":
             return field
         res = ""
@@ -566,10 +574,11 @@ class baseModule(abstract):
                 if seek == '>':
                     result = self.getAttribute(query, default)
                     if result is None:
-                        logger.warning("{}: Can't find '{}' "
-                                       "attribute from '{}'"
-                                       .format(self.recIdentity(),
-                                               query, field))
+                        logger.log(log_lvl,
+                                   "{}: Can't find '{}' "
+                                   "attribute from '{}'"
+                                   .format(self.recIdentity(),
+                                           query, field))
                         if not raw:
                             result = query
                         else:
@@ -595,11 +604,12 @@ class baseModule(abstract):
                         if search:
                             result = search.group(1)
                         else:
-                            logger.warning("{}: Can't find '{}' "
-                                           "attribute from '{}'"
-                                           .format(self.recIdentity(),
-                                                   query,
-                                                   self.currentFile(False)))
+                            logger.log(log_lvl,
+                                       "{}: Can't find '{}' "
+                                       "attribute from '{}'"
+                                       .format(self.recIdentity(),
+                                               query,
+                                               self.currentFile(False)))
                             if not raw:
                                 result = query
                             else:
@@ -1073,8 +1083,8 @@ class baseModule(abstract):
 
         if run.modality in self.bidsmodalities:
             self._modality = run.modality
-            tags = set(self.bidsmodalities[run.modality]) \
-                - set(run.entity)
+            tags = set(run.entity)\
+                - set(self.bidsmodalities[run.modality])
             if tags:
                 if not run.checked:
                     logger.warning("{}: Naming schema not BIDS"
@@ -1238,7 +1248,8 @@ class baseModule(abstract):
                         res = self.getDynamicField(field.name,
                                                    default=field.default,
                                                    raw=True,
-                                                   cleanup=False)
+                                                   cleanup=False,
+                                                   warning=False)
                     except Exception:
                         metaFields[mod][key] = None
                         pass

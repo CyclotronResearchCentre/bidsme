@@ -44,7 +44,7 @@ class hmriNIFTI(MRI):
     _type = "hmriNIFTI"
 
     __slots__ = ["_DICOMDICT_CACHE", "_DICOMFILE_CACHE",
-                 "__csas", "__phoenix",
+                 "__csas", "__csai", "__phoenix",
                  "__adFree", "__alFree", "__seqName"]
 
     __spetialFields = {"NumberOfMeasurements",
@@ -53,7 +53,10 @@ class hmriNIFTI(MRI):
                        "B1mapMixingTime",
                        "RFSpoilingPhaseIncrement",
                        "MTState",
-                       "ReceiveCoilActiveElements"
+                       "ReceiveCoilActiveElements",
+                       "PhaseEncodingSign",
+                       "EffectiveEchoSpacing",
+                       "TotalReadoutTime"
                        }
 
     def __init__(self, rec_path=""):
@@ -64,6 +67,7 @@ class hmriNIFTI(MRI):
         self.__alFree = list()
         self.__adFree = list()
         self.__csas = dict()
+        self.__csai = dict()
         self.__phoenix = dict()
         self.__seqName = ""
 
@@ -121,19 +125,25 @@ class hmriNIFTI(MRI):
             dicomdict = self.__loadJsonDump(path)
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
-            if self.setManufacturer(self._DICOMDICT_CACHE["Manufacturer"],
-                                    _hmriNIFTI.manufacturers):
-                self.resetMetaFields()
-                self.setupMetaFields(_hmriNIFTI.metafields)
-                self.testMetaFields()
 
             self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
+            manufacturer = self._DICOMDICT_CACHE["Manufacturer"]
+            manuf_changed = self.setManufacturer(manufacturer,
+                                                 _hmriNIFTI.manufacturers)
             if self.manufacturer == "Siemens":
                 self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
+                self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
                 self.__phoenix = self.__csas["MrPhoenixProtocol"]
                 if "sWipMemBlock" in self.__phoenix:
                     self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
                     self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
+
+            if manuf_changed:
+                self.resetMetaFields()
+                self.setupMetaFields(_hmriNIFTI.metafields)
+                self.testMetaFields()
+
+
 
     def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
@@ -224,14 +234,23 @@ class hmriNIFTI(MRI):
     ########################
     def _adaptMetaField(self, name):
         value = None
+        if name == "PhaseEncodingDirection":
+            value = self._DICOMDICT_CACHE.get("InPlanePhaseEncodingDirection")\
+                    .strip()
+            if value == "ROW":
+                return "i"
+            elif value == "COL":
+                return "j"
+            return None
         if self.manufacturer == "Siemens":
             if name == "NumberOfMeasurements":
                 value = self.__phoenix.get("lRepetitions", 0) + 1
-            elif name == "PhaseEncodingDirection":
-                value = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]\
-                        .get("PhaseEncodingDirectionPositive", 0)
-                if value == 0:
-                    value = -1
+            elif name == "PhaseEncodingSign":
+                value = self.__csai.get("PhaseEncodingDirectionPositive", 1)
+                if value == 1:
+                    return "+"
+                else:
+                    return "-"
             elif name == "B1mapNominalFAValues":
                 if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2b3d2",
                                       "b1epi2d3d2"):
@@ -280,8 +299,23 @@ class hmriNIFTI(MRI):
                 else:
                     value = "On"
             elif name == "ReceiveCoilActiveElements":
-                value = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]\
-                        .get("CoilString", "")
+                value = self.__csai.get("CoilString", "")
+            elif name == "EffectiveEchoSpacing":
+                BPPPE = self.__csai.get("BandwidthPerPixelPhaseEncode", 0)
+                MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
+                msp = MSP[-1]
+                if msp != 0 and BPPPE != 0:
+                    return 1. / (BPPPE * msp)
+                else:
+                    return None
+            elif name == "TotalReadoutTime":
+                BPPPE = self.__csai.get("BandwidthPerPixelPhaseEncode", 0)
+                MSP = self._DICOMDICT_CACHE.get("AcquisitionMatrix", [0])
+                msp = MSP[-1]
+                if msp != 0 and BPPPE != 0:
+                    return (msp - 1) / (BPPPE * msp)
+                else:
+                    return None
 
         return value
 
