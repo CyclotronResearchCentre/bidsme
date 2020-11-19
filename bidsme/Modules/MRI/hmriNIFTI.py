@@ -143,8 +143,6 @@ class hmriNIFTI(MRI):
                 self.setupMetaFields(_hmriNIFTI.metafields)
                 self.testMetaFields()
 
-
-
     def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
         time_stamp = float(self.getField("AcquisitionTime"))
