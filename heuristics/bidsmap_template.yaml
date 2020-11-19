@@ -39,9 +39,7 @@ MRI:
         - rec: ~
         - run: ~
         - mod: ~
-      json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
+      json: {}
 
     - provenance: ~ # Flair (T2)
       suffix: FLAIR
@@ -53,9 +51,7 @@ MRI:
           - rec: ~
           - run: ~
           - mod: ~
-      json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
+      json: {}
 
     - provenance: ~ # MPM anatomical images
       suffix: MPM
@@ -67,10 +63,8 @@ MRI:
         - acq: <<placeholder>>
         - part: ~
       json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
         MTState: <MTState>
-        EchoTimeSeries: <<placeholder>>
+        EchoTimeSeries: <round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE>
 
     fmap:
     - provenance: ~  # standard magnitude map
@@ -98,8 +92,6 @@ MRI:
         - dir: ~
         - run: ~
       json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
         EchoTime: ~
         EchoTime1: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/0>'
         EchoTime2: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/1>'
@@ -121,6 +113,7 @@ MRI:
         EffectiveEchoSpacing: <EffectiveEchoSpacing>
         TotalReadoutTime: <TotalReadoutTime>
         NumberOfVolumesDiscardedByUser: <<placeholder>>
+        RepetitionTime: <RepetitionTime>
         IntendedFor:
           - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
     - provenance: ~ # top-up diffusion with inverted encoding direction
@@ -146,7 +139,7 @@ MRI:
         ProtocolName: "cmrr_mbep2d_diff_NODDI_noise"
       bids: !!omap
        - acq: <<placeholder>>
-       - dir: PA
+       - dir: AP
        - ce: ~
        - rec: ~
        - run: ~
@@ -168,8 +161,6 @@ MRI:
         - dir: ~
         - run: ~
       json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
         IntendedFor:
           - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
     - provenance: ~ # B1 map for MPM
@@ -184,8 +175,8 @@ MRI:
         - dir: ~
         - run: ~
       json:
-        EffectiveEchoSpacing: <EffectiveEchoSpacing>
-        TotalReadoutTime: <TotalReadoutTime>
+        EchoTimeSeries: <round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE>
+        FlipAngleSeries: <<placeholder>>
         IntendedFor:
           - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
 
