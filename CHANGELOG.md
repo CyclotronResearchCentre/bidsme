@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
   - MRI:hmriNIFTI: B1FAValues vector is no longer sorted
   - baseModule: testAuxiliary no longer prodices warning if unable to retrieve asked field
+  - Improved bidsmap template
 
 
 ## [1.3.1r3] - 2020-11-11
