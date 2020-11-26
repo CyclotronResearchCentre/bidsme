@@ -1015,7 +1015,9 @@ class baseModule(abstract):
         logger.debug("Creating folder {}".format(outdir))
         os.makedirs(outdir, exist_ok=True)
 
-        ext = os.path.splitext(self.currentFile(False))[1]
+        base, ext = os.path.splitext(self.currentFile(False))
+        if ext == ".gz":
+            ext = os.path.splitext(base)[1] + ext
         bidsname = self.getBidsname()
         # bidsname = os.path.join(outdir, self.getBidsname())
 
