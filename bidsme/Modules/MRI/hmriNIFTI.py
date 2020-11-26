@@ -94,7 +94,8 @@ class hmriNIFTI(MRI):
             True if file is identified as NIFTI
 
         """
-        if os.path.isfile(file) and (file.endswith(".nii") or file.endswith(".nii.gz")):
+        if os.path.isfile(file) and (file.endswith(".nii")
+                                     or file.endswith(".nii.gz")):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
@@ -319,6 +320,6 @@ class hmriNIFTI(MRI):
 
     @staticmethod
     def __loadJsonDump(file: str) -> dict:
-        f = tools.change_ext(file, "json")
+        json_dump = tools.change_ext(file, "json")
         with open(json_dump, "r") as f:
             return json.load(f)["acqpar"][0]
