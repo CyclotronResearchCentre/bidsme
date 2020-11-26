@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
   - MRI: `RepititionTimeExitation` json field for all modalities
+  - hmriNIFTI: Support of zipped (`.nii.gz`) data files
 
 ## [1.3.3] - 2020-11-19
 
