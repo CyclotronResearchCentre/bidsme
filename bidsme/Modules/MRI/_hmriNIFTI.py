@@ -41,7 +41,8 @@ metafields = {
             "InstitutionalDepartmentName": ("<InstitutionalDepartmentName>",
                                             None),
             "RepetitionTime": ("<round10:scale-3:RepetitionTime>", None),
-            "RepetitionTimeExitation": ("<round10:scale-3:RepetitionTime>", None),
+            "RepetitionTimeExitation": ("<round10:scale-3:RepetitionTime>",
+                                        None),
             "TaskName": ("<<bids:task>>", None)
             },
         "Siemens": {

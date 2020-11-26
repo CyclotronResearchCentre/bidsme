@@ -85,6 +85,8 @@ def sortsession(outfolder: str,
         if not dry_run:
             os.makedirs(serie, exist_ok=True)
             outfile = recording.copyRawFile(serie)
+            if recording.switches["exportHeader"]:
+                recording.exportHeader(serie)
             plugins.RunPlugin("FileEP", outfile, recording)
         else:
             plugins.RunPlugin("FileEP", None, recording)

@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - MRI: `RepititionTimeExitation` json field for all modalities
   - hmriNIFTI: Support of zipped (`.nii.gz`) data files
 
+### Changed
+  - baseModule: moved `zip` field to `switches` dictionary
+  - baseModule: renamed and inverted `isBidsValid` to `exportHeader` and moved it to `switches`
+
 ## [1.3.3] - 2020-11-19
 
 ### Changed

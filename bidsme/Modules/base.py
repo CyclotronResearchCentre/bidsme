@@ -78,9 +78,10 @@ class baseModule(abstract):
                  # general attributes
                  "_acqTime",
                  "manufacturer",
-                 "isBidsValid",
                  "encoding",
-                 "zip"
+
+                 # dictionary of switches regulating file processing
+                 "switches"
                  ]
 
     _module = "base"
@@ -142,10 +143,10 @@ class baseModule(abstract):
 
         self._acqTime = None
         self.manufacturer = None
-        self.isBidsValid = True
         self.encoding = "ascii"
 
-        self.zip = False
+        self.switches = {"exportHeader": False,
+                         "zipFile": False}
 
     #############################
     # Optional virtual methodes #
@@ -173,7 +174,7 @@ class baseModule(abstract):
         """
 
         out_fname = os.path.join(directory, bidsname + ext)
-        if self.zip:
+        if self.switches["zipFile"]:
             with open(self.currentFile(), 'rb') as f_in:
                 with gzip.open(out_fname + ".gz", 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -219,24 +220,35 @@ class baseModule(abstract):
             path to copied file
         """
         shutil.copy2(self.currentFile(), destination)
-
-        # creating header dump for BIDS invalid formats
-        if not self.isBidsValid:
-            data_file = self.currentFile(True)
-            json_file = "header_dump_" + tools.change_ext(data_file, "json")
-            with open(os.path.join(destination, json_file), "w") as f:
-                d = dict()
-                d["format"] = self.formatIdentity()
-                d["manufacturer"] = self.manufacturer
-                d["acqDateTime"] = self.acqTime()
-                d["subId"] = self._getSubId()
-                d["sesId"] = self._getSesId()
-                d["recNo"] = self.recNo()
-                d["recId"] = self.recId()
-                d["custom"] = self.custom
-                d["header"] = self.dump()
-                json.dump(d, f, indent=2, cls=ExtendEncoder)
         return os.path.join(destination, self.currentFile(True))
+
+    def exportHeader(self, destination: str) -> None:
+        """
+        Export image file header to "header_dump_<filename>.json"
+
+        Exported file contain full image header togever with some
+        bidsme variables
+
+        Parameters:
+        -----------
+        destination: str
+            output folder where header will be placed
+        """
+
+        data_file = self.currentFile(True)
+        json_file = "header_dump_" + tools.change_ext(data_file, "json")
+        with open(os.path.join(destination, json_file), "w") as f:
+            d = dict()
+            d["format"] = self.formatIdentity()
+            d["manufacturer"] = self.manufacturer
+            d["acqDateTime"] = self.acqTime()
+            d["subId"] = self._getSubId()
+            d["sesId"] = self._getSesId()
+            d["recNo"] = self.recNo()
+            d["recId"] = self.recId()
+            d["custom"] = self.custom
+            d["header"] = self.dump()
+            json.dump(d, f, indent=2, cls=ExtendEncoder)
 
     def _transformField(self, value, prefix: str):
         """

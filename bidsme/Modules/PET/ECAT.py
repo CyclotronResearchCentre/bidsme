@@ -49,7 +49,7 @@ class ECAT(PET):
         self._ECAT_CACHE = None
         self._SUB_CACHE = None
         self._FILE_CACHE = ""
-        self.isBidsValid = False
+        self.switches["exportHeader"] = True
 
         if rec_path:
             self.setRecPath(rec_path)

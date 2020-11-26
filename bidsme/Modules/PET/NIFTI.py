@@ -96,7 +96,7 @@ class NIFTI(PET):
         return False
 
     def _loadFile(self, path: str) -> None:
-        if path != self._DICOMFILE_CACHE:
+        if path != self._FILE_CACHE:
             self._endianness, self._nii_type = _nifti_common.getEndType(path)
             self._FILE_CACHE = path
 
@@ -132,17 +132,6 @@ class NIFTI(PET):
                            .format(self.currentFile(False), field, e))
             res = None
         return res
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        if self._nii_type == "ni1":
-            data_file = tools.change_ext(self.currentFile(), "img")
-            shutil.copy2(data_file, destination)
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         if self._nii_type == "ni1":

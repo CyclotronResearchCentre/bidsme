@@ -47,7 +47,7 @@ class DICOM(PET):
 
         self._DICOM_CACHE = None
         self._DICOMFILE_CACHE = ""
-        self.isBidsValid = False
+        self.switches["exportHeader"] = True
 
         if rec_path:
             self.setRecPath(rec_path)
