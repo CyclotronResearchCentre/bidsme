@@ -40,6 +40,7 @@ class jsonNIFTI(MRI):
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
                  "_header_file",
                  ]
+    _file_extentions = [".nii", ".nii.gz"]
     __specialFields = {}
 
     def __init__(self, rec_path=""):
@@ -72,7 +73,7 @@ class jsonNIFTI(MRI):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),

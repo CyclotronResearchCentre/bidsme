@@ -59,6 +59,8 @@ class hmriNIFTI(MRI):
                        "TotalReadoutTime"
                        }
 
+    _file_extentions = [".nii", ".nii.gz"]
+
     def __init__(self, rec_path=""):
         super().__init__()
 
@@ -94,13 +96,13 @@ class hmriNIFTI(MRI):
             True if file is identified as NIFTI
 
         """
-        if os.path.isfile(file) and (file.endswith(".nii")
-                                     or file.endswith(".nii.gz")):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
                                        file))
                 return False
+            
             try:
                 acqpar = cls.__loadJsonDump(file)
             except json.JSONDecodeError:

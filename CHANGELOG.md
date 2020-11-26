@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
   - MRI: `RepititionTimeExitation` json field for all modalities
   - hmriNIFTI: Support of zipped (`.nii.gz`) data files
+  - baseModule:isValidFile incorporates the file extention check before calling
+`_isValidFile`. The list of valid extentions must be given in `_file_extentions`
+static variable in subclass
 
 ### Changed
   - baseModule: moved `zip` field to `switches` dictionary

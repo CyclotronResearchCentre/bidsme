@@ -79,13 +79,15 @@ class baseModule(abstract):
                  "_acqTime",
                  "manufacturer",
                  "encoding",
-
                  # dictionary of switches regulating file processing
                  "switches"
                  ]
 
     _module = "base"
     _type = "None"
+
+    # list of valid file extentions
+    _file_extentions = list()
 
     bidsmodalities = dict()
 
@@ -302,6 +304,14 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
+        if cls._file_extentions:
+            passed = False
+            for ext in cls._file_extentions:
+                if file.endswith(ext):
+                    passed = True
+                    break
+            if not passed:
+                return False
         try:
             return cls._isValidFile(file)
         except Exception:

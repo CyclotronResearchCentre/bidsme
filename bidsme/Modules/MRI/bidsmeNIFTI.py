@@ -43,6 +43,8 @@ class bidsmeNIFTI(MRI):
                  "_headerData"
                  ]
 
+    _file_extentions = [".nii", ".nii.gz"]
+
     def __init__(self, rec_path=""):
         super().__init__()
 
@@ -73,7 +75,7 @@ class bidsmeNIFTI(MRI):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),

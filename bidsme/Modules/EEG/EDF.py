@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 class EDF(EEG):
 
-    _type = "BrainVision"
+    _type = "EDF"
 
     __slots__ = ["_FILE_CACHE",
                  "_mne",
@@ -58,6 +58,8 @@ class EDF(EEG):
                        "EMGChannelCount",
                        "MiscChannelCount",
                        "TriggerChannelCount"}
+
+    _file_extentions = [".edf"]
 
     def __init__(self, rec_path=""):
 
@@ -90,7 +92,7 @@ class EDF(EEG):
         bool:
             True if file is valid for current class
         """
-        if os.path.isfile(file) and file.endswith(".edf"):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith("."):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),

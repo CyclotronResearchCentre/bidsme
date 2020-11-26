@@ -40,6 +40,8 @@ class DICOM(MRI):
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
 
+    _file_extentions = [".dcm", ".DCM"]
+
     __specialFields = {}
 
     def __init__(self, rec_path=""):
@@ -71,16 +73,15 @@ class DICOM(MRI):
         """
         if not os.path.isfile(file):
             return False
-        if file.endswith(".dcm") or file.endswith(".DCM"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            try:
-                return _dicom_common.isValidDICOM(file, "MR")
-            except Exception:
-                return False
+        if os.path.basename(file).startswith('.'):
+            logger.warning('{}: file {} is hidden'
+                           .format(cls.formatIdentity(),
+                                   file))
+            return False
+        try:
+            return _dicom_common.isValidDICOM(file, "MR")
+        except Exception:
+            return False
         return False
 
     def _loadFile(self, path: str) -> None:

@@ -60,6 +60,8 @@ class BrainVision(EEG):
                        "MiscChannelCount",
                        "TriggerChannelCount"}
 
+    _file_extentions = [".vhdr"]
+
     def __init__(self, rec_path=""):
         super().__init__()
 
@@ -89,7 +91,7 @@ class BrainVision(EEG):
         bool:
             True if file is valid for current class
         """
-        if os.path.isfile(file) and file.endswith(".vhdr"):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith("."):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),

@@ -44,6 +44,8 @@ class bidsmeNIFTI(PET):
                  "_headerData"
                  ]
 
+    _file_extentions = [".nii", ".nii.gz"]
+
     def __init__(self, rec_path=""):
         super().__init__()
 
