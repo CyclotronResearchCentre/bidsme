@@ -102,7 +102,7 @@ class hmriNIFTI(MRI):
                                .format(cls.formatIdentity(),
                                        file))
                 return False
-            
+
             try:
                 acqpar = cls.__loadJsonDump(file)
             except json.JSONDecodeError:
