@@ -25,7 +25,7 @@
 
 # List of personalized, plugin-related errors
 from plugins import exceptions
-from bids.BidsSession import BidsSession
+from bidsMeta import BidsSession
 
 # Will integrate plugin into logging
 import logging

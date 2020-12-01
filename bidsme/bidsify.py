@@ -34,7 +34,7 @@ import plugins
 
 import Modules
 from bidsmap import Bidsmap
-from bids import BidsSession
+from bidsMeta import BidsSession
 
 logger = logging.getLogger(__name__)
 

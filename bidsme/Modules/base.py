@@ -38,10 +38,10 @@ from .abstract import abstract
 from tools import tools
 from bidsMeta import MetaField
 from bidsMeta import BIDSfieldLibrary
+from bidsMeta import BidsSession
 
 from bidsmap import Run
 
-from bids import BidsSession
 
 from ._constants import ignoremodality, unknownmodality
 from .common import action_value

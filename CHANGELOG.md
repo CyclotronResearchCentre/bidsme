@@ -13,6 +13,7 @@ static variable in subclass
 ### Changed
   - baseModule: moved `zip` field to `switches` dictionary
   - baseModule: renamed and inverted `isBidsValid` to `exportHeader` and moved it to `switches`
+  - Moved `BidsSession` and `bidsMeta` to `bidsMeta` folder, should remove conflict with `bids` package
 
 ## [1.3.3] - 2020-11-19
 

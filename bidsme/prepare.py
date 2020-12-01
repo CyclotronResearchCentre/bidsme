@@ -32,7 +32,7 @@ from tools import tools
 import plugins
 
 import Modules
-from bids import BidsSession
+from bidsMeta import BidsSession
 
 
 logger = logging.getLogger(__name__)
