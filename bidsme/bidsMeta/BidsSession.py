@@ -30,7 +30,7 @@ import pandas
 from copy import deepcopy as copy
 
 from tools import tools
-from bidsMeta import BIDSfieldLibrary
+from .BidsMeta import BIDSfieldLibrary
 
 
 logger = logging.getLogger(__name__)
