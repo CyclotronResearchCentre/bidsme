@@ -104,12 +104,10 @@ MRI:
       attributes:
         ProtocolName: "cmrr_mbep2d_bold_mb2_invertpe"
       bids: !!omap
-       - dir: PA
        - acq: '<SeriesDescription>'
        - ce: ~
-       - rec: ~
+       - dir: PA
        - run: ~
-       - echo: ~ 
       json:
         EffectiveEchoSpacing: <EffectiveEchoSpacing>
         TotalReadoutTime: <TotalReadoutTime>
@@ -123,11 +121,9 @@ MRI:
         ProtocolName: "cmrr_mbep2d_diff_NODDI_invertpe"
       bids: !!omap
        - acq: <<placeholder>>
-       - dir: PA
        - ce: ~
-       - rec: ~
+       - dir: PA
        - run: ~
-       - echo: ~ 
       json:
         EffectiveEchoSpacing: <EffectiveEchoSpacing>
         TotalReadoutTime: <TotalReadoutTime>

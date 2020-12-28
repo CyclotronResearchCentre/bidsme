@@ -36,7 +36,10 @@ modalities = {
         # MPM modalities
         "mpm_anat": ("echo", "flip", "acq", "part", "run"),
         "mpm_RB1COR": ("acq", "ce", "dir", "run"),
-        "mpm_TB1EPI": ("echo", "flip", "acq", "run")
+        "mpm_TB1EPI": ("echo", "flip", "acq", "ce", "dir", "run"),
+        # MP2RAGE modalities
+        "mp2rage_anat": ("inv", "acq", "ce", "rec", "run", "mod"),
+        "mp2rage_TB1TFL": ("acq", "ce", "dir", "run")
         }
 
 
@@ -88,8 +91,10 @@ required_modality = {
         "fmap": ["IntendedFor"],
         # MPM modalities
         "mpm_anat": ["MTState"],
-        "mpm_RB1COR": ["RepetitionTimeExitation"],
-        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExitation"]
+        "mpm_RB1COR": ["RepetitionTimeExitation", "IntendedFor"],
+        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExitation", "IntendedFor"],
+        # MP2RAGE modalities
+        "mp2rage_TB1TFL": ["IntendedFor"]
         }
 
 recommended_modality = {
