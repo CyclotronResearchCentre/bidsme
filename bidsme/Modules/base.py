@@ -1105,10 +1105,10 @@ class baseModule(abstract):
         if not run:
             return
 
-        if run.modality in self.bidsmodalities:
+        if run.model in self.bidsmodalities:
             self._modality = run.modality
             tags = set(run.entity)\
-                - set(self.bidsmodalities[run.modality])
+                - set(self.bidsmodalities[run.model])
             if tags:
                 if not run.checked:
                     logger.warning("{}: Naming schema not BIDS"
@@ -1116,7 +1116,7 @@ class baseModule(abstract):
                 self.labels = OrderedDict.fromkeys(run.entity)
             else:
                 self.labels = OrderedDict.fromkeys(
-                        self.bidsmodalities[run.modality])
+                        self.bidsmodalities[run.model])
             self.suffix = self.getDynamicField(run.suffix)
             for key in run.entity:
                 val = self.getDynamicField(run.entity[key])
@@ -1128,7 +1128,7 @@ class baseModule(abstract):
             logger.error("{}/{}: Unregistered modality {}"
                          .format(self.get_rec_id(),
                                  self.index,
-                                 run.modality))
+                                 run.model))
 
         self.metaAuxiliary = dict()
         for key, val in run.json.items():
@@ -1429,24 +1429,24 @@ class baseModule(abstract):
         run: Run
             Run object with json dictionary to fill
         """
-        modality = self.Modality()
-        if modality == ignoremodality or modality == unknownmodality:
+        model = run.model
+        if model == ignoremodality or model == unknownmodality:
             return
 
-        if modality in self.metaFields_req:
-            for key, field in self.metaFields_req[modality].items():
+        if model in self.metaFields_req:
+            for key, field in self.metaFields_req[model].items():
                 if key in run.json:
                     continue
                 if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = "<<placeholder>>"
-        if modality in self.metaFields_rec:
-            for key, field in self.metaFields_rec[modality].items():
+        if model in self.metaFields_rec:
+            for key, field in self.metaFields_rec[model].items():
                 if key in run.json:
                     continue
                 if self.__getMetaFieldSecure(field, None) is None:
                     run.json[key] = ""
-        if modality in self.metaFields_opt:
-            for key, field in self.metaFields_opt[modality].items():
+        if model in self.metaFields_opt:
+            for key, field in self.metaFields_opt[model].items():
                 if key in run.json:
                     continue
                 if self.__getMetaFieldSecure(field, None) is None:

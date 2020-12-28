@@ -91,7 +91,7 @@ def createmap(destination,
                     )
         if not run.checked:
             if not run.entity:
-                run.genEntities(recording.bidsmodalities.get(modality, []))
+                run.genEntities(recording.bidsmodalities.get(run.model, []))
             recording.fillMissingJSON(run)
         elif "IntendedFor" in recording.metaAuxiliary:
             out_path = os.path.join(destination,
