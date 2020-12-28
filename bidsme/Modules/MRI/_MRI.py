@@ -33,6 +33,10 @@ modalities = {
         "func": ("task", "acq", "ce", "dir", "rec", "run", "echo"),
         "dwi": ("acq", "dir", "run"),
         "fmap": ("acq", "ce", "dir", "run"),
+        # MPM modalities
+        "mpm_anat": ("echo", "flip", "acq", "part", "run"),
+        "mpm_RB1COR": ("acq", "ce", "dir", "run"),
+        "mpm_TB1EPI": ("echo", "flip", "acq", "run")
         }
 
 
@@ -81,7 +85,11 @@ optional_common = []
 
 required_modality = {
         "func": ["RepetitionTime", "TaskName"],
-        "fmap": ["IntendedFor"]
+        "fmap": ["IntendedFor"],
+        # MPM modalities
+        "mpm_anat": ["MTState"],
+        "mpm_RB1COR": ["RepetitionTimeExitation"],
+        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExitation"]
         }
 
 recommended_modality = {

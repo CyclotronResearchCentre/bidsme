@@ -57,6 +57,7 @@ MRI:
       suffix: MPM
       attributes: 
         ProtocolName: "al_mtflash3d_(?!sens).*"
+      model: "mpm_anat"
       bids: !!omap
         - echo: <EchoNumbers>
         - flip: ~
@@ -155,6 +156,7 @@ MRI:
       suffix: RB1COR
       attributes:
         ProtocolName: 'al_mtflash3d_sens.*'
+      model: "mpm_RB1COR"
       bids: !!omap
         - acq: '<SeriesDescription>'
         - ce: ~
@@ -167,6 +169,7 @@ MRI:
       suffix: TB1EPI
       attributes:
         ProtocolName: 'al_B1mapping'
+      model: "mpm_TB1EPI"
       bids: !!omap
         - echo: <EchoNumbers>
         - flip: <<placeholder>>
