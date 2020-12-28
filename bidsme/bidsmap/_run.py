@@ -36,11 +36,13 @@ logger = logging.getLogger(__name__)
 class Run(object):
     __slots__ = [
             "_modality",     # modality associeted with this run
+            "_model",        # model (set of entities and json)
             "attribute",     # dictionary of attr:regexp
             "entity",        # dictionary for run entities
             "json",          # dictionary for json fields
             "_suffix",       # suffix associated with run
             "_bk_modality",  # copy of self old values
+            "_bk_model",     # copy of self old values
             "_bk_attribute",
             "_bk_entity",
             "_bk_suffix",
@@ -59,7 +61,7 @@ class Run(object):
                  json: OrderedDict = {},
                  suffix: str = "",
                  provenance: str = None,
-                 example: str = None
+                 example: str = None,
                  ):
         """
         Run class contains all information needed to identify and generate
@@ -86,6 +88,7 @@ class Run(object):
             file
         """
         self._bk_modality = None
+        self._bk_model = None
         self._bk_attribute = dict()
         self._bk_entity = dict()
         self._bk_suffix = None
@@ -97,6 +100,7 @@ class Run(object):
 
         self.provenance = provenance
         self._modality = check_type("modality", str, modality)
+        self._model = self._modality
         self._suffix = check_type("suffix", str, suffix)
         self.attribute = dict(check_type("attribute", dict, attribute))
         self.entity = OrderedDict(check_type("entity", dict, entity))
@@ -135,7 +139,7 @@ class Run(object):
         """
         if self._bk_modality is None:
             self._bk_modality = self._modality
-        self.modality = value
+        self._modality = value
 
     def restore_modality(self) -> None:
         """
@@ -144,6 +148,30 @@ class Run(object):
         if self._bk_modality is not None:
             self._modality = self._bk_modality
             self._bk_modality = None
+
+    @property
+    def model(self) -> str:
+        """
+        Return Model
+        """
+        return self._model
+
+    @model.setter
+    def model(self, value: str) -> None:
+        """
+        Sets Modality. The old (unmodified) value is backuped
+        """
+        if self._bk_model is None:
+            self._bk_model = self._model
+        self._model = value
+
+    def restore_model(self) -> None:
+        """
+        Restore old (unmodified) modality
+        """
+        if self._bk_model is not None:
+            self._model = self._bk_model
+            self._bk_model = None
 
     @property
     def suffix(self) -> str:
@@ -337,6 +365,7 @@ class Run(object):
         attributesm entities and json fields
         """
         self.restore_modality()
+        self.restore_model()
         self.restore_suffix()
         self.restore_attributes()
         self.restore_entities()
@@ -348,6 +377,7 @@ class Run(object):
         are lost
         """
         self._bk_modality = None
+        self._bk_model = None
         self._bk_attribute = dict()
         self._bk_entity = dict()
         self._bk_json = dict()
@@ -391,6 +421,8 @@ class Run(object):
         if self.template:
             d["template"] = self.template
         d["checked"] = self.checked
+        if self.model != self.modality:
+            d['model'] = self.model
         d["suffix"] = self.suffix
         d["attributes"] = {k: v for k, v in self.attribute.items()
                            if empty_attributes or v is not None
