@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - baseModule:isValidFile incorporates the file extention check before calling
 `_isValidFile`. The list of valid extentions must be given in `_file_extentions`
 static variable in subclass
+  - bidsmap: Introduced models, that allows to choose different set of entities and
+json fields for given modality
 
 ### Changed
   - baseModule: moved `zip` field to `switches` dictionary
