@@ -176,9 +176,10 @@ class baseModule(abstract):
         """
 
         out_fname = os.path.join(directory, bidsname + ext)
-        if self.switches["zipFile"]:
+        if self.switches["zipFile"] and\
+                not self.currentFile().endswith(".gz"):
             with open(self.currentFile(), 'rb') as f_in:
-                with gzip.open(out_fname + ".gz", 'wb') as f_out:
+                with gzip.open(out_fname, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
         else:
             shutil.copy2(self.currentFile(), out_fname)
@@ -1040,6 +1041,9 @@ class baseModule(abstract):
         base, ext = os.path.splitext(self.currentFile(False))
         if ext == ".gz":
             ext = os.path.splitext(base)[1] + ext
+        elif self.switches["zipFile"]:
+            ext += ".gz"
+
         bidsname = self.getBidsname()
         # bidsname = os.path.join(outdir, self.getBidsname())
 
