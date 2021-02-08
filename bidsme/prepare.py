@@ -366,13 +366,15 @@ def prepare(source: str, destination: str,
     if not dry_run:
         df_res[~df_dupl].to_csv(old_sub_file,
                                 sep='\t', na_rep="n/a",
-                                index=False, header=True)
+                                index=False, header=True,
+                                line_terminator="\n")
         if df_dupl.any():
             logger.info("Saving the list to be merged manually to {}"
                         .format(dupl_file))
             df_res[df_dupl].to_csv(dupl_file,
                                    sep='\t', na_rep="n/a",
-                                   index=False, header=True)
+                                   index=False, header=True,
+                                   line_terminator="\n")
 
         new_sub_json = os.path.join(destination, "participants.json")
         if not os.path.isfile(new_sub_json):

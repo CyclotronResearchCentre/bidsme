@@ -404,7 +404,8 @@ def bidsify(source: str, destination: str,
                             .format(unmerged))
             df_sub.to_csv(unmerged,
                           sep='\t', na_rep="n/a",
-                          index=False, header=True)
+                          index=False, header=True,
+                          line_terminator="\n")
             BidsSession.exportDefinitions(unmerged_json)
             raise Exception("Conflictin participant table")
 
@@ -425,13 +426,15 @@ def bidsify(source: str, destination: str,
     if not dry_run:
         df_res[~df_dupl].to_csv(old_sub_file,
                                 sep='\t', na_rep="n/a",
-                                index=False, header=True)
+                                index=False, header=True,
+                                line_terminator="\n")
         if df_dupl.any():
             logger.info("Saving the list to be merged manually to {}"
                         .format(dupl_file))
             df_res[df_dupl].to_csv(dupl_file,
                                    sep='\t', na_rep="n/a",
-                                   index=False, header=True)
+                                   index=False, header=True,
+                                   line_terminator="\n")
         json_file = tools.change_ext(old_sub_file, "json")
         if not os.path.isfile(json_file)\
                 or not tools.checkTsvDefinitions(df_res, json_file):
