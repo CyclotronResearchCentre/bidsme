@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
   - baseModule: Bidsified file is compressed only if he wasn't compressed before, the correct extention `.gz` is added to scans.tsv content
+  - mapper: IntendedFor fields are checked from subject folder, the widecar characters are disallowed
+
+### Changed
+  - MPM parameters updated
+
 
 ## [1.3.4] - 2020-12-29
 

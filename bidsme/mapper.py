@@ -25,7 +25,6 @@
 
 import os
 import logging
-import glob
 import pandas
 
 from tools import paths
@@ -95,7 +94,7 @@ def createmap(destination,
             recording.fillMissingJSON(run)
         elif "IntendedFor" in recording.metaAuxiliary:
             out_path = os.path.join(destination,
-                                    recording.getBidsPrefix("/"))
+                                    recording.subId())
             bidsname = recording.getBidsname()
             bidsmodality = os.path.join(out_path, recording.Modality())
 
@@ -105,8 +104,7 @@ def createmap(destination,
                 intended = recording.metaAuxiliary["IntendedFor"]
                 for i in intended:
                     dest = os.path.join(out_path, i.value)
-                    res = glob.glob(dest)
-                    if len(res) == 0:
+                    if not os.path.isfile(dest):
                         logger.error("{}/{}({}): IntendedFor value {} "
                                      "not found"
                                      .format(modality, r_index,

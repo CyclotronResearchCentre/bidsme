@@ -59,9 +59,13 @@ MRI:
         ProtocolName: "al_mtflash3d_(?!sens).*"
       model: "mpm_anat"
       bids: !!omap
+        - acq: <<placeholder>>
+        - ce: ~
+        - rec: ~
+        - run: ~
         - echo: <EchoNumbers>
         - flip: ~
-        - acq: <<placeholder>>
+        - mt: ~
         - part: ~
       json:
         MTState: <MTState>
@@ -160,7 +164,7 @@ MRI:
         - run: ~
       json:
         IntendedFor:
-          - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+          - "<<subject>>/<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
     - provenance: ~ # B1 map for MPM
       suffix: TB1EPI
       attributes:
@@ -177,7 +181,7 @@ MRI:
         EchoTimeSeries: <round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE>
         FlipAngleSeries: <<placeholder>>
         IntendedFor:
-          - "anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+          - "<<subject>>/<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
 
     func:
     - provenance: ~ # standard functional MRI

@@ -34,7 +34,7 @@ modalities = {
         "dwi": ("acq", "dir", "run"),
         "fmap": ("acq", "ce", "dir", "run"),
         # MPM modalities
-        "mpm_anat": ("echo", "flip", "acq", "part", "run"),
+        "mpm_anat": ("acq", "ce", "rec", "run", "echo", "flip", "mt", "part"),
         "mpm_RB1COR": ("acq", "ce", "dir", "run"),
         "mpm_TB1EPI": ("echo", "flip", "acq", "ce", "dir", "run"),
         # MP2RAGE modalities
