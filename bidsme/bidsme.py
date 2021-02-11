@@ -27,10 +27,8 @@ import os
 import sys
 import logging
 import time
-import traceback
 
 import exceptions
-
 from prepare import prepare
 from process import process
 from bidsify import bidsify
