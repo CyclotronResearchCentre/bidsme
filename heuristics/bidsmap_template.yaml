@@ -84,7 +84,7 @@ MRI:
         - run: ~
       json:
         IntendedFor:
-          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+          - "<<session>>/func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
 
     - provenance: ~  # standard phase difference map
       suffix: phasediff
@@ -101,7 +101,7 @@ MRI:
         EchoTime1: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/0>'
         EchoTime2: '<round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE/1>'
         IntendedFor:
-          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+          - "<<session>>/func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
 
     - provenance: ~ # top-up fMRI with inverted encoding direction
       suffix: epi
@@ -118,7 +118,7 @@ MRI:
         NumberOfVolumesDiscardedByUser: <<placeholder>>
         RepetitionTime: <RepetitionTime>
         IntendedFor:
-          - "func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
+          - "<<session>>/func/<<subject>>_<<session>>_task-<<placeholder>>_dir-AP_bold.nii"
     - provenance: ~ # top-up diffusion with inverted encoding direction
       suffix: epi
       attributes:
@@ -133,7 +133,7 @@ MRI:
         TotalReadoutTime: <TotalReadoutTime>
         NumberOfVolumesDiscardedByUser: <<placeholder>>
         IntendedFor:
-          - "dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
+          - "<<session>>/dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
     - provenance: ~ # top-up diffusion without RF pulse
       suffix: epi
       attributes:
@@ -150,7 +150,7 @@ MRI:
         TotalReadoutTime: <TotalReadoutTime>
         NumberOfVolumesDiscardedByUser: <<placeholder>>
         IntendedFor:
-          - "dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
+          - "<<session>>/dwi/<<subject>>_<<session>>_acq-<<placeholder>>_dir-AP_dwi.nii"
 
     - provenance: ~ # sensBody/Array map for MPM
       suffix: RB1COR
@@ -164,7 +164,7 @@ MRI:
         - run: ~
       json:
         IntendedFor:
-          - "<<subject>>/<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+          - "<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
     - provenance: ~ # B1 map for MPM
       suffix: TB1EPI
       attributes:
@@ -181,7 +181,7 @@ MRI:
         EchoTimeSeries: <round10:scale-6:CSASeriesHeaderInfo/MrPhoenixProtocol/alTE>
         FlipAngleSeries: <<placeholder>>
         IntendedFor:
-          - "<<subject>>/<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
+          - "<<session>>/anat/<<subject>>_<<session>>_echo-*_acq-<<placeholder>>_MPM.nii"
 
     func:
     - provenance: ~ # standard functional MRI
@@ -229,3 +229,4 @@ EEG:
         json: !!omap
           - TaskName: "<<bids:task>>"
           - SamplingFrequency: "<SamplingFrequency>"
+

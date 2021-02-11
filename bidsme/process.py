@@ -26,6 +26,7 @@ import os
 import logging
 import pandas
 
+import exceptions
 from tools import paths
 from tools import tools
 import plugins
@@ -384,7 +385,12 @@ def process(source: str, destination: str,
                                      .format(run))
                         continue
                     recording.setBidsSession(scan)
-                    coin(destination, recording, bidsmap, dry_run)
+                    try:
+                        coin(destination, recording, bidsmap, dry_run)
+                    except Exception as err:
+                        exceptions.ReportError(err)
+                        logger.error("Error processing folder {} in file {}"
+                                     .format(run, recording.currentFile()))
             plugins.RunPlugin("SessionEndEP", scan)
 
         scan.in_path = sub_dir

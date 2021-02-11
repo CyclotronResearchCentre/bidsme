@@ -137,16 +137,7 @@ if __name__ == "__main__":
         else:
             raise ValueError("Invalid command")
     except Exception as err:
-        if isinstance(err, exceptions.CoinException):
-            code = err.base + err.code
-        else:
-            code = 1
-        exc_type, exc_value, exc_traceback = os.sys.exc_info()
-        tr = traceback.extract_tb(exc_traceback)
-        for line in tr:
-            logger.error("{}({}) in {}: "
-                         .format(line[0], line[1], line[2]))
-        logger.error("{}:{}: {}".format(code, exc_type.__name__, exc_value))
+        code = exceptions.ReportError(err)
         logger.info("Command: {}".format(os.sys.argv))
 
     logger.info('-------------- FINISHED! -------------------')

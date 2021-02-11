@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+  - Extra try/catch to protect running main loop, should stop crashes in case of corrupt data
+
 ### Fixed
   - baseModule: Bidsified file is compressed only if he wasn't compressed before, the correct extention `.gz` is added to scans.tsv content
   - mapper: IntendedFor fields are checked from subject folder, the widecar characters are disallowed

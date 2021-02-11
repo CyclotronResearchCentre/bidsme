@@ -27,6 +27,7 @@ import os
 import logging
 import pandas
 
+import exceptions
 from tools import paths
 import tools.tools as tools
 import bidsmap
@@ -359,8 +360,13 @@ def mapper(source: str, destination: str,
                         logger.error("unable to load data in folder {}"
                                      .format(run))
                     recording.setBidsSession(scan)
-                    createmap(destination, recording,
-                              bidsmap_new, template, bidsmap_unk)
+                    try:
+                        createmap(destination, recording,
+                                  bidsmap_new, template, bidsmap_unk)
+                    except Exception as err:
+                        exceptions.ReportError(err)
+                        logger.error("Error processing folder {} in file {}"
+                                     .format(run, recording.currentFile()))
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)

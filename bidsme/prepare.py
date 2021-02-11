@@ -28,6 +28,7 @@ import os
 import logging
 import pandas
 
+import exceptions
 from tools import tools
 import plugins
 
@@ -340,7 +341,12 @@ def prepare(source: str, destination: str,
                     if not recording or len(recording.files) == 0:
                         logger.warning("unable to load data in folder {}"
                                        .format(rec_dir))
-                    sortsession(destination, scan, recording, dry_run)
+                    try:
+                        sortsession(destination, scan, recording, dry_run)
+                    except Exception as err:
+                        exceptions.ReportError(err)
+                        logger.error("Error processing folder {} in file {}"
+                                     .format(rec_dir, recording.currentFile()))
             plugins.RunPlugin("SessionEndEP", scan)
 
         scan.in_path = sub_dir

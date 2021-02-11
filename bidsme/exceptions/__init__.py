@@ -1,3 +1,3 @@
-from .exceptions import CoinException
+from .exceptions import ReportError, CoinException
 
-__all__ = ["CoinException"]
+__all__ = ["ReportError", "CoinException"]
