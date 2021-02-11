@@ -366,7 +366,7 @@ def mapper(source: str, destination: str,
                     except Exception as err:
                         exceptions.ReportError(err)
                         logger.error("Error processing folder {} in file {}"
-                                     .format(run, recording.currentFile()))
+                                     .format(run, recording.currentFile(True)))
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)

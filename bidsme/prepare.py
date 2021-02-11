@@ -346,7 +346,7 @@ def prepare(source: str, destination: str,
                     except Exception as err:
                         exceptions.ReportError(err)
                         logger.error("Error processing folder {} in file {}"
-                                     .format(rec_dir, recording.currentFile()))
+                                     .format(rec_dir, recording.currentFile(True)))
             plugins.RunPlugin("SessionEndEP", scan)
 
         scan.in_path = sub_dir

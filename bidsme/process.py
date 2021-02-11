@@ -390,7 +390,7 @@ def process(source: str, destination: str,
                     except Exception as err:
                         exceptions.ReportError(err)
                         logger.error("Error processing folder {} in file {}"
-                                     .format(run, recording.currentFile()))
+                                     .format(run, recording.currentFile(True)))
             plugins.RunPlugin("SessionEndEP", scan)
 
         scan.in_path = sub_dir
