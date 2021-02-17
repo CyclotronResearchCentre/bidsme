@@ -78,7 +78,7 @@ def coin(destination: str,
                                    "RecordingEP"))
             continue
 
-        recording.getBidsSession().registerFields(False)
+        recording.getBidsSession().registerFields(True)
         out_path = os.path.join(destination,
                                 recording.getBidsPrefix("/"))
         # checking in the current map
@@ -422,7 +422,7 @@ def bidsify(source: str, destination: str,
         df_res = df_processed
 
     df_res = df_res.drop_duplicates()
-    df_dupl = df_res.duplicated("participant_id")
+    df_dupl = df_res.duplicated("participant_id", keep=False)
     if df_dupl.any():
         logger.critical("Participant list contains one or several duplicated "
                         "entries: {}"
