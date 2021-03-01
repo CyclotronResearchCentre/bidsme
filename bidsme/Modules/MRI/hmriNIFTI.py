@@ -110,7 +110,7 @@ class hmriNIFTI(MRI):
                     acqpar["CSASeriesHeaderInfo"]
                     acqpar["CSAImageHeaderInfo"]
                     acqpar["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 logger.error("{}:{} corrupted file {}"
                              .format(cls.formatIdentity(),
                                      e, file))
