@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
   - bidsify: Allow conflicting values for `participants.tsv`. These values will be reported in `__duplicated.tsv` and 
 must be merged manually with `participants.tsv`
 
+### Added
+  - hMRI: test for `CSASeriesHeaderInfo`, `CSAImageHeaderInfo` and `MrPhoenixProtocol` in Siemens files. Should detect corrupted files before processing them
 
 ## [1.3.5] - 2021-02-11
 

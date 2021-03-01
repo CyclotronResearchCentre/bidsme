@@ -105,9 +105,20 @@ class hmriNIFTI(MRI):
 
             try:
                 acqpar = cls.__loadJsonDump(file)
+                manufacturer = acqpar.get("Manufacturer")
+                if manufacturer.lower() == "siemens":
+                    acqpar["CSASeriesHeaderInfo"]
+                    acqpar["CSAImageHeaderInfo"]
+                    acqpar["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]
             except json.JSONDecodeError:
-                logger.error("{}: corrupted file {}"
+                logger.error("{}:{} corrupted file {}"
                              .format(cls.formatIdentity(),
+                                     e, file))
+                raise
+            except KeyError as e:
+                logger.error("{}:{} corrupted file {}"
+                             .format(cls.formatIdentity(),
+                                     e,
                                      file))
                 raise
             except Exception:
