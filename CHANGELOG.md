@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.5r1] - 2021-03-01
+
 ### Changed
   - bidsify: Allow conflicting values for `participants.tsv`. These values will be reported in `__duplicated.tsv` and 
 must be merged manually with `participants.tsv`
