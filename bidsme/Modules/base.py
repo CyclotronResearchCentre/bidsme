@@ -902,9 +902,9 @@ class baseModule(abstract):
             raise ValueError("{}: {} is not valid file"
                              .format(self.formatIdentity(), path))
 
+        self.index = index
         self._loadFile(path)
         self.setAcqTime()
-        self.index = index
         self.attributes = {}
         # for key in self.attributes:
         #     self.attributes[key] = self.getField(key)

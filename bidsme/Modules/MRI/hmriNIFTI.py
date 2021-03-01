@@ -105,7 +105,7 @@ class hmriNIFTI(MRI):
 
             try:
                 acqpar = cls.__loadJsonDump(file)
-                manufacturer = acqpar.get("Manufacturer")
+                manufacturer = acqpar.get("Manufacturer").strip()
                 if manufacturer.lower() == "siemens":
                     acqpar["CSASeriesHeaderInfo"]
                     acqpar["CSAImageHeaderInfo"]
