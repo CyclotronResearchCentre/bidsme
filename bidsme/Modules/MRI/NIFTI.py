@@ -50,7 +50,7 @@ class NIFTI(MRI):
                        "PatientId",
                        "SessionId"}
 
-    _file_extentions = [".nii", ".nii.gz", ".hdr"]
+    _file_extentions = [".nii", ".hdr"]
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -82,18 +82,15 @@ class NIFTI(MRI):
         """
         if not os.path.isfile(file):
             return False
-        if file.endswith(".nii") or file.endswith(".hdr"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-            if file.endswith(".hdr"):
-                if not os.path.isfile(file[:-4] + ".img"):
-                    return False
-            try:
-                return _nifti_common.isValidNIFTI(file)
-            except Exception:
-                return False
+
+        if os.path.basename(file).startswith('.'):
+            logger.warning('{}: file {} is hidden'
+                           .format(cls.formatIdentity(),
+                                   file))
+        try:
+            return _nifti_common.isValidNIFTI(file)
+        except Exception:
+            return False
         return False
 
     def _loadFile(self, path: str) -> None:

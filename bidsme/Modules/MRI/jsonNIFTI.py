@@ -24,6 +24,7 @@
 
 from ..common import retrieveFormDict
 from .MRI import MRI
+from tools import tools
 
 import os
 import logging
@@ -79,9 +80,7 @@ class jsonNIFTI(MRI):
                                .format(cls.formatIdentity(),
                                        file))
                 return False
-            path, base = os.path.split(file)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
+            header = tools.change_ext(file, "json")
             if os.path.isfile(header):
                 return True
         return False
@@ -89,9 +88,7 @@ class jsonNIFTI(MRI):
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
-            path, base = os.path.split(path)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
+            header = tools.change_ext(path, "json")
             try:
                 with open(header, "r") as f:
                     dicomdict = json.load(f)
