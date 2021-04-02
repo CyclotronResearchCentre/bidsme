@@ -409,7 +409,6 @@ def bidsify(source: str, destination: str,
             BidsSession.exportDefinitions(unmerged_json)
             raise Exception("Conflictin participant table")
 
-        df_res = pandas.concat([old_sub, df_processed])
         df_res = pandas.concat([old_sub, df_processed], join="inner",
                                keys=("bidsified", "prepeared"),
                                names=("stage", "ID"))

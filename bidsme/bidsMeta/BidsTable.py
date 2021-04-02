@@ -32,26 +32,34 @@ logger = logging.getLogger(__name__)
 
 
 class BidsTable(object):
-    __slots__ = ["df", "duplicates",
-                 "definitions",
-                 "tablePath", "duplicatesPath"]
+    __slots__ = ["df",             # dataframe
+                 "index",          # name of index column
+                 "_definitions",   # definitions of table columns
+                 "_path",          # patho to folder of data table
+                 "_name",          # name of the table
+                 "_def_name",      # name of definitions file
+                 "_dupl_name",     # name of duplicates file
+                 ]
 
     def __init__(self, table:str,
-                 definitionsFile:str = None,
-                 duplicatedFile:str = None,
+                 index: str = "",
+                 definitionsFile:str = "",
+                 duplicatedFile:str = "",
                  checkDefinitions:bool = True):
         """
-        Load tsv bids table int dataframe
+        Load tsv bids table into dataframe
 
         Parameters:
         -----------
         table: str
             path to tsv file, if not existing, an empty Dataframe
             will be created using given definitions
-        definitions: str or None
+        index: str
+            name of index column
+        definitions: str
             path to json file with column definitions, if not given,
             the default one based on table path is used
-        duplicatedFile: str or None
+        duplicatedFile: str
             name of file containing duplicates, if not given
             default __<name>.tsv is used.
             If such file is found an exception will be raised
@@ -60,24 +68,156 @@ class BidsTable(object):
             if False adapt table columns to match definitions
         """
 
-        pth, base = os.path.split(table)
+        self._path, self._name = os.path.split(table)
+        self._def_name = change_ext(self._name, "json")
 
-        if definitionsFile is None:
-            fname = change_ext(base, ".json")
-            definitionsFile = os.path.join(pth, fname)
+        if duplicatedFile:
+            self._dupl_name = "__" + self._def_name
+        else:
+            self._dupl_name = duplicatedFile
 
-        if duplicatedFile is None:
-            duplicatedFile = os.path.join(pth, "__" + fname)
+        if os.path.isfile(os.path.join(self._path, self._dupl_name)):
+            logger.error("{}: Found unmerged file with duplicated values"
+                         .format(self._name))
+            raise FileExistsError(self._dupl_name)
 
-        if os.path.isfile(duplicatedFile):
-            logger.error("Found unmerged file with duplicated values")
-            raise FileExistsError(duplicatedFile)
-        self.duplicatesPath = duplicatedFile
+        if not definitionsFile:
+            definitionsFile = os.path.join(self._path, self._def_name)
+            logger.error("{}: Unable to find definitions file"
+                         .format(self._name))
+            raise FileNotFoundError(definitionsFile)
 
+        with open(definitionsFile, "r") as f:
+            self._definitions = json.load(f)
+
+        # loading table
         self.df = None
-        self.tablePath = table
+        self.index = index
         if os.path.isfile(table):
             self.df = pandas.read_csv(table, sep="\t", header=0,
                                       na_values="n/a")
-            with open(definitionsFile, "r") as f:
-                self.definitions = json.read(f)
+
+            if self.index:
+                if self.index not in self.df.columns:
+                    logger.error("{}: Index column {} not found in table"
+                                 .format(self._name, self.index))
+                    raise KeyError(self.index)
+
+            # columns in table but not in definitions
+            mismatch = [c for c in self.df.columns
+                        if c not in self._definitions
+                        and c != self.index]
+            if mismatch:
+                if checkDefinitions:
+                    logger.error("{}: Extra columns {} in table"
+                                 .format(self._name, mismatch))
+                    raise KeyError(mismatch)
+                else:
+                    for c in mismatch:
+                        self.df[c] = None
+
+            # columns in definition but not in table
+            mismatch = [c for c in self._definitions
+                        if c not in self.df.columns]
+            if mismatch:
+                if checkDefinitions:
+                    logger.error("{}: Columns {} not found in table"
+                                 .format(self._name, mismatch))
+                    raise KeyError(mismatch)
+                else:
+                    self.df.drop(mismatch, axis="columns", inplace=True)
+        else:
+            columns = self._definitions.keys()
+            if index and index not in columns:
+                columns = [index] + columns
+            self.df = pandas.DataFrame(columns=columns)
+
+    def getIndexes(self, selection=None, to_list=False):
+        """
+        Returns index column values
+        If index is not defined, the dataframe index is used
+        """
+        if selection is None:
+            df = self.df
+        else:
+            df = self.df[selection]
+
+        if self.index:
+            res = df[self.index]
+        else:
+            res = df.index.to_series()
+
+        if to_list:
+            res = res.to_list()
+        return res
+
+    def append(self, other: pandas.DataFrame,
+               sort=True):
+        """
+        Append other dataframe to this one
+
+        Both dataframes must have same columns
+        """
+        if not self.df.columns.equals(other):
+            logger.error("{}: Appending dataframes with mismatched columns {}"
+                         .format(self._name,
+                                 self.df.columns.difference(other)))
+            raise KeyError(self.df.columns.difference(other))
+
+        df_res = pandas.concat([self.df, other], join="inner",
+                               keys=("original", "other"),
+                               names=("stage", "ID"))
+        if self.index and sort:
+            df_res.sort_values(by=[self.index], inplace=True)
+
+    def drop_duplicates(self):
+        """
+        Removes duplicated values from table
+        """
+
+        self.df = self.df.drop_duplicated()
+
+    def check_duplicates(self, columns=None, keep=False):
+        """
+        Returns indexes of duplicated values on given columns
+
+        If columns is None, and index column is defined, 
+        duplicated indexes are reported
+        """
+
+        if columns is None and self.index:
+            dupl = self.df.duplicated(self.index, keep)
+        else:
+            dupl = self.df.duplicated(columns, keep)
+
+        return dupl
+
+    def save_table(self, path=None, append=False, selection=None,
+                   useDuplicates=False):
+        """
+        Save current table to file
+        """
+        if path is None:
+            if useDuplicates:
+                path = os.path.join(self._path, self._dupl_name)
+            else:
+                path = os.path.join(self._path, self._name)
+
+        if selection is not None:
+            to_save = self.df[selection]
+        else:
+            to_save = self.df
+
+        if append:
+            to_save.to_csv(path, mode="a",
+                           sep='\t', na_rep="n/a",
+                           index=False, header=False,
+                           line_terminator="\n")
+        else:
+            to_save.to_csv(path, mode="w",
+                           sep='\t', na_rep="n/a",
+                           index=False, header=True,
+                           line_terminator="\n")
+            if not useDuplicates:
+                with open(os.path.join(self._path, self._def_name), "w") as f:
+                    json.dump(self._definitions, f, indent=2)
