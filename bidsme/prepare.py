@@ -26,7 +26,6 @@
 
 import os
 import logging
-import pandas
 
 from tools import tools
 from tools import paths
@@ -235,17 +234,7 @@ def prepare(source: str, destination: str,
     BidsSession.loadSubjectFields(part_template)
 
     old_sub_file = os.path.join(destination, "participants.tsv")
-    old_sub = None
-    if os.path.isfile(old_sub_file):
-        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
-                                  na_values="n/a")
-        if not BidsSession.checkDefinitions(old_sub):
-            raise Exception("Destination participant.tsv incompatible "
-                            "with given columns definitions")
     dupl_file = os.path.join(destination, "__duplicated.tsv")
-    if os.path.isfile(dupl_file):
-        logger.critical("Found unmerged file with duplicated subjects")
-        raise FileExistsError(dupl_file)
 
     sub_table = BidsTable(old_sub_file,
                           definitionsFile=part_template,
