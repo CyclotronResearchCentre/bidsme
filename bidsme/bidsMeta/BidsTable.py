@@ -158,24 +158,25 @@ class BidsTable(object):
 
         Both dataframes must have same columns
         """
-        if not self.df.columns.equals(other):
+        if not self.df.columns.equals(other.columns):
             logger.error("{}: Appending dataframes with mismatched columns {}"
                          .format(self._name,
-                                 self.df.columns.difference(other)))
-            raise KeyError(self.df.columns.difference(other))
+                                 self.df.columns.difference(other.columns)))
+            raise KeyError(self.df.columns.difference(other.columns))
 
         df_res = pandas.concat([self.df, other], join="inner",
                                keys=("original", "other"),
                                names=("stage", "ID"))
         if self.index and sort:
             df_res.sort_values(by=[self.index], inplace=True)
+        self.df = df_res
 
     def drop_duplicates(self):
         """
         Removes duplicated values from table
         """
 
-        self.df = self.df.drop_duplicated()
+        self.df = self.df.drop_duplicates()
 
     def check_duplicates(self, columns=None, keep=False):
         """

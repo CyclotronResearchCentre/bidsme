@@ -360,21 +360,30 @@ def prepare(source: str, destination: str,
         plugins.RunPlugin("SubjectEndEP", scan)
 
     df_processed = BidsSession.exportAsDataFrame()
-    sub_table.append(df_processed)
-    sub_table.drop_duplicates()
-    df_dupl = sub_table.check_duplicates()
-
-    if df_dupl.any():
-        logger.critical("Participant list contains one or several duplicated "
-                        "entries: {}"
-                        .format(sub_table.getIndexes(df_dupl, True))
-                        )
-
-    if not dry_run:
-        sub_table.save_table(selection=~df_dupl)
+    try:
+        sub_table.append(df_processed)
+    except Exception as e:
+        logger.critical("Failed to merge participants table for: {}"
+                        .format(e))
+        logger.info("Saving incompatible table to {}".format(dupl_file))
+        df_processed.to_csv(dupl_file, mode="w",
+                            sep='\t', na_rep="n/a",
+                            index=False, header=True,
+                            line_terminator="\n")
+    else:
+        sub_table.drop_duplicates()
+        df_dupl = sub_table.check_duplicates()
         if df_dupl.any():
-            logger.info("Saving the list to be merged manually to {}"
-                        .format(dupl_file))
-            sub_table.save_table(selection=~df_dupl, useDuplicates=True)
+            logger.critical("Participant list contains one or several "
+                            "duplicated entries: {}"
+                            .format(sub_table.getIndexes(df_dupl, True))
+                            )
+
+        if not dry_run:
+            sub_table.save_table(selection=~df_dupl)
+            if df_dupl.any():
+                logger.info("Saving the list to be merged manually to {}"
+                            .format(dupl_file))
+                sub_table.save_table(selection=~df_dupl, useDuplicates=True)
 
     plugins.RunPlugin("FinaliseEP")
