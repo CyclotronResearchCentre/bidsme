@@ -71,8 +71,8 @@ class BidsTable(object):
         self._path, self._name = os.path.split(table)
         self._def_name = change_ext(self._name, "json")
 
-        if duplicatedFile:
-            self._dupl_name = "__" + self._def_name
+        if not duplicatedFile:
+            self._dupl_name = "__" + self._name
         else:
             self._dupl_name = duplicatedFile
 
@@ -83,9 +83,10 @@ class BidsTable(object):
 
         if not definitionsFile:
             definitionsFile = os.path.join(self._path, self._def_name)
-            logger.error("{}: Unable to find definitions file"
-                         .format(self._name))
-            raise FileNotFoundError(definitionsFile)
+            if not os.path.isfile(definitionsFile):
+                logger.error("{}: Unable to find definitions file"
+                             .format(self._name))
+                raise FileNotFoundError(definitionsFile)
 
         with open(definitionsFile, "r") as f:
             self._definitions = json.load(f)
@@ -113,8 +114,7 @@ class BidsTable(object):
                                  .format(self._name, mismatch))
                     raise KeyError(mismatch)
                 else:
-                    for c in mismatch:
-                        self.df[c] = None
+                    self.df.drop(mismatch, axis="columns", inplace=True)
 
             # columns in definition but not in table
             mismatch = [c for c in self._definitions
@@ -125,12 +125,31 @@ class BidsTable(object):
                                  .format(self._name, mismatch))
                     raise KeyError(mismatch)
                 else:
-                    self.df.drop(mismatch, axis="columns", inplace=True)
+                    for c in mismatch:
+                        self.df[c] = None
         else:
             columns = self._definitions.keys()
             if index and index not in columns:
-                columns = [index] + columns
+                columns = [index] + list(columns)
             self.df = pandas.DataFrame(columns=columns)
+
+    def getTablePath(self) -> str:
+        """
+        Returns path to table file
+        """
+        return os.path.join(self._path, self._name)
+
+    def getDefinitionsPath(self) -> str:
+        """
+        Returns path to definitions file
+        """
+        return os.path.join(self._path, self._def_name)
+
+    def getDuplicatesPath(self):
+        """
+        Returns path to duplicated table file
+        """
+        return os.path.join(self._path, self._dupl_name)
 
     def getIndexes(self, selection=None, to_list=False):
         """
@@ -193,16 +212,15 @@ class BidsTable(object):
 
         return dupl
 
-    def save_table(self, path=None, append=False, selection=None,
+    def save_table(self, append=False, selection=None,
                    useDuplicates=False):
         """
         Save current table to file
         """
-        if path is None:
-            if useDuplicates:
-                path = os.path.join(self._path, self._dupl_name)
-            else:
-                path = os.path.join(self._path, self._name)
+        if useDuplicates:
+            path = os.path.join(self._path, self._dupl_name)
+        else:
+            path = os.path.join(self._path, self._name)
 
         if selection is not None:
             to_save = self.df[selection]
@@ -210,15 +228,38 @@ class BidsTable(object):
             to_save = self.df
 
         if append:
-            to_save.to_csv(path, mode="a",
-                           sep='\t', na_rep="n/a",
-                           index=False, header=False,
-                           line_terminator="\n")
+            self.write_data(path, to_save, "a")
         else:
-            to_save.to_csv(path, mode="w",
-                           sep='\t', na_rep="n/a",
-                           index=False, header=True,
-                           line_terminator="\n")
+            self.write_data(path, to_save, "w")
             if not useDuplicates:
                 with open(os.path.join(self._path, self._def_name), "w") as f:
                     json.dump(self._definitions, f, indent=2)
+
+    @staticmethod
+    def write_data(path:str, data=pandas.DataFrame, mode:str = "w") -> None:
+        """
+        Writes data dataframe to table at path following BIDS format:
+        tab separated, null values as 'n/a', and with header
+
+        If writing is in append mode 'a', header is not written
+
+        Parameters:
+        -----------
+        path: str
+            path to the file to be written
+        data: pandas.DataFrame
+            dataframe to be written
+        mode: str
+            Python write mode, default ‘w’. If 'a' (append)
+            header will be not written
+        """
+
+        if mode == "a":
+            header = False
+        else:
+            header = True
+
+        data.to_csv(path, mode=mode,
+                    sep="\t", na_rep="n/a",
+                    index=False, header=header,
+                    line_terminator="\n")
