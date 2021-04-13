@@ -345,6 +345,9 @@ def prepare(source: str, destination: str,
         scan.in_path = sub_dir
         plugins.RunPlugin("SubjectEndEP", scan)
 
+    ##################################
+    # Merging the participants table
+    ##################################
     df_processed = BidsSession.exportAsDataFrame()
     try:
         sub_table.append(df_processed)
