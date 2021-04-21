@@ -276,8 +276,10 @@ def process(source: str, destination: str,
         raise Exception("Duplicated subjects")
 
     dest_sub_file = os.path.join(destination, "participants.tsv")
+    dest_json_file = os.path.join(paths.templates, "participants.json")
     dest_sub_table = BidsTable(dest_sub_file,
                                index="participant_id",
+                               definitionsFile=dest_json_file,
                                duplicatedFile="__duplicated.tsv",
                                checkDefinitions=False)
 

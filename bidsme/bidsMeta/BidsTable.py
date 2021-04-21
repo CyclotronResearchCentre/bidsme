@@ -56,7 +56,7 @@ class BidsTable(object):
             will be created using given definitions
         index: str
             name of index column
-        definitions: str
+        definitionsFile: str
             path to json file with column definitions, if not given,
             the default one based on table path is used
         duplicatedFile: str
