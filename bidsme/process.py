@@ -24,6 +24,7 @@
 
 import os
 import logging
+import pandas
 
 import exceptions
 from tools import paths

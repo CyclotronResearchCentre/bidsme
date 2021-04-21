@@ -50,11 +50,11 @@ class TestBidstable(unittest.TestCase):
         with self.assertRaises(Exception):
             BidsTable(self.tablePath, definitionsFile=self.tablePath)
 
-        Table = BidsTable(self.tablePath,
-                          index="index_col2",
-                          definitionsFile=os.path.join(
-                              "tests", "data",
-                              "table_definitions.json"))
+        BidsTable(self.tablePath,
+                  index="index_col2",
+                  definitionsFile=os.path.join(
+                      "tests", "data",
+                      "table_definitions.json"))
 
     def testStandartPaths(self):
         Table = BidsTable(self.tablePath,
@@ -174,6 +174,7 @@ class TestBidstable(unittest.TestCase):
         self.assertEqual(Table.df.columns.to_list(),
                          ["index_col",
                          "col_2", "col_3"])
+
 
 if __name__ == "__main__":
     unittest.main()
