@@ -35,6 +35,7 @@ import plugins
 
 import Modules
 from bidsMeta import BidsSession
+from bidsMeta import BidsTable
 
 logger = logging.getLogger(__name__)
 
@@ -233,52 +234,34 @@ def mapper(source: str, destination: str,
     ###############################
     # Checking participants list
     ###############################
-    new_sub_file = os.path.join(source, "participants.tsv")
-    df_sub = pandas.read_csv(new_sub_file,
-                             sep="\t", header=0,
-                             na_values="n/a")
-    df_dupl = df_sub.duplicated("participant_id")
+
+    source_sub_file = os.path.join(source, "participants.tsv")
+    source_sub_table = BidsTable(source_sub_file,
+                                 index="participant_id",
+                                 duplicatedFile="__duplicated.tsv",
+                                 checkDefinitions=True)
+    source_sub_table.drop_duplicates()
+    df_dupl = source_sub_table.check_duplicates()
     if df_dupl.any():
-        logger.critical("Participant list contains one or several duplicated "
-                        "entries: {}"
-                        .format(", ".join(df_sub[df_dupl]["participant_id"]))
-                        )
+        logger.critical("Participant list contains one or several "
+                        "duplicated entries: {}"
+                        .format(source_sub_table.getIndexes(df_dupl, True)))
         raise Exception("Duplicated subjects")
+    BidsSession.loadSubjectFields(source_sub_table.getDefinitionsPath())
 
-    new_sub_json = os.path.join(source, "participants.json")
-    if not tools.checkTsvDefinitions(df_sub, new_sub_json):
-        raise Exception("Incompatible sidecar json")
-
-    BidsSession.loadSubjectFields(new_sub_json)
-    old_sub_file = os.path.join(destination, "participants.tsv")
-    old_sub = None
-    if os.path.isfile(old_sub_file):
-        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
-                                  na_values="n/a")
-
-    df_res = df_sub
-    if old_sub is not None:
-        if not old_sub.columns.equals(df_sub.columns):
-            logger.critical("Participant.tsv has differenrt columns "
-                            "from destination dataset")
-            raise Exception("Participants column mismatch")
-        df_res = old_sub.append(df_sub, ignore_index=True).drop_duplicates()
-        df_dupl = df_res.duplicated("participant_id")
-        if df_dupl.any():
-            logger.critical("Joined participant list contains one or "
-                            "several duplicated entries: {}"
-                            .format(", ".join(
-                                    df_sub[df_dupl]["participant_id"])
-                                    )
-                            )
-            raise Exception("Duplicated subjects")
-        old_sub = old_sub["participant_id"]
+    dest_sub_file = os.path.join(destination, "participants.tsv")
+    dest_json_file = os.path.join(paths.templates, "participants.json")
+    dest_sub_table = BidsTable(dest_sub_file,
+                               index="participant_id",
+                               definitionsFile=dest_json_file,
+                               duplicatedFile="__duplicated.tsv",
+                               checkDefinitions=False)
 
     ##############################
     # Subjects loop
     ##############################
-    n_subjects = len(df_sub["participant_id"])
-    for index, sub_row in df_sub.iterrows():
+    n_subjects = len(source_sub_table.df["participant_id"])
+    for index, sub_row in source_sub_table.df.iterrows():
         sub_no = index + 1
         sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
@@ -294,8 +277,11 @@ def mapper(source: str, destination: str,
         #################################################
         # Cloning df_sub row values in scans sub_values
         #################################################
-        for column in df_sub.columns:
-            scan.sub_values[column] = sub_row[column]
+        for column in source_sub_table.df.columns:
+            if pandas.isna(sub_row[column]):
+                scan.sub_values[column] = None
+            else:
+                scan.sub_values[column] = sub_row[column]
 
         if plugins.RunPlugin("SubjectEP", scan) < 0:
             logger.warning("Subject {} discarded by {}"
@@ -308,7 +294,8 @@ def mapper(source: str, destination: str,
             continue
 
         if tools.skipEntity(scan.subject, sub_list,
-                            old_sub if sub_skip_tsv else None,
+                            dest_sub_table.getIndexes()
+                            if sub_skip_tsv else None,
                             destination if sub_skip_dir else ""):
             logger.info("Skipping subject '{}'"
                         .format(scan.subject))

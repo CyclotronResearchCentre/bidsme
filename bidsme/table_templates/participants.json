@@ -1,0 +1,6 @@
+{
+  "participant_id": {
+    "LongName": "Participant Id",
+    "Description": "Unique label associated with a participant"
+  }
+}

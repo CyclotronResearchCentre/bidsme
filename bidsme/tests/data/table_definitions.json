@@ -1,0 +1,14 @@
+{
+  "index_col": {
+    "LongName": "Index column"
+  },
+  "col_1": {
+    "LongName": "Cologne 1"
+  },
+  "col_2": {
+    "LongName": "Cologne 2"
+  },
+  "col_3": {
+    "LongName": "Cologne 3"
+  }
+}

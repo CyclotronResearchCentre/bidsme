@@ -26,14 +26,15 @@
 
 import os
 import logging
-import pandas
 
 import exceptions
 from tools import tools
+from tools import paths
 import plugins
 
 import Modules
 from bidsMeta import BidsSession
+from bidsMeta import BidsTable
 
 
 logger = logging.getLogger(__name__)
@@ -227,24 +228,21 @@ def prepare(source: str, destination: str,
     if not part_template:
         if os.path.isfile(new_sub_json):
             part_template = new_sub_json
+        else:
+            part_template = os.path.join(paths.templates,
+                                         "participants.json"
+                                         )
     BidsSession.loadSubjectFields(part_template)
 
-    old_sub_file = os.path.join(destination, "participants.tsv")
-    old_sub = None
-    if os.path.isfile(old_sub_file):
-        old_sub = pandas.read_csv(old_sub_file, sep="\t", header=0,
-                                  na_values="n/a")
-        if not BidsSession.checkDefinitions(old_sub):
-            raise Exception("Destination participant.tsv incompatible "
-                            "with given columns definitions")
-    dupl_file = os.path.join(destination, "__duplicated.tsv")
-    if os.path.isfile(dupl_file):
-        logger.critical("Found unmerged file with duplicated subjects")
-        raise FileExistsError(dupl_file)
+    sub_table = BidsTable(os.path.join(destination, "participants.tsv"),
+                          definitionsFile=part_template,
+                          index="participant_id",
+                          duplicatedFile="__duplicated.tsv",
+                          checkDefinitions=True)
 
-    ###############
-    # Subject loop
-    ###############
+    ################
+    # Subject loop #
+    ################
     sub_prefix_dir, sub_prefix = os.path.split(sub_prefix)
     ses_prefix_dir, ses_prefix = os.path.split(ses_prefix)
 
@@ -275,7 +273,8 @@ def prepare(source: str, destination: str,
 
         if scan.subject is not None:
             if tools.skipEntity(scan.subject, sub_list,
-                                old_sub if sub_skip_tsv else None,
+                                sub_table.getIndexes()
+                                if sub_skip_tsv else None,
                                 destination if sub_skip_dir else ""):
                 logger.info("Skipping subject '{}'"
                             .format(scan.subject))
@@ -353,36 +352,32 @@ def prepare(source: str, destination: str,
         scan.in_path = sub_dir
         plugins.RunPlugin("SubjectEndEP", scan)
 
+    ##################################
+    # Merging the participants table
+    ##################################
     df_processed = BidsSession.exportAsDataFrame()
-
-    if old_sub is not None:
-        df_res = pandas.concat([old_sub, df_processed],
-                               sort=False,
-                               ignore_index=True)
+    try:
+        sub_table.append(df_processed)
+    except Exception as e:
+        logger.critical("Failed to merge participants table for: {}"
+                        .format(e))
+        logger.info("Saving incompatible table to {}"
+                    .format(sub_table.getDuplicatesPath()))
+        sub_table.write_data(sub_table.getDuplicatesPath(), df_processed)
     else:
-        df_res = df_processed
-    df_res = df_res[BidsSession.getSubjectColumns()].drop_duplicates()
-
-    df_dupl = df_res.duplicated("participant_id")
-    if df_dupl.any():
-        logger.critical("Participant list contains one or several duplicated "
-                        "entries: {}"
-                        .format(", ".join(df_res[df_dupl]["participant_id"]))
-                        )
-
-    if not dry_run:
-        df_res[~df_dupl].to_csv(old_sub_file,
-                                sep='\t', na_rep="n/a",
-                                index=False, header=True)
+        sub_table.drop_duplicates()
+        df_dupl = sub_table.check_duplicates()
         if df_dupl.any():
-            logger.info("Saving the list to be merged manually to {}"
-                        .format(dupl_file))
-            df_res[df_dupl].to_csv(dupl_file,
-                                   sep='\t', na_rep="n/a",
-                                   index=False, header=True)
+            logger.critical("Participant list contains one or several "
+                            "duplicated entries: {}"
+                            .format(sub_table.getIndexes(df_dupl, True))
+                            )
 
-        new_sub_json = os.path.join(destination, "participants.json")
-        if not os.path.isfile(new_sub_json):
-            BidsSession.exportDefinitions(new_sub_json)
+        if not dry_run:
+            sub_table.save_table(selection=~df_dupl)
+            if df_dupl.any():
+                logger.info("Saving the list to be merged manually to {}"
+                            .format(sub_table.getDuplicatesPath()))
+                sub_table.save_table(selection=~df_dupl, useDuplicates=True)
 
     plugins.RunPlugin("FinaliseEP")

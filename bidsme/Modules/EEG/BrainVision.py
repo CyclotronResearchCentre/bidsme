@@ -363,7 +363,8 @@ class BrainVision(EEG):
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       columns=active,
                                       sep="\t", na_rep="n/a",
-                                      header=True, index=True)
+                                      header=True, index=True,
+                                      line_terminator="\n")
             self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
 
         if self.TableEvents is not None and\
@@ -381,7 +382,8 @@ class BrainVision(EEG):
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     columns=active,
                                     sep="\t", na_rep="n/a",
-                                    header=True, index=True)
+                                    header=True, index=True,
+                                    line_terminator="\n")
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
         if self.TableElectrodes is not None and\
@@ -399,7 +401,8 @@ class BrainVision(EEG):
             self.TableElectrodes.to_csv(dest_base + "_events.tsv",
                                         columns=active,
                                         sep="\t", na_rep="n/a",
-                                        header=True, index=True)
+                                        header=True, index=True,
+                                        line_terminator="\n")
             self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
 
     def copyRawFile(self, destination: str) -> str:
@@ -431,13 +434,16 @@ class BrainVision(EEG):
         if self.TableChannels is not None:
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       sep="\t", na_rep="n/a",
-                                      header=True, index=True)
+                                      header=True, index=True,
+                                      line_terminator="\n")
         if self.TableEvents is not None:
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     sep="\t", na_rep="n/a",
-                                    header=True, index=True)
+                                    header=True, index=True,
+                                    line_terminator="\n")
         if self.TableElectrodes is not None:
             self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
                                         sep="\t", na_rep="n/a",
-                                        header=True, index=True)
+                                        header=True, index=True,
+                                        line_terminator="\n")
         return os.path.join(destination, self.currentFile(True))
