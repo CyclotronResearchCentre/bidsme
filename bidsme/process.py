@@ -304,7 +304,10 @@ def process(source: str, destination: str,
         # Cloning df_sub row values in scans sub_values
         #################################################
         for column in source_sub_table.df.columns:
-            scan.sub_values[column] = sub_row[column]
+            if pandas.isna(sub_row[column]):
+                scan.sub_values[column] = None
+            else:
+                scan.sub_values[column] = sub_row[column]
 
         # locking subjects here forbids renaming in process
         # as it will be unclear how manage folders with data
