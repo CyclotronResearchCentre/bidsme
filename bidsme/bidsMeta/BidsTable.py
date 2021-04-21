@@ -41,11 +41,11 @@ class BidsTable(object):
                  "_dupl_name",     # name of duplicates file
                  ]
 
-    def __init__(self, table:str,
+    def __init__(self, table: str,
                  index: str = "",
-                 definitionsFile:str = "",
-                 duplicatedFile:str = "",
-                 checkDefinitions:bool = True):
+                 definitionsFile: str = "",
+                 duplicatedFile: str = "",
+                 checkDefinitions: bool = True):
         """
         Load tsv bids table into dataframe
 
@@ -201,7 +201,7 @@ class BidsTable(object):
         """
         Returns indexes of duplicated values on given columns
 
-        If columns is None, and index column is defined, 
+        If columns is None, and index column is defined,
         duplicated indexes are reported
         """
 
@@ -236,7 +236,7 @@ class BidsTable(object):
                     json.dump(self._definitions, f, indent=2)
 
     @staticmethod
-    def write_data(path:str, data=pandas.DataFrame, mode:str = "w") -> None:
+    def write_data(path: str, data: pandas.DataFrame, mode: str = "w") -> None:
         """
         Writes data dataframe to table at path following BIDS format:
         tab separated, null values as 'n/a', and with header

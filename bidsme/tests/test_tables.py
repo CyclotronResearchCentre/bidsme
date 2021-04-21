@@ -77,13 +77,13 @@ class TestBidstable(unittest.TestCase):
                               "tests", "data",
                               "table_definitions.json"))
 
-        d = {"index_col": [1, 2, 3], 
+        d = {"index_col": [1, 2, 3],
              "col_1": ["a", None, "c"]}
         df = pandas.DataFrame(d)
         with self.assertRaises(KeyError):
             Table.append(df)
 
-        d = {"index_col": [1, 2, 3, 1], 
+        d = {"index_col": [1, 2, 3, 1],
              "col_1": ["a", None, "c", "a"],
              "col_2": ["a", None, "a", "a"],
              "col_3": ["a", None, "c", "a"],
@@ -127,14 +127,14 @@ class TestBidstable(unittest.TestCase):
         with self.assertRaises(KeyError):
             BidsTable(self.tablePath, index="col__")
 
-        self.assertEqual(t.getIndexes(to_list=True), [1,1,2,3])
+        self.assertEqual(t.getIndexes(to_list=True), [1, 1, 2, 3])
         t.drop_duplicates()
-        self.assertEqual(t.getIndexes(to_list=True), [1,2,3])
+        self.assertEqual(t.getIndexes(to_list=True), [1, 2, 3])
 
         dupl = t.check_duplicates(columns=["col_2"], keep=False)
         self.assertEqual(t.getIndexes(to_list=True,
                                       selection=dupl),
-                         [1,3])
+                         [1, 3])
 
         t = BidsTable(self.tablePath)
         self.assertEqual(t.getIndexes(to_list=True),
