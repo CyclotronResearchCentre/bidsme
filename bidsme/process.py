@@ -409,17 +409,11 @@ def process(source: str, destination: str,
         source_sub_table.drop_duplicates()
         df_dupl = source_sub_table.check_duplicates()
         if df_dupl.any():
-            logger.critical("Participant list contains one or several "
-                            "duplicated entries: {}"
-                            .format(source_sub_table.getIndexes(df_dupl, True))
-                            )
+            logger.info("Updating participants values")
+            df_dupl = df_dupl.drop(["other"], level=0)
+            source_sub_table.df.drop(df_dupl.index, inplace=True)
 
         if not dry_run:
-            source_sub_table.save_table(selection=~df_dupl)
-            if df_dupl.any():
-                logger.info("Saving the list to be merged manually to {}"
-                            .format(source_sub_table.getDuplicatesPath()))
-                source_sub_table.save_table(selection=~df_dupl,
-                                            useDuplicates=True)
+            source_sub_table.save_table()
 
     plugins.RunPlugin("FinaliseEP")
