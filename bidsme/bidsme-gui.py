@@ -1,0 +1,45 @@
+###############################################################################
+# BIDSme-gui implements a GUI interface to Bidsne
+###############################################################################
+# Copyright (c) 2019-2020, University of Liège
+# Author: Nikita Beliy
+# Owner: Liege University https://www.uliege.be
+# Credits: [Marcel Zwiers]
+# Maintainer: Nikita Beliy
+# Email: Nikita.Beliy@uliege.be
+# Status: developpement
+###############################################################################
+# This file is part of BIDSme
+# BIDSme is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+# eegBidsCreator is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
+##############################################################################
+
+import os
+import tkinter as tk
+from tkinter import ttk
+
+from gui import MetaExplorer
+
+
+def metaLaunch(*args):
+    MetaExplorer(root, os.getcwd())
+
+
+root = tk.Tk()
+root.title("bidsme gui tools")
+mainframe = ttk.Frame(root, padding="3 3 12 12")
+mainframe.grid(column=0, row=0, sticky="nsew")
+root.columnconfigure(0, weight=1)
+root.rowconfigure(0, weight=1)
+ttk.Button(mainframe, text="Meta Explorer",
+           command=metaLaunch).grid(column=1, row=1, sticky="w")
+
+root.mainloop()

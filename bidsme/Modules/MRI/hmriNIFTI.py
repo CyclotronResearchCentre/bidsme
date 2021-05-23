@@ -34,7 +34,6 @@ import os
 import logging
 import json
 import shutil
-import pprint
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -165,16 +164,10 @@ class hmriNIFTI(MRI):
             + timedelta(days=days - 366, seconds=time_stamp)
 
     def dump(self):
-        if self._DICOMDICT_CACHE:
-            return pprint.pformat(self._DICOMDICT_CACHE,
-                                  indent=2, width=40, compact=True)
-        elif len(self.files) > 0:
+        if self._DICOMDICT_CACHE is None:
             self.loadFile(0)
-            return pprint.pformat(self._DICOMDICT_CACHE,
-                                  indent=2, width=40, compact=True)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        res = self._DICOMDICT_CACHE
+        return res
 
     def _getField(self, field: list):
         res = None
