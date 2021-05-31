@@ -355,7 +355,8 @@ class MetaExplorer(object):
     def UpdateFormats(self, *args):
         classes = selector.types_list[self.varType.get()]
         formats = [cl.Type()
-                   for cl in classes]
+                   for cl in classes
+                   if cl.Type() != "None"]
         self.cbFormat["values"] = formats
         self.varFormat.set(formats[0])
 
