@@ -124,7 +124,7 @@ class NIFTI(MRI):
                 res = self._adaptMetaField(field[0])
             else:
                 res = retrieveFormDict(field, self._NIFTI_CACHE,
-                                       fail_on_last_missing=False)
+                                       fail_on_last_not_found=False)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))

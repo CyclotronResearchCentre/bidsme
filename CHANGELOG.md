@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
   - participants.tsv table is managed using bidsMeta.BidsTable class
 
+### Fixed
+  - MRI/NIFTI and PET/NIFTI: incorrect parameter for `retrieveFormDict`
+
 ## [1.3.5r2] - 2021-03-10
 
 ### Fixed
