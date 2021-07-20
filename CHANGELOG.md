@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - MRI: misspell in the name of `RepetitionTimeExcitation`
 
 ## [1.3.5r3] - 2021-06-16
 

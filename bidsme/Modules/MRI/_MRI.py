@@ -73,7 +73,7 @@ recommended_common = [
         "EffectiveEchoSpacing", "TotalReadoutTime",
         # Timing Parameters
         "EchoTime", "InversionTime", "SliceTiming",
-        "RepetitionTimeExitation",
+        "RepetitionTimeEcxitation",
         "SliceEncodingDirection", "DwellTime",
         # RF & Contrast
         "FlipAngle", "MultibandAccelerationFactor",
@@ -91,8 +91,8 @@ required_modality = {
         "fmap": ["IntendedFor"],
         # MPM modalities
         "mpm_anat": ["MTState"],
-        "mpm_RB1COR": ["RepetitionTimeExitation", "IntendedFor"],
-        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExitation", "IntendedFor"],
+        "mpm_RB1COR": ["RepetitionTimeExcitation", "IntendedFor"],
+        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExcitation", "IntendedFor"],
         # MP2RAGE modalities
         "mp2rage_TB1TFL": ["IntendedFor"]
         }
