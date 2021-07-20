@@ -73,7 +73,7 @@ recommended_common = [
         "EffectiveEchoSpacing", "TotalReadoutTime",
         # Timing Parameters
         "EchoTime", "InversionTime", "SliceTiming",
-        "RepetitionTimeEcxitation",
+        "RepetitionTimeExcitation",
         "SliceEncodingDirection", "DwellTime",
         # RF & Contrast
         "FlipAngle", "MultibandAccelerationFactor",
