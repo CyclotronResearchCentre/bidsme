@@ -5,12 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
   - DICOM: fixed crash if patient age is not defined 
+  - DICOM: persons name is decoded correctly
+  - DICOM: if DS or IS not defined, returned value is None
 
 ### Added
   - MRI/DICOM and PET/DICOM: support for extentions `.ima` and `.IMA`
   - MRI/DICOM: `MRAcquisitionType` metafield
   - MRI: set of recommended fields for qMRI
-
+  - DICOM: added exception if decoding a particular value from header
+produces an error
 
 ## [1.3.5r4] - 2021-07-20
 

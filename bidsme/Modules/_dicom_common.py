@@ -166,10 +166,16 @@ def DICOMtransform(element: pydicom.dataelem.DataElement,
     VM = element.VM
     val = element.value
 
-    if VM > 1:
-        return [decodeValue(val[i], VR, clean) for i in range(VM)]
-    else:
-        return decodeValue(val, VR, clean)
+    try:
+        if VM > 1:
+            return [decodeValue(val[i], VR, clean) for i in range(VM)]
+        else:
+            return decodeValue(val, VR, clean)
+
+    except Exception as e:
+        logger.warning('Failed to decode value of type {} for: {}'
+                       .format(VR, e))
+        return None
 
 
 def decodeValue(val, VR: str, clean=False):
@@ -206,8 +212,12 @@ def decodeValue(val, VR: str, clean=False):
     # Text Numbers
     # using int(), float()
     if VR == "DS":
+        if not(val):
+            return None
         return float(val)
     if VR == "IS":
+        if not(val):
+            return None
         return int(val)
 
     # Text and text-like
@@ -223,9 +233,7 @@ def decodeValue(val, VR: str, clean=False):
     if VR == "PN":
         if isinstance(val, str):
             return val.strip(" \0")
-        if len(val.encodings) > 0:
-            enc = val.encodings[0]
-        return val.original_string.decode(enc)
+        return str(val.decode())
 
     # Age string
     # unit mark is ignored, value converted to int
