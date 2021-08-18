@@ -230,6 +230,8 @@ def decodeValue(val, VR: str, clean=False):
     # Age string
     # unit mark is ignored, value converted to int
     if VR == "AS":
+        if not val:
+            return None
         if val[-1] in "YMWD":
             return int(val[:-1])
         else:

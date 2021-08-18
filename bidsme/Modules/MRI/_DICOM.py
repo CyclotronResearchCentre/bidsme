@@ -40,7 +40,8 @@ metafields = {
             "InstitutionalDepartmentName": ("<InstitutionalDepartmentName>",
                                             None),
             "RepetitionTime": ("<scale-3:RepetitionTime>", None),
-            "TaskName": ("<<bids:task>>", None)
+            "TaskName": ("<<bids:task>>", None),
+            "MRAcquisitionType": ("<MRAcquisitionType>", None),
             },
         "Siemens": {
             "SequenceName": ("<SequenceName>", None),

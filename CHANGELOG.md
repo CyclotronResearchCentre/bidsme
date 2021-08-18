@@ -3,6 +3,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - DICOM: fixed crash if patient age is not defined 
+
+### Added
+  - MRI/DICOM and PET/DICOM: support for extentions `.ima` and `.IMA`
+  - MRI/DICOM: `MRAcquisitionType` metafield
+  - MRI: set of recommended fields for qMRI
+
+
 ## [1.3.5r4] - 2021-07-20
 
 ### Fixed

@@ -40,7 +40,7 @@ class DICOM(MRI):
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
 
-    _file_extentions = [".dcm", ".DCM"]
+    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA"]
 
     __specialFields = {}
 

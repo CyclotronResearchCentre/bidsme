@@ -66,6 +66,11 @@ recommended_common = [
         "PulseSequenceType", "ScanningSequence", "SequenceVariant",
         "ScanOptions", "SequenceName", "PulseSequenceDetails",
         "NonlinearGradientCorrection",
+        "MRAcquisitionType",
+        "MTState", "MTOffsetFrequency", "MTPulseBandwidth",
+        "MTNumberOfPulses", "MTPulseShape", "MTPulseDuration",
+        "SpoilingState", "SpoilingType", "SpoilingRFPhaseIncrement",
+        "SpoilingGradientMoment", "SpoilingGradientDuration",
         # In-Plane Spatial Encoding
         "NumberShots", "ParallelReductionFactorInPlane",
         "ParallelAcquisitionTechnique", "PartialFourier",
@@ -92,7 +97,8 @@ required_modality = {
         # MPM modalities
         "mpm_anat": ["MTState"],
         "mpm_RB1COR": ["RepetitionTimeExcitation", "IntendedFor"],
-        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExcitation", "IntendedFor"],
+        "mpm_TB1EPI": ["MixingTime", "RepetitionTimeExcitation",
+                       "IntendedFor"],
         # MP2RAGE modalities
         "mp2rage_TB1TFL": ["IntendedFor"]
         }

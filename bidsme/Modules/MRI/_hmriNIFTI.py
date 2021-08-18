@@ -42,7 +42,7 @@ metafields = {
                                             None),
             "RepetitionTime": ("<round10:scale-3:RepetitionTime>", None),
             "RepetitionTimeExcitation": ("<round10:scale-3:RepetitionTime>",
-                                        None),
+                                         None),
             "TaskName": ("<<bids:task>>", None)
             },
         "Siemens": {

@@ -40,6 +40,8 @@ class DICOM(PET):
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
 
+    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA"]
+
     __specialFields = {}
 
     def __init__(self, rec_path=""):
