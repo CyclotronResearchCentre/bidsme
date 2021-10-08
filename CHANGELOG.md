@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.5r6] - 2021-10-08
+
+### Fixed
+  - NRI/hmriNIFTI: fixed error while retrieving `afFree` and `adFree`
+firlds when they are not defined in json file
+
 ## [1.3.5r5] - 2021-08-18
 
 ### Fixed

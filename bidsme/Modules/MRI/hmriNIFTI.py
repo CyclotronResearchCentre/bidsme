@@ -149,8 +149,8 @@ class hmriNIFTI(MRI):
                 self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
                 self.__phoenix = self.__csas["MrPhoenixProtocol"]
                 if "sWipMemBlock" in self.__phoenix:
-                    self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
-                    self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
+                    self.__alFree = self.__phoenix["sWipMemBlock"].get("alFree", [])
+                    self.__adFree = self.__phoenix["sWipMemBlock"].get("adFree", [])
 
             if manuf_changed:
                 self.resetMetaFields()
