@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.5r7] - 2021-10-27
+
+### Fixed
+  - duplicated entries in `participant.tsv` wasn't saved in `__duplicates.tsv`
+
 ## [1.3.5r6] - 2021-10-08
 
 ### Fixed
