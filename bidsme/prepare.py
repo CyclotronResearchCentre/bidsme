@@ -378,6 +378,6 @@ def prepare(source: str, destination: str,
             if df_dupl.any():
                 logger.info("Saving the list to be merged manually to {}"
                             .format(sub_table.getDuplicatesPath()))
-                sub_table.save_table(selection=~df_dupl, useDuplicates=True)
+                sub_table.save_table(selection=df_dupl, useDuplicates=True)
 
     plugins.RunPlugin("FinaliseEP")
