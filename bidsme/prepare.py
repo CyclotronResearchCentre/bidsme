@@ -310,6 +310,7 @@ def prepare(source: str, destination: str,
                 skip = False
                 if ses_skip_dir:
                     if os.path.isdir(os.path.join(destination,
+                                                  scan.subject,
                                                   scan.session)):
                         logger.debug("{} dir exists".format(scan.session))
                         skip = True
