@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.5r8] - 2021-11-22
+
+### Fixed
+  - bug with option `--skip-existin-session` not working in preparation
+
+
 ## [1.3.5r7] - 2021-10-27
 
 ### Fixed
