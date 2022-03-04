@@ -260,7 +260,7 @@ class hmriNIFTI(MRI):
             if name == "NumberOfMeasurements":
                 value = self.__phoenix.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingSign":
-                value = self.__csai.get("PhaseEncodingDirectionPositive", 1)
+                value = self.__csai.get("PhaseEncodingDirectionPositive", 0)
                 if value == 1:
                     return "+"
                 else:
