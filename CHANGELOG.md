@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.3.6] - 2022-04-26
+
 ### Changed
   - map: by default `bidsme map` will stop after first recording producing
 error/warnings. Added a CLI parameter `--process-all` to process all recordings
