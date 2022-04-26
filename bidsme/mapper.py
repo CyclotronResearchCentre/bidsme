@@ -26,9 +26,10 @@
 import os
 import logging
 import pandas
+import glob
 
-import exceptions
 from tools import paths
+from tools import info
 import tools.tools as tools
 import bidsmap
 import plugins
@@ -57,6 +58,8 @@ def createmap(destination,
                         recording.sesId(),
                         recording.recIdentity(),
                         len(recording.files)))
+
+    first_name = None
 
     recording.index = -1
     while recording.loadNextFile():
@@ -90,13 +93,33 @@ def createmap(destination,
                     recording.Module(),
                     recording.Type()
                     )
+
+        if modality != "__ignore__":
+            bidsified_name = "{}/{}".format(modality, recording.getBidsname())
+            logger.debug("{}/{}: {}".format(recording.Module(),
+                                            recording.recIdentity(),
+                                            bidsified_name))
+        else:
+            bidsified_name = None
+
+        if first_name is None:
+            first_name = bidsified_name
+        elif modality != "__ignore__":
+            if first_name == bidsified_name:
+                logger.error("{}/{}: Bidsified name same "
+                             "as first file of recording: {}"
+                             .format(recording.Module(),
+                                     recording.recIdentity(),
+                                     bidsified_name))
+
         if not run.checked:
             if not run.entity:
                 run.genEntities(recording.bidsmodalities.get(run.model, []))
             recording.fillMissingJSON(run)
         elif "IntendedFor" in recording.metaAuxiliary:
+            sub_path = os.path.join(destination, recording.subId())
             out_path = os.path.join(destination,
-                                    recording.subId())
+                                    recording.getBidsSession().getPath())
             bidsname = recording.getBidsname()
             bidsmodality = os.path.join(out_path, recording.Modality())
 
@@ -105,14 +128,15 @@ def createmap(destination,
                 # checking the IntendedFor validity
                 intended = recording.metaAuxiliary["IntendedFor"]
                 for i in intended:
-                    dest = os.path.join(out_path, i.value)
-                    if not os.path.isfile(dest):
+                    dest = os.path.join(sub_path, i.value)
+                    if not glob.glob(dest):
                         logger.error("{}/{}({}): IntendedFor value {} "
                                      "not found"
                                      .format(modality, r_index,
                                              run.example, i.value))
 
     plugins.RunPlugin("SequenceEndEP", None, recording)
+    return first_name
 
 
 def mapper(source: str, destination: str,
@@ -122,6 +146,7 @@ def mapper(source: str, destination: str,
            sub_skip_tsv: bool = False,
            sub_skip_dir: bool = False,
            ses_skip_dir: bool = False,
+           process_all: bool = False,
            bidsmapfile: str = "bidsmap.yaml",
            map_template: str = "bidsmap_template.yaml",
            dry_run: bool = False
@@ -262,6 +287,8 @@ def mapper(source: str, destination: str,
     ##############################
     n_subjects = len(source_sub_table.df["participant_id"])
     for index, sub_row in source_sub_table.df.iterrows():
+        skip_subject = False
+
         sub_no = index + 1
         sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
@@ -330,6 +357,8 @@ def mapper(source: str, destination: str,
                             .format(scan.session))
                 continue
 
+            bidsified_list = []
+
             for module in Modules.selector.types_list:
                 mod_dir = os.path.join(ses_dir, module)
                 if not os.path.isdir(mod_dir):
@@ -347,13 +376,35 @@ def mapper(source: str, destination: str,
                         logger.error("unable to load data in folder {}"
                                      .format(run))
                     recording.setBidsSession(scan)
+                    err_count = info.counthandler.level2count.copy()
                     try:
-                        createmap(destination, recording,
-                                  bidsmap_new, template, bidsmap_unk)
+                        first_name = createmap(destination, recording,
+                                               bidsmap_new, template,
+                                               bidsmap_unk)
+                        if first_name in bidsified_list:
+                            logger.error("Matches example of "
+                                         "already processed run {}"
+                                         .format(first_name))
+                        elif first_name is not None:
+                            bidsified_list.append(first_name)
                     except Exception as err:
-                        exceptions.ReportError(err)
-                        logger.error("Error processing folder {} in file {}"
-                                     .format(run, recording.currentFile(True)))
+                        logger.error("Error processing folder {} "
+                                     "in file {}: {}"
+                                     .format(run, recording.currentFile(True),
+                                             err))
+                    err_count = info.msg_count(err_count)
+                    if err_count:
+                        logger.info("Recording generated several "
+                                    "errors/warnings")
+                        skip_subject = True and (not process_all)
+                        break
+                if skip_subject:
+                    break
+            if skip_subject:
+                break
+        if skip_subject:
+            break
+
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)

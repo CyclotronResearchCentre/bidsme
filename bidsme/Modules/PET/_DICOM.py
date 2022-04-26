@@ -24,6 +24,30 @@
 
 metafields = {
         "Unknown": {
+            "Units": ("<Units>", None),
+            "TracerName": ("<RadiopharmaceuticalInformationSequence/0/"
+                           "Radiopharmaceutical>", None),
+            "TracerRadionuclide": ("<RadiopharmaceuticalInformationSequence/0/"
+                                   "RadionuclideCodeSequence/0/"
+                                   "CodeMeaning>", None),
+            "ModeOfAdministration": ("<RadiopharmaceuticalInformationSequence/"
+                                     "0/RadiopharmaceuticalRoute>", None),
+            "Modality": ("<Modality>", None),
+            "SliceWidth": ("<SliceThickness>", None),
+            "CTDIvol": ("<CTDIvol>", None),
+            "TubeCurrent": ("<XRayTubeCurrent>", None),
+            "DiameterFOV": ("<DataCollectionDiameter>", None),
+            "ReconMatrixSize": (["<Rows>", "<Columns>"], None),
+            "FilterType": ("<FilterType>", None),
+            "Manufacturer": ("<Manufacturer>", None),
+            "ManufacturersModelName": ("<ManufacturerModelName>", None),
+            "StationName": ("<StationName>", None),
+            "DeviceSerialNumber": ("<DeviceSerialNumber>", None),
+            "SoftwareVersions": ("<SoftwareVersions>", None),
+            "InstitutionName": ("<InstitutionName>", None),
+            "InstitutionAddress": ("<InstitutionAddress>", None),
+            "InstitutionalDepartmentName":
+                ("<InstitutionalDepartmentName>", None)
             }
         }
 

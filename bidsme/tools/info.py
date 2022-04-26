@@ -58,6 +58,11 @@ class MsgCounterHandler(logging.Handler):
         self.level2count[lvl] += 1
 
 
+counthandler = MsgCounterHandler()
+counthandler.setLevel(logging.WARNING)
+counthandler.set_name('counthangler')
+
+
 def bidsversion() -> str:
     """
     Reads the BIDS version from the BIDSVERSION.TXT file
@@ -102,10 +107,6 @@ def setup_logging(logger: logging.Logger,
     # Set the format and logging level
     logger.setLevel(level)
 
-    counthandler = MsgCounterHandler()
-    counthandler.setLevel(logging.WARNING)
-    counthandler.set_name('counthangler')
-
     logger.addHandler(counthandler)
 
     global formatter
@@ -148,3 +149,15 @@ def reporterrors(logger):
         if isinstance(handler, logging.FileHandler):
             logger.info("{}:{}".format(handler.name, handler.baseFilename))
     return errors
+
+
+def msg_count(or_count: {}):
+    msg_counts = {}
+    for lvl, count in counthandler.level2count.items():
+        if lvl in or_count:
+            count = count - or_count[lvl]
+
+        if count != 0:
+            msg_counts[lvl] = count
+
+    return msg_counts

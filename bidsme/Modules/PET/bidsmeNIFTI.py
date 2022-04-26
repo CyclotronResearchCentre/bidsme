@@ -76,18 +76,15 @@ class bidsmeNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            path, base = os.path.split(file)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, "header_dump_" + base + ".json")
-            if os.path.isfile(header):
-                return True
-        return False
+        path, base = os.path.split(file)
+        base, ext = os.path.splitext(base)
+        header = os.path.join(path, "header_dump_" + base + ".json")
+        if os.path.isfile(header):
+            return True
+        else:
+            logger.debug("{}: Missing header dump file"
+                         .format(cls.formatIdentity()))
+            return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
@@ -176,7 +173,7 @@ class bidsmeNIFTI(PET):
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         if os.path.isfile(os.path.join(destination,
                                        self.currentFile(True))):
             logger.warning("{}: File {} exists at destination"
@@ -184,6 +181,7 @@ class bidsmeNIFTI(PET):
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
         shutil.copy2(self._header_file, destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return self._headerData["subId"]

@@ -227,7 +227,7 @@ class hmriNIFTI(MRI):
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         if os.path.isfile(os.path.join(destination,
                                        self.currentFile(True))):
             logger.warning("{}: File {} exists at destination"
@@ -236,6 +236,7 @@ class hmriNIFTI(MRI):
         shutil.copy2(self.currentFile(), destination)
         shutil.copy2(tools.change_ext(self.currentFile(), "json"),
                      destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))

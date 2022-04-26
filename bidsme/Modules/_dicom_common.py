@@ -30,7 +30,7 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
-def isValidDICOM(file: str, mod: str = "") -> bool:
+def isValidDICOM(file: str, mod: list = []) -> bool:
     """
     Returns True if file is valid DICOM file.
     If mod is not empty, checks if Modality tag
@@ -51,8 +51,9 @@ def isValidDICOM(file: str, mod: str = "") -> bool:
     with open(file, 'rb') as dcmfile:
         dcmfile.seek(0x80)
         if dcmfile.read(4) != b"DICM":
+            logger.debug("Missing DICOM magic string")
             return False
-        if mod == "":
+        if not mod:
             return True
 
         dcmfile.seek(0)
@@ -61,8 +62,12 @@ def isValidDICOM(file: str, mod: str = "") -> bool:
             logger.warnng('{}: DICOM file misses Modality tag'
                           .format(file))
             return False
-        if ds["Modality"].value == mod:
+        if ds["Modality"].value in mod:
             return True
+        else:
+            logger.debug("Unaccepted modality: {}"
+                         .format(ds["Modality"].value))
+            return False
     return False
 
 
@@ -212,13 +217,15 @@ def decodeValue(val, VR: str, clean=False):
     # Text Numbers
     # using int(), float()
     if VR == "DS":
-        if not(val):
+        if val:
+            return float(val)
+        else:
             return None
-        return float(val)
     if VR == "IS":
-        if not(val):
+        if val:
+            return int(val)
+        else:
             return None
-        return int(val)
 
     # Text and text-like
     # using strip to remove apddings
@@ -233,7 +240,15 @@ def decodeValue(val, VR: str, clean=False):
     if VR == "PN":
         if isinstance(val, str):
             return val.strip(" \0")
-        return str(val.decode())
+        if val == "":
+            return None
+
+        if len(val.encodings) > 0:
+            enc = val.encodings[0]
+            return val.original_string.decode(enc)
+        else:
+            logger.warning("PN: unable to get encoding")
+            return ""
 
     # Age string
     # unit mark is ignored, value converted to int
@@ -309,7 +324,8 @@ def decodeValue(val, VR: str, clean=False):
     # Other type
     # Not clear how parce them
     if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
-        logger.warning("Other VR: {}".format(VR))
+        # logger.warning("Other VR: {}".format(VR))
+        # return VR + ': ' +  repr(val)
         return None
 
     # unregistered VR

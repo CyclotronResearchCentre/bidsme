@@ -44,6 +44,7 @@ class NIFTI(PET):
     __slots__ = ["_NIFTI_CACHE", "_FILE_CACHE",
                  "_nii_type", "_endiannes"
                  ]
+    _file_extentions = [".nii", ".hdr"]
 
     __specialFields = {"AcquisitionTime",
                        "SeriesNumber",
@@ -79,21 +80,12 @@ class NIFTI(PET):
         bool:
             True if file is identified as DICOM
         """
-        if not os.path.isfile(file):
-            return False
-        if file.endswith(".nii") or file.endswith(".hdr"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-            if file.endswith(".hdr"):
-                if not os.path.isfile(file[:-4] + ".img"):
-                    return False
-            try:
-                return _nifti_common.isValidNIFTI(file)
-            except Exception:
+        if file.endswith(".hdr"):
+            if not os.path.isfile(file[:-4] + ".img"):
+                logger.debug('{}: Missing .img file'
+                             .format(cls.formatIdentity()))
                 return False
-        return False
+        return _nifti_common.isValidNIFTI(file)
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:

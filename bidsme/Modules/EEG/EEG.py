@@ -296,7 +296,7 @@ class EEG(baseModule):
                                    "column '{}'"
                                    .format(self.recIdentity(), col_name))
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
         if self.TableChannels is not None:
@@ -315,6 +315,7 @@ class EEG(baseModule):
                                         header=True, index=True,
                                         line_terminator="\n")
         shutil.copy2(self.currentFile(), destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _copy_bidsified(self, directory: str,
                         bidsname: str, ext: str) -> None:

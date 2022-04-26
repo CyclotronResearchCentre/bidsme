@@ -177,7 +177,7 @@ class bidsmeNIFTI(MRI):
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         if os.path.isfile(os.path.join(destination,
                                        self.currentFile(True))):
             logger.warning("{}: File {} exists at destination"
@@ -185,6 +185,7 @@ class bidsmeNIFTI(MRI):
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
         shutil.copy2(self._header_file, destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return self._headerData["subId"]

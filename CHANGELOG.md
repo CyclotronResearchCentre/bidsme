@@ -3,17 +3,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed
+  - map: by default `bidsme map` will stop after first recording producing
+error/warnings. Added a CLI parameter `--process-all` to process all recordings
+in one go.
+  - BaseModule: more explicit messages for testing validity of files at 
+DEBUG level
+
+### Added
+  - map: check for several files ending up with same bidsified name
+  - Support for CT in PET data type
+
+### Fixed:
+  - Small misprint that forbids the dump of DICOM header in PET
+  - few adjustements in parcing DICOM header
+  - map: checks for `IntendedFor` field wasn't running in multisession datasets
+  - BidsSession: bug when `sub_values` not intended for `participants.tsv` are
+  - EEG, \*NIFTI: Fixed returnvalue for copyRawFile
+  - PET: Updated recommended and required sidecar metadata
+checked for changes
+
 ## [1.3.5r9] - 2022-03-04
 
 ### Fixed
   - hmriNIFTI: fixed incorrect PhaseEncodingDirectionSign default value
 
-
 ## [1.3.5r8] - 2021-11-22
 
 ### Fixed
   - bug with option `--skip-existin-session` not working in preparation
-
 
 ## [1.3.5r7] - 2021-10-27
 

@@ -27,7 +27,6 @@ from .PET import PET
 from . import _DICOM
 from .. import _dicom_common
 
-import os
 import logging
 import pydicom
 from datetime import datetime
@@ -71,19 +70,7 @@ class DICOM(PET):
         bool:
             True if file is identified as DICOM
         """
-        if not os.path.isfile(file):
-            return False
-        if file.endswith(".dcm") or file.endswith(".DCM"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            try:
-                return _dicom_common.isValidDICOM(file, "PT")
-            except Exception:
-                return False
-        return False
+        return _dicom_common.isValidDICOM(file, ["PT", "CT"])
 
     def _loadFile(self, path: str) -> None:
         if path != self._DICOMFILE_CACHE:
@@ -110,6 +97,7 @@ class DICOM(PET):
         res = _dicom_common.extractStruct(self._DICOM_CACHE)
         for f in self.__specialFields:
             res[f] = self._getField([f])
+        return res
 
     def _getField(self, field: list):
         res = None

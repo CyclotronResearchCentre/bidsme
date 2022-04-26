@@ -248,6 +248,8 @@ class BidsSession(object):
             last_values = self.__sub_values[self.subject][-1]
             conflict = False
             for key in self.sub_values:
+                if key not in self.getSubjectColumns():
+                    continue
                 old_val = last_values[key]
                 new_val = self.sub_values[key]
                 if new_val is None or pandas.isna(new_val):

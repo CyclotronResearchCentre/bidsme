@@ -30,6 +30,7 @@ as value
 """
 modalities = {
         "pet": ("task", "acq", "rec", "run"),
+        "ct": ("acq", "ce", "rec", "run"),
         }
 
 
@@ -46,64 +47,89 @@ for sidcar json.
 required_common = [
         # Info section
         "Modality", "Manufacturer", "ManufacturersModelName",
-        "Unit", "TracerName", "TracerRadionuclide",
-        # Radiochem
-        "InjectedRadioactivity", "InjectedRadioactivityUnit",
-        "InjectedMass", "InjectedMassUnit", "SpecificRadioactivity",
-        "SpecificRadioactivityUnit", "ModeOfAdministration",
-        # Time
-        "TimeZero", "ScanStart", "InjectionStart",
-        "FrameTimesStart", "FrameDuration",
-        # Recon
-        "AcquisitionMode", "ImageDecayCorrected",
-        "ImageDecayCorrectionTime", "ReconMethodName",
-        "ReconMethodParameterLabels",
-        "ReconMethodParameterUnit",
-        "ReconMethodParameterValues",
-        "ReconFilterType", "ReconFilterSize", "AttenuationCorrection",
-        # "ReconMatrixSize",
-        # "ImageVoxelSize",
-        # Blood
-        "PlasmaAvail", "MetaboliteAvail", "MetaboliteMethod",
-        "MetaboliteRecoveryCorrectionApplied",
-        "ContinuousBloodAvail", "ContinuousBloodDispersionCorrected",
-        "BloodDiscreteAvail",
         ]
+
 recommended_common = [
         # Info
-        "BodyPart", "TracerRadLex", "TracerSNOMED",
-        "TracerMolecularWeight", "TracerMolecularWeightUnit",
-        "PharmaceuticalDoseUnit", "PharmaceuticalDoseRegimen",
-        "PharmaceuticalDoseTime",
-        # Radiochem
-        "InjectedMassPerWeight", "InjectedMassPerWeightUnit",
-        "SpecificRadioactivityMeasTime",
-        "MolarActivity", "MolarActivityUnit", "MolarActivityMeasTime",
-        "InfusionSpeed", "InfusionSpeedUnit", "InjectedVolume",
-        "InjectedVolumeUnit", "Purity", "PurityUnit",
-        # Time
-        "ScanDate", "InjectionEnd",
-        # Recon
-        "ReconMethodImplementationVersion",
-        "AttenuationCorrectionMethodReference",
-        "ScaleFactor", "ScatterFraction", "DecayCorrectionFactor",
-        "PromptRate", "RandomRate", "SinglesRate",
-        # Blood
-        "PlasmaFreeFraction", "PlasmaFreeFractionMethod",
-        "ContinuousBloodWithdrawalRateUnit",
-        "ContinuousBloodTubingType", "ContinuousBloodTubingLength",
-        "ContinuousBloodDispersionConstant",
-        "BloodDiscreteHaematocrit", "BloodDiscreteDensity",
-        ]
-optional_common = [
-        # Info
-        "Anaesthesia",
-        "PharmaceuticalName",
-        "PharmaceuticalDoseAmount",
+        "InstitutionName", "InstitutionAddress",
+        "InstitutionalDepartmentName",
+        "BodyPart",
         ]
 
-required_modality = {}
+optional_common = []
 
-recommended_modality = {}
+required_modality = {
+        "pet": [
+            # Infosection
+            "Units",
+            # Radiochemistry
+            "TracerName", "TracerRadionuclide",
+            "InjectedRadioactivity", "InjectedRadioactivityUnits",
+            "InjectedMass", "InjectedMassUnits",
+            "SpecificRadioactivity", "SpecificRadioactivityUnits",
+            "ModeOfAdministration",
+            # Time zero
+            "TimeZero", "ScanStart", "InjectionStart", "FrameTimesStart",
+            "FrameDuration"
+            # Reconstruction
+            "AcquisitionMode", "ImageDecayCorrected",
+            "ImageDecayCorrectionTime",
+            "ReconMethodName", "ReconMethodParameterLabels",
+            "ReconMethodParameterUnits", "ReconMethodParameterValues",
+            "ReconFilterType", "ReconFilterSize",
+            "AttenuationCorrection",
+            # Blood
+            "PlasmaAvail", "MetaboliteAvail", "WholeBloodAvail",
+            "DispersionCorrected"
+            ],
+        "ct": [
+            "CTDIvol", "CTDIvolUnit",
+            "DLP", "DLPUnit",
+            "ScanLength", "ScanLengthUnit",
+            "SSDE", "SSDEUnit",
+            "TubeVoltage", "TubeCurrent", "SliceWidth",
+            "Pitch", "ContrastBolusIngredient",
+            "DiameterFOV", "ReconMatrixSize",
+            "MethodName", "MethodParameterLabels", "MethodParameterUnits",
+            "MethodParameterValues", "MethodImplementationVersion",
+            "FilterType",
+            ]
+        }
 
-optional_modality = {}
+recommended_modality = {
+        "pet": [
+            # Radiochemistry
+            "TracerRadLex", "TracerSNOMED", "TracerMolecularWeight",
+            "TracerMolecularWeightUnits",
+            "InjectedMassPerWeight", "InjectedMassPerWeightUnits",
+            "SpecificRadioactivityMeasTime",
+            "MolarActivity", "MolarActivityUnits",
+            "MolarActivityMeasTime",
+            "InfusionRadioactivity",
+            "InfusionStart", "InfusionSpeed", "InfusionSpeedUnits",
+            "InjectedVolume", "Purity",
+            # Pharmaceuticals
+            "PharmaceuticalName", "PharmaceuticalDoseAmount",
+            "PharmaceuticalDoseUnits", "PharmaceuticalDoseRegimen",
+            "PharmaceuticalDoseTime",
+            # Time
+            "ScanDate", "InjectionEnd",
+            # Reconstruction
+            "ReconMethodImplementationVersion",
+            "AttenuationCorrectionMethodReference",
+            "ScaleFactor", "ScatterFraction", "DecayCorrectionFactor",
+            "PromptRate", "RandomRate", "SinglesRate",
+            # Blood
+            "TubingType", "TubingLength", "DispersionConstant",
+            "Haematocrit", "BloodDensity",
+            "PlasmaFreeFraction", "PlasmaFreeFractionMethod",
+            "MetaboliteMethod", "MetaboliteRecoveryCorrectionApplied"
+            ],
+        "ct": [
+            "DeviceSerialNumber", "StationName", "SoftwareVersions",
+            ]
+        }
+
+optional_modality = {
+        "pet": ["Anaesthesia"]
+        }

@@ -456,6 +456,11 @@ def setMap(parser):
     gr_maps.add_argument('-t', '--template',
                          help='The bidsmap template with the default '
                          'heuristics')
+    gr_maps.add_argument('-a', '--process-all',
+                         help='Do not stop if a recording '
+                         'generated error/warning',
+                         action="store_true"
+                         )
     parser.set_defaults(
             bidsmap=config["maps"]["map"],
             template=config["maps"]["template"])

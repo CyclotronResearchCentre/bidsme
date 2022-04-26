@@ -42,6 +42,7 @@ def isValidNIFTI(file: str) -> bool:
     with open(file, 'rb') as niifile:
         d = niifile.read(4)
         if len(d) != 4:
+            logger.debug('File too short')
             return False
 
         hdr = struct.unpack("<i", d)[0]
@@ -54,10 +55,13 @@ def isValidNIFTI(file: str) -> bool:
             niifile.seek(4, 0)
             magic = niifile.read(4)
         else:
+            logger.debug("Invalid header size")
             return False
         if magic in (b'ni1\x00', b'n+1\x00', b'n+2\x00'):
             return True
-        return False
+        else:
+            logger.debug("Invalid magic string")
+            return False
 
 
 def getEndType(path: str) -> tuple:

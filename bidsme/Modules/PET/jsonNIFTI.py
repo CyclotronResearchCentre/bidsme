@@ -40,6 +40,7 @@ class jsonNIFTI(PET):
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
                  "_header_file",
                  ]
+    _file_extentions = [".nii", ".nii.gz"]
     __specialFields = {}
 
     def __init__(self, rec_path=""):
@@ -72,18 +73,15 @@ class jsonNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            path, base = os.path.split(file)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
-            if os.path.isfile(header):
-                return True
-        return False
+        path, base = os.path.split(file)
+        base, ext = os.path.splitext(base)
+        header = os.path.join(path, base + ".json")
+        if os.path.isfile(header):
+            return True
+        else:
+            logger.debug("{}: Missing json file"
+                         .format(cls.formatIdentity()))
+            return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
@@ -143,7 +141,7 @@ class jsonNIFTI(PET):
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         if os.path.isfile(os.path.join(destination,
                                        self.currentFile(True))):
             logger.warning("{}: File {} exists at destination"
@@ -151,6 +149,7 @@ class jsonNIFTI(PET):
                                    self.currentFile(True)))
         shutil.copy2(self.currentFile(), destination)
         shutil.copy2(self._header_file, destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return ""

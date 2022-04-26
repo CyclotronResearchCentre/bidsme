@@ -68,6 +68,8 @@ class Bidsmap(object):
         with open(yamlfile, 'r') as stream:
             try:
                 yaml_map = yaml.load(stream)
+                if yaml_map is None:
+                    raise Exception("File don't contain any structure")
             except Exception:
                 err = sys.exc_info()
                 logger.error("Failed to load bidsmap from {}"
