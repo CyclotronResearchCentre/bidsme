@@ -4,7 +4,7 @@ import setuptools
 
 # long description
 long_description = open("README.md", "r").read()
-version = open(os.path.join("bidsme","version.txt"), "r").read().strip()
+version = open(os.path.join("version.txt"), "r").read().strip()
 
 # Define classifiers
 CLASSIFIERS = [
@@ -45,7 +45,8 @@ setuptools.setup(
           },
       entry_points={
           "console_scripts": [
-              "bidsme=bidsme.bidsme:main"
+              "bidsme=bidsme.bidsme:cli_bidsme",
+              "bidsme-pdb=bidsme.bidsme:cli_bidsme_pdb"
               ]
           },
       zip_safe=False,

@@ -39,29 +39,39 @@ from tools import info
 from tools import paths
 
 
-if __name__ == "__main__":
+def init(level="INFO",
+         formatter='%(name)s(%(lineno)d) - %(levelname)s %(message)s',
+         quiet=False, log_dir=""):
+    """
+    Initialize logger and prints out bidsme header
 
-    prog, args = config.parseArgs(sys.argv[1:])
+    Parameters:
+    -----------
+    level: str
+        Verbosity level of logger
+    formatter: str
+        Formatter string of logger
+    quiet: bool
+        If true, all terminal output are supressed,
+        but log is still written to log file
+    log_dir: str
+        Directory where the log file is placed,
+        if empty, no log file is written
 
-    # checking paths
-    if not os.path.isdir(args.source):
-        raise NotADirectoryError("Source directory {} don't exists"
-                                 .format(args.source))
-    if not os.path.isdir(args.destination):
-        raise NotADirectoryError("Destination directory {} don't exists"
-                                 .format(args.destination))
-
-    code = 0
+    Returns:
+    --------
+    logger:
+        the initialized logger object
+    """
 
     logger = logging.getLogger()
     logger.name = os.path.splitext(os.path.basename(__file__))[0]
     info.setup_logging(logger,
-                       args.level,
-                       args.formatter,
-                       args.quiet)
-    log_dir = os.path.join(args.destination, "code",
-                           prog, args.cmd)
-    info.addFileLogger(logger, log_dir)
+                       level,
+                       formatter,
+                       quiet)
+    if log_dir:
+        info.addFileLogger(logger, log_dir)
 
     logger.info("")
     logger.info("-------------- START bidsme ----------------")
@@ -74,6 +84,38 @@ if __name__ == "__main__":
     logger.debug("Local dir: {}".format(paths.local))
     logger.debug("Instal dir: {}".format(paths.installation))
     logger.debug("Conf dir: {}".format(paths.config))
+
+    return logger
+
+
+def main(args: list):
+    """
+    Runs bidsme with command line arguments, stored in
+    args list
+
+    Parameters:
+    -----------
+    args: list
+        list of command lines arguments, similar to
+        sys.argv[1:]
+    """
+
+    prog, args = config.parseArgs(args)
+    # prog, args = config.parseArgs(sys.argv[1:])
+
+    # checking paths
+    if not os.path.isdir(args.source):
+        raise NotADirectoryError("Source directory {} don't exists"
+                                 .format(args.source))
+    if not os.path.isdir(args.destination):
+        raise NotADirectoryError("Destination directory {} don't exists"
+                                 .format(args.destination))
+
+    log_dir = os.path.join(args.destination, "code",
+                           prog, args.cmd)
+    logger = init(args.level, args.formatter, args.quiet, log_dir)
+
+    code = 0
 
     try:
         if args.cmd == "prepare":
@@ -147,3 +189,19 @@ if __name__ == "__main__":
         logger.warning("Several errors detected but exit code is 0")
         code = 1
     os.sys.exit(code)
+
+
+def cli_bidsme():
+    """
+    Funtion hook for setup-tools executable
+    """
+    main(sys.argv[1:])
+
+
+def cli_bidsme_pdb():
+    """
+    Funtion hook for setup-tools executable with debugger
+    """
+    import pdb
+    main(sys.argv[1:])
+    pdb.run(main(sys.argv[1:]))
