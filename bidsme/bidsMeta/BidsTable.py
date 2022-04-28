@@ -25,7 +25,8 @@ import os
 import logging
 import pandas
 import json
-from tools.tools import change_ext
+
+from bidsme.tools.tools import change_ext
 
 
 logger = logging.getLogger(__name__)

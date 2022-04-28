@@ -28,7 +28,7 @@ import os
 import importlib.util
 import logging
 
-from tools.tools import check_type
+from bidsme.tools.tools import check_type
 
 from . import exceptions
 from .entry_points import entry_points

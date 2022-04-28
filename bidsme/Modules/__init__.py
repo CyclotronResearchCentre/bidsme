@@ -1,5 +1,5 @@
 from .base import baseModule
-from . import MRI, EEG
+from . import MRI, EEG, PET
 from .selector import types_list, select, selectFile, selectByName
 from ._constants import ignoremodality, unknownmodality
 

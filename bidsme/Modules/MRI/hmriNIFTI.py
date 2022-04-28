@@ -23,19 +23,21 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-
-from .MRI import MRI
-from ..common import action_value
-from ..common import retrieveFormDict
-from tools import tools
-from . import _hmriNIFTI
-
 import os
 import logging
 import json
 import shutil
 import pprint
 from datetime import datetime, timedelta
+
+from bidsme.tools import tools
+
+from .MRI import MRI
+from . import _hmriNIFTI
+
+from ..common import action_value
+from ..common import retrieveFormDict
+
 
 logger = logging.getLogger(__name__)
 

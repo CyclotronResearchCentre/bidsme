@@ -28,15 +28,16 @@ import logging
 import pandas
 import glob
 
-from tools import paths
-from tools import info
-import tools.tools as tools
-import bidsmap
-import plugins
+from bidsme import bidsmap
+from bidsme import plugins
+from bidsme import Modules
 
-import Modules
-from bidsMeta import BidsSession
-from bidsMeta import BidsTable
+from bidsme.tools import paths
+from bidsme.tools import info
+from bidsme.tools import tools
+
+from bidsme.bidsMeta import BidsSession
+from bidsme.bidsMeta import BidsTable
 
 logger = logging.getLogger(__name__)
 

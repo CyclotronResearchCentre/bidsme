@@ -35,12 +35,12 @@ from datetime import datetime, date, time
 from collections import OrderedDict
 
 from .abstract import abstract
-from tools import tools
-from bidsMeta import MetaField
-from bidsMeta import BIDSfieldLibrary
-from bidsMeta import BidsSession
+from bidsme.tools import tools
+from bidsme.bidsMeta import MetaField
+from bidsme.bidsMeta import BIDSfieldLibrary
+from bidsme.bidsMeta import BidsSession
 
-from bidsmap import Run
+from bidsme.bidsmap import Run
 
 
 from ._constants import ignoremodality, unknownmodality

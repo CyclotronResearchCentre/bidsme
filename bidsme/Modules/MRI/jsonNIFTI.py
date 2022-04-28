@@ -22,15 +22,16 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
-from .MRI import MRI
-from tools import tools
-
 import os
 import logging
 import shutil
 import json
 from datetime import datetime
+
+from bidsme.tools import tools
+
+from .MRI import MRI
+from ..common import retrieveFormDict
 
 logger = logging.getLogger(__name__)
 

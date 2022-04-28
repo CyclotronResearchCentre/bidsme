@@ -28,7 +28,7 @@ import os
 import sys
 import logging
 
-from tools import appdirs
+from . import appdirs
 
 
 logger = logging.getLogger(__name__)

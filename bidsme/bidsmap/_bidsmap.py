@@ -28,12 +28,13 @@ import os
 import sys
 import logging
 from copy import deepcopy as copy
-from tools.yaml import yaml
 from collections import OrderedDict
 
+from bidsme.tools import info
+from bidsme.tools.yaml import yaml
+
 from ._run import Run
-from tools import info
-import Modules
+from bidsme import Modules
 
 logger = logging.getLogger(__name__)
 

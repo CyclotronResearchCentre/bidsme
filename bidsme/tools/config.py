@@ -28,10 +28,10 @@ import os
 import argparse
 import sys
 
-from tools import info
-from tools import paths
-from tools.yaml import yaml
-from tools.config_default import config
+from . import info
+from . import paths
+from .yaml import yaml
+from .config_default import config
 
 
 __generalDescription = "Generic tool for bidsification of dataset"

@@ -28,15 +28,15 @@ import sys
 import logging
 import time
 
-import exceptions
-from prepare import prepare
-from process import process
-from bidsify import bidsify
-from mapper import mapper
+from bidsme import exceptions
+from bidsme.prepare import prepare
+from bidsme.process import process
+from bidsme.bidsify import bidsify
+from bidsme.mapper import mapper
 
-from tools import config
-from tools import info
-from tools import paths
+from bidsme.tools import config
+from bidsme.tools import info
+from bidsme.tools import paths
 
 
 def init(level="INFO",

@@ -28,7 +28,7 @@ import logging
 
 from collections import OrderedDict
 
-from tools.tools import check_type
+from bidsme.tools.tools import check_type
 
 logger = logging.getLogger(__name__)
 

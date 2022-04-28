@@ -29,7 +29,7 @@ import logging
 import pandas
 from copy import deepcopy as copy
 
-from tools import tools
+from bidsme.tools import tools
 from .BidsMeta import BIDSfieldLibrary
 
 

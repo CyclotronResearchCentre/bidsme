@@ -27,14 +27,15 @@
 import os
 import logging
 
-import exceptions
-from tools import tools
-from tools import paths
-import plugins
+from bidsme import exceptions
+from bidsme import plugins
+from bidsme import Modules
 
-import Modules
-from bidsMeta import BidsSession
-from bidsMeta import BidsTable
+from bidsme.tools import tools
+from bidsme.tools import paths
+
+from bidsme.bidsMeta import BidsSession
+from bidsme.bidsMeta import BidsTable
 
 
 logger = logging.getLogger(__name__)

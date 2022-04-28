@@ -27,7 +27,8 @@
 import os
 import shutil
 import logging
-from tools import tools
+
+from bidsme.tools import tools
 
 from ..base import baseModule
 

@@ -29,10 +29,12 @@ import shutil
 import pandas
 from abc import abstractmethod
 
+from bidsme.bidsMeta import BIDSfieldLibrary
+from bidsme.tools import paths
+
 from ..base import baseModule
-from bidsMeta import BIDSfieldLibrary
-from tools import paths
 from . import _EEG
+
 
 logger = logging.getLogger(__name__)
 
