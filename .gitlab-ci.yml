@@ -8,7 +8,7 @@ image: "python:3.6"
     - cli
 
 variables:
-  RUN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
+  RUN: "bidsme"
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
   EXAMPLE_DIR: "bidsme_example-master"
 
@@ -19,7 +19,7 @@ cache:
 before_script: 
   - python --version
   - mkdir -p .cache/pip
-  - pip --cache-dir=.cache/pip install -r requirements.txt
+  - pip --cache-dir=.cache/pip install .
   - pip --cache-dir=.cache/pip install flake8
   - pip --cache-dir=.cache/pip install xlrd==1.2.0
   - pip --cache-dir=.cache/pip install anybadge
