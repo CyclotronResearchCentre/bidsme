@@ -88,20 +88,19 @@ def init(level="INFO",
     return logger
 
 
-def main(args: list):
+def main(arguments: list):
     """
     Runs bidsme with command line arguments, stored in
-    args list
+    arguments list
 
     Parameters:
     -----------
-    args: list
+    arguments: list
         list of command lines arguments, similar to
         sys.argv[1:]
     """
 
-    prog, args = config.parseArgs(args)
-    # prog, args = config.parseArgs(sys.argv[1:])
+    prog, args = config.parseArgs(arguments)
 
     # checking paths
     if not os.path.isdir(args.source):
@@ -179,7 +178,7 @@ def main(args: list):
             raise ValueError("Invalid command")
     except Exception as err:
         code = exceptions.ReportError(err)
-        logger.info("Command: {}".format(os.sys.argv))
+        logger.info("Command: {}".format(arguments))
 
     logger.info('-------------- FINISHED! -------------------')
     errors = info.reporterrors(logger)
@@ -188,14 +187,14 @@ def main(args: list):
     if code == 0 and errors > 0:
         logger.warning("Several errors detected but exit code is 0")
         code = 1
-    os.sys.exit(code)
+    return code
 
 
 def cli_bidsme():
     """
     Funtion hook for setup-tools executable
     """
-    main(sys.argv[1:])
+    return(main(sys.argv[1:]))
 
 
 def cli_bidsme_pdb():

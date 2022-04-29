@@ -1,3 +1,3 @@
-from .bidsme import init, main
+from .main import init, main
 
 name = "bidsme"
