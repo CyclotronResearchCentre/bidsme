@@ -27,6 +27,8 @@ import os
 import logging
 import coloredlogs
 
+from . import paths
+
 fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
 datefmt = '%Y-%m-%d %H:%M:%S'
 formatter = logging.Formatter(fmt=fmt, datefmt=datefmt)
@@ -70,8 +72,8 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__),
-                           "../..",
+    with open(os.path.join(paths.installation,
+                           "bidsme",
                            'bidsversion.txt')) as fid:
         version = fid.read().strip()
 
@@ -85,8 +87,8 @@ def version() -> str:
     :return:    The BIDSCOIN version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__),
-                           "../..",
+    with open(os.path.join(paths.installation,
+                           "bidsme",
                            'version.txt')) as fid:
         version = fid.read().strip()
 

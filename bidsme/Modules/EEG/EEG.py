@@ -106,20 +106,14 @@ class EEG(baseModule):
             }
 
     _chan_BIDS = BIDSfieldLibrary()
-    _chan_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_channels.json"))
+    _chan_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_channels.json"))
     _elec_BIDS = BIDSfieldLibrary()
-    _elec_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_electrodes.json"))
+    _elec_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_electrodes.json"))
     _task_BIDS = BIDSfieldLibrary()
-    _task_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_events.json"))
+    _task_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_events.json"))
 
     __slots__ = ["TableChannels", "TableElectrodes", "TableEvents",
                  "_channels_count"]
