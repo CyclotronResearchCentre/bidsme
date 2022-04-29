@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed
+ - Rearranged imports to be importable as module
+ - Moved `version.txt` and `bidsversion.txt` to bidsme sub-folder
+
+### Added
+ - `setup.py` scripts for setuptools
+
+
 ## [1.3.6] - 2022-04-26
 
 ### Changed
