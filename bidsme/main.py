@@ -194,7 +194,8 @@ def cli_bidsme():
     """
     Funtion hook for setup-tools executable
     """
-    return(main(sys.argv[1:]))
+    res = main(sys.argv[1:])
+    return(res)
 
 
 def cli_bidsme_pdb():
@@ -202,5 +203,10 @@ def cli_bidsme_pdb():
     Funtion hook for setup-tools executable with debugger
     """
     import pdb
-    main(sys.argv[1:])
-    pdb.run(main(sys.argv[1:]))
+    # pdb.set_trace()
+    try:
+        res = pdb.runcall(main, sys.argv[1:])
+    except Exception:
+        pdb.post_mortem()
+        res = 1
+    return 1
