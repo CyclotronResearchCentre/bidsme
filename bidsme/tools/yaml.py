@@ -37,10 +37,4 @@ def my_represent_none(self, data):
     return self.represent_scalar(u'tag:yaml.org,2002:null', u'~')
 
 
-def my_represent_str(self, data):
-    data = data.encode('unicode_escape').decode()
-    return self.represent_str("'" + data + "'")
-
-
 yaml.representer.add_representer(type(None), my_represent_none)
-# yaml.representer.add_representer(str, my_represent_str)
