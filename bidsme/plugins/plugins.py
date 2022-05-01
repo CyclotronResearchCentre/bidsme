@@ -68,6 +68,9 @@ def ImportPlugins(plugin_file):
 
     file = str(plugin_file)
 
+    global active_plugins
+    active_plugins = dict()
+
     if not os.path.isfile(file):
         raise exceptions.PluginNotFoundError("Plug-in file {} not found"
                                              .format(file))
