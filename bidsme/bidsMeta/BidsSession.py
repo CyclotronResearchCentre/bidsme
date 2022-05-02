@@ -200,27 +200,17 @@ class BidsSession(object):
             return True
 
     @classmethod
-    def loadSubjectFields(cls, filename: str = "") -> None:
+    def loadSubjectFields(cls, filename: str) -> None:
         """
         Loads the tsv fields for subject.tsv file
 
         Parameters
         ----------
         filename: str
-            path to the template json file, if None,
-            the default is loaded
+            path to the template json file
         """
-        if cls.__sub_columns is not None:
-            logger.warning("Redefinition of participants template")
         cls.__sub_columns = BIDSfieldLibrary()
-        if not filename:
-            cls.__sub_columns.AddField(
-                    name="participant_id",
-                    longName="Participant Id",
-                    description="Unique label associated with a participant"
-                    )
-        else:
-            cls.__sub_columns.LoadDefinitions(filename)
+        cls.__sub_columns.LoadDefinitions(filename)
 
     @classmethod
     def getSubjectColumns(cls) -> list:
