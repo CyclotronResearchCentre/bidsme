@@ -79,8 +79,8 @@ badges:
         - ver.svg
         - bids.svg
   script:
-    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
-    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
+    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsme/version.txt) --label=version --file=ver.svg --color=blue
+    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsme/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
   only:
     - dev
     - master
