@@ -208,4 +208,4 @@ def cli_bidsme_pdb():
     except Exception:
         pdb.post_mortem()
         res = 1
-    return 1
+    return res
