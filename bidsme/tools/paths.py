@@ -44,7 +44,7 @@ local = os.getcwd()
 installation = os.path.normpath(
         os.path.join(os.path.dirname(__file__), "..", ".."))
 
-heuristics = os.path.join(installation, "heuristics")
+heuristics = os.path.join(installation, "bidsme", "heuristics")
 templates = os.path.join(installation, "bidsme", "table_templates")
 
 config = appdirs.user_data_dir(app, user)
