@@ -6,9 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Changed
  - Rearranged imports to be importable as module
  - Moved `version.txt` and `bidsversion.txt` to bidsme sub-folder
+ - Moved heuristics folder to bidsme directory
 
 ### Added
  - `setup.py` scripts for setuptools
+
+### Removed
+ - `tests` directory, to be reintegrated later
+ - reload participants definition warning
 
 
 ## [1.3.6] - 2022-04-26
