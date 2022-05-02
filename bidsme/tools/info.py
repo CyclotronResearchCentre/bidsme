@@ -153,6 +153,12 @@ def reporterrors(logger):
     return errors
 
 
+def reseterrors(logger):
+    for handler in logger.handlers:
+        if isinstance(handler, MsgCounterHandler):
+            handler.level2count = {}
+
+
 def msg_count(or_count: {}):
     msg_counts = {}
     for lvl, count in counthandler.level2count.items():

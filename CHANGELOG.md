@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
  - `setup.py` scripts for setuptools
+ - `tools.info.reseterrors()` function to reset error counters
 
 ### Removed
  - `tests` directory, to be reintegrated later

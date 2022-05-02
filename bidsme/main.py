@@ -203,7 +203,6 @@ def cli_bidsme_pdb():
     Funtion hook for setup-tools executable with debugger
     """
     import pdb
-    # pdb.set_trace()
     try:
         res = pdb.runcall(main, sys.argv[1:])
     except Exception:
