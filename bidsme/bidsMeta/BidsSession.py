@@ -211,6 +211,7 @@ class BidsSession(object):
         """
         cls.__sub_columns = BIDSfieldLibrary()
         cls.__sub_columns.LoadDefinitions(filename)
+        cls.__sub_values = dict()
 
     @classmethod
     def getSubjectColumns(cls) -> list:
