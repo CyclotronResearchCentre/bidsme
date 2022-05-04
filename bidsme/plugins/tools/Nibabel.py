@@ -27,7 +27,7 @@ import os
 import logging
 import nibabel
 
-from Modules import baseModule
+from bidsme.Modules import baseModule
 
 logger = logging.getLogger(__name__)
 
