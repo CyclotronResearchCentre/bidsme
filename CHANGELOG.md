@@ -3,8 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.4.0r1] - 2022-05-05
+
 ### Removed
  - `baseModule`: removed spanning messages about testing files in scan folders
+
+### Fixed
+ - `bidsMeta`: Fixed not reseted bidsSession list of `subjects.tsv` columns
+ - `plugins.tools`: Fixed faulty import of `baseModule`
 
 ## [1.4.0] - 2022-05-02
 
