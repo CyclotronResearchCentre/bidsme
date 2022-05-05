@@ -299,7 +299,8 @@ class baseModule(abstract):
         FileNotFoundError
             If path is not a file
         """
-        logger.debug("{}: Testing file {}".format(cls.formatIdentity(), file))
+        # logger.debug("{}: Testing file {}"
+        #              .format(cls.formatIdentity(), file))
 
         if not os.path.exists(file):
             raise FileNotFoundError("File {} not found or not a file"
@@ -319,22 +320,22 @@ class baseModule(abstract):
                     passed = True
                     break
             if not passed:
-                logger.debug("{}: Unaccepted extention"
-                             .format(cls.formatIdentity()))
+                # logger.debug("{}: Unaccepted extention"
+                #              .format(cls.formatIdentity()))
                 return False
         try:
             res = cls._isValidFile(file)
-            if res:
-                logger.debug("{}: Passed"
-                             .format(cls.formatIdentity()))
-            else:
-                logger.debug("{}: Rejected"
-                             .format(cls.formatIdentity()))
+            # if res:
+            #     logger.debug("{}: Passed"
+            #                  .format(cls.formatIdentity()))
+            # else:
+            #     logger.debug("{}: Rejected"
+            #                  .format(cls.formatIdentity()))
             return res
 
-        except Exception as e:
-            logger.debug("{}: {}"
-                         .format(cls.formatIdentity(), e))
+        except Exception:
+            # logger.debug("{}: {}"
+            #              .format(cls.formatIdentity(), e))
             return False
 
     @classmethod
