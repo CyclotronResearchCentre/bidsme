@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## Fixed
+ - `plugins`: added `__init__.py` to tools so plugin tools will be properly installed
+
 ## [1.4.0r1] - 2022-05-05
 
 ### Removed
