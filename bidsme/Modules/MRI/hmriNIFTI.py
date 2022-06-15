@@ -111,7 +111,6 @@ class hmriNIFTI(MRI):
                 if manufacturer.lower() == "siemens":
                     acqpar["CSASeriesHeaderInfo"]
                     acqpar["CSAImageHeaderInfo"]
-                    acqpar["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]
             except json.JSONDecodeError as e:
                 logger.error("{}:{} corrupted file {}"
                              .format(cls.formatIdentity(),
@@ -149,7 +148,9 @@ class hmriNIFTI(MRI):
             if self.manufacturer == "Siemens":
                 self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
                 self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
-                self.__phoenix = self.__csas["MrPhoenixProtocol"]
+                self.__phoenix = self.__csas.get("MrPhoenixProtocol", {})
+                if not self.__phoenix:
+                    self.__phoenix = self.__csas.get("MrProtocol", {})
                 if "sWipMemBlock" in self.__phoenix:
                     self.__alFree = \
                         self.__phoenix["sWipMemBlock"].get("alFree", [])
