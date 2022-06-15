@@ -3,12 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.4.0.post3] - 2022-06-15
+
+### Fixed:
+ - MRI/hmriNIFTY: removed requirement of presence of `MrPhoenixProtocol`  
+
+### Changed:
+ - Splitted bloated README
+
 ## [1.4.0.post2] - 2022-05-06
 
-## Changed
+### Changed
  - Version naming schema for post-release fixes
 
-## Fixed
+### Fixed
  - `plugins`: added `__init__.py` to tools so plugin tools will be properly installed
 
 ## [1.4.0r1] - 2022-05-05

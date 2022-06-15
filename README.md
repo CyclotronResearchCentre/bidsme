@@ -10,12 +10,12 @@ that can be used to map the source data to BIDS are retrieved dynamically from
 source data headers (DICOM, BrainVision, nifti, etc.) and
 file structure (file and/or directory names, e.g. number of files).
 
-The retrieved information can be modified/adjusted by a set of plugins, 
-described [here](#plugins). Plugins can also be used to complete the bidsified 
+The retrieved information can be modified/adjusted by a set of plugins.
+Plugins can also be used to complete the bidsified 
 dataset, for example by parsing log files. 
 
-> NB: BIDSme support variety of formats listed in [supported formats](#formats). 
-Additional formats can be implemented following instructions [here](#new_formats).
+> NB: BIDSme support variety of formats including nifty, dicom, BrainVision.
+Additional formats can be implemented.
 
 The mapping information is stored as key-value pairs in human-readable,
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
