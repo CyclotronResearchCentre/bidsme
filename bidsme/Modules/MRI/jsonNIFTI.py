@@ -102,7 +102,7 @@ class jsonNIFTI(MRI):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
-    def acqTime(self) -> datetime:
+    def _getAcqTime(self) -> datetime:
         return None
 
     def dump(self):
