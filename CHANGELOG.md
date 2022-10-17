@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.4.0.post4] - 2022-10-17
+
+### Fixed:
+  - MRI/jsonNIFTY, PET/jsonNIFTY: fixed crash when trying to load generic json NIFTY file
+ 
 ## [1.4.0.post3] - 2022-06-15
 
 ### Fixed:
