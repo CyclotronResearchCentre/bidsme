@@ -10,8 +10,16 @@ authors:
     orcid: 0000-0000-0000-0000
     equal-contrib: false
     affiliation: 1
+  - name: Camille Guillemin
+    orcid: 0000-0000-0000-0000
+    equal-contrib: false
+    affiliation: 1
+  - name: Christophe Phillips
+    orcid: 0000-0002-4990-425X
+    equal-contrib: false
+    affiliation: 1
 affiliations:
- - name: University of Liege, Liege, Belgium
+ - name: GIGA Cyclotron Research Centre in vivo imaging, University of Liege, Liege, Belgium
    index: 1
 date: 23 November 2022
 bibliography: paper.bib
@@ -20,7 +28,7 @@ bibliography: paper.bib
 # Summary
 
 The purpose of Bidsme is to organize a given medical image dataset following
-Brain Image Dataset Standard (BIDS) [Ref].
+"Brain Image Dataset Standard" (BIDS) [Ref].
 Bidsme is an all-in-one organizer tool, that not only re-structures and renames
 the original data files, but also fills the necessary metadata.
 During the organization of the data, Bidsme provides the user with the full control
@@ -47,7 +55,7 @@ Brain Image Dataset Standard (BIDS)[ref],
 which imposes a standard structure to stored data, and defines the required
 associated metadata.
 Once a dataset follows the imposed structure, any analysis tool,
-supporting the BIDS, should be able to find the needed data and process it.
+supporting the BIDS, should be able to automaticaly find the needed data and process it.
 
 While, prior to the introduction of BIDS, the main challenge was to adapt
 a given processing script to a different (typically inconsistent) dataset structures,
@@ -63,8 +71,7 @@ This makes it difficult to use generalized tools like, e.g. `dcm2niix`[ref].
 Any new experimental acquisition protocol may introduce new important
 metadata, which risks to be ignored by generalized tools.
 Developers will do their best to incorporate the most popular protocols,
-but the most exotic ones will be probably ignored.
-
+but the most exotic ones will be probably overlooked.
 Other tools, like, e.g. `bidscoin`[ref] may rely on conventions used in the laboratory
 of the developers, and may be difficult to use in laboratories following
 different conventions.
@@ -92,10 +99,9 @@ retrieved metadata.
 
 The bidsification workflow using the Bidsme is presented in
 Fig \autoref{fig:workflow}.
-It is separated into two main steps: the preparation and the bidsification.
+It is organized into two main steps: the "preparation" and the "bidsification".
 
-![Workflow of a bidsification using Bidsme. Dashed arrows and boxes represents optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
-and referenced from text using \autoref{fig:example}.
+![Workflow of a bidsification using Bidsme. Dashed arrows and boxes represent optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
 
 The preparation step, as the name indicates, prepares the dataset
 for bidsification: it organizes the dataset into BIDS-like
@@ -113,8 +119,8 @@ This can be useful when bidsifying datasets with several modalities
 
 The proper bidsification step is then performed on the prepared dataset.
 Bidsme scans for all data and with the help of a configuration file, i.e.
-`bidsmap.yaml`, it identifies each data file, it generates 
-the new bidsified name, and it exports the desired metadata 
+`bidsmap.yaml`, it identifies each data file, it generates
+the new bidsified name, and it exports the desired metadata
 into sidecar json file.
 
 The aforementioned `bidsmap.yaml` configuration file is the central
@@ -126,7 +132,7 @@ user-defined values, and in case of success, the bidsification rules will be app
 The file-naming rules are defined as a list of entities
 and corresponding values, which can be either
 provided by the user or retrieved dynamically from the metadata.
-The metadata rules in the sidecar json file are defined in the
+The metadata rules in the sidecar `.json` file are defined in the
 same way, allowing the user to automatically export given values
 from the metadata, or provide a value manually.
 
@@ -148,13 +154,13 @@ and a variety of data formats, summarized in table [ref].
 
 | Modality | Data format | Module required |
 | -------- | ----------- | ------------- |
-| MRI      | nifti       | nibabel       |
-|          | nifti+json  |               |
-|          | nifti+json(SPM) |           |
+| MRI      | NIfTI   | nibabel       |
+|          | NIfTI+JSON |               |
+|          | NIfTI+JSON (SPM) |           |
 |          | dicom       | pydicom       |
-| PET      | nifti       | nibabel       |
-|          | nifti+json  |               |
-|          | nifti+json(SPM) |           |
+| PET      | NIfTI  | nibabel       |
+|          | NIfTI+JSON |               |
+|          | NIfTI+JSON (SPM) |           |
 |          | dicom       | pydicom       |
 |          | ECAT        | nibabel       |
 | EEG      | BrainVision | mne           |
@@ -170,4 +176,13 @@ and implements the metadata extraction, file validation, copy etc.
 Hence, it is relatively easy to expand Bidsme to support new data modalities and formats, simply
 by creating a new class and defining a handful of low-level functions.
 This allow to quickly include additional data modalities, even if they are not currently supported by
-BIDS (for example, actigraphy data).
+BIDS (for example, MEG or actigraphy data).
+
+
+# Acknowledgements
+
+This work and Nikita Beliy were supported by
+the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium)
+through Grant No. EOS 30446199 and the University of Liège.
+Christophe Phillips is supported by
+the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium).
