@@ -59,14 +59,13 @@ The bidsification workflow using the Bidsme is presented in Fig \autoref{fig:wor
 ![Workflow of a bidsification using Bidsme. Dashed arrows and boxes represent optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
 </center>
 
-The preparation step, as the name indicates, prepares the dataset for bidsification: it organizes the dataset into BIDS-like structure, with separate folders for each subject and session. The standardized structure of the prepared dataset not only facilitates further bidsification, but also helps with visual inspection of data integrity and provides an opportunity for intervention into the dataset (e.g. with removal of corrupted or failed data samples), while keeping the original dataset safe from any manipulation. Several original datasets can be prepared into the same dataset, as long as there is no overlapping data.
-This can be useful when bidsifying datasets with several modalities (MRI, EEG, PET).
+The preparation step, as the name indicates, prepares the dataset for bidsification: it organizes the dataset into BIDS-like structure, with separate folders for each subject and session. The standardized structure of the prepared dataset not only facilitates further bidsification, but also helps with visual inspection of data integrity and provides an opportunity for intervention into the dataset (e.g. with removal of corrupted or failed data samples), while keeping the original dataset safe from any manipulation. Several original datasets can be prepared into the same dataset, as long as there is no overlapping data. This can be useful when bidsifying datasets with several modalities (MRI, EEG, PET).
 
 The proper bidsification step is then performed on the prepared dataset. Bidsme scans for all data and with the help of a configuration file, i.e. `bidsmap.yaml`, it identifies each data file, it generates the new bidsified name, and it exports the desired metadata into sidecar json file.
 
 The aforementioned `bidsmap.yaml` configuration file is the central piece of the bidsification workflow. For each supported data format and data type (Tab \autoref{tab:formats}), it defines a set of criteria to identify a given modality and a set of rules to bidsifiy the identified files. Identification criteria will match a given data file metadata with user-defined values, and in case of success, the bidsification rules will be applied. The file-naming rules are defined as a list of entities and corresponding values, which can be either provided by the user or retrieved dynamically from the metadata. The metadata rules in the sidecar `.json` file are defined in the same way, allowing the user to automatically export given values from the metadata, or provide a value manually.
 
-Bidsme implements a flexible system of plugins, that can be used at any stage. A plug-in is a python file with a set of user-implemented functions, which are executed at important points of processing and gives access to the relevant data. Usage of plugins allow, for example, rename subjects and sessions, provide subject-related metadata, incorporate auxiliary data into dataset (e.g. physiological), add user calculated values into metadata, control data integrity, and so forth.
+Bidsme implements a flexible system of plugins, that can be used at any stage. A plug-in is a python file with a set of user-implemented functions, which are executed at important points of processing and gives access to the relevant data. Usage of plugins allow, for example, rename subjects and sessions, provide subject-related metadata, incorporate auxiliary data into dataset (e.g. physiological), add user calculated values into metadata, control data integrity, and so forth. To help with the implementation of the plugins, Bidsme provides a template, which describes the signature of plugins, and a set of helper functions that implement common tasks, for example assembling a set 3D MRI images into one 4D MRI image, or extract b-values from diffusion MRI image.
 
 # Supported data types and formats
 
@@ -78,11 +77,9 @@ Bidsme was developed to work with multiple data types and data formats. At the t
 | --------     | -----------        | -------------             |
 | MRI        | NIfTI            | nibabel              |
 |              | NIfTI+JSON  |                           |
-|              | NIfTI+JSON (SPM) |                  |
 |              | dicom          | pydicom            |
 | PET        | NIfTI            | nibabel              |
 |              | NIfTI+JSON  |                           |
-|              | NIfTI+JSON (SPM) |                  |
 |              | dicom          | pydicom             |
 |              | ECAT            | nibabel               |
 | EEG       | BrainVision   | mne                   |
