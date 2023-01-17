@@ -14,6 +14,14 @@ authors:
     orcid: 0000-0000-0000-0000
     equal-contrib: false
     affiliation: 1
+  - name: Emeline POMMIER
+    orcid: 0000-0000-0000-0000
+    equal-contrib: false
+    affiliation: 1
+  - name: Gregory Hammad
+    orcid: 0000-0000-0000-0000
+    equal-contrib: false
+    affiliation: 1
   - name: Christophe Phillips
     orcid: 0000-0002-4990-425X
     equal-contrib: false
