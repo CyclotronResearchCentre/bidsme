@@ -14,12 +14,12 @@ authors:
     orcid: 0000-0000-0000-0000
     equal-contrib: false
     affiliation: 1
-  - name: Emeline POMMIER
+  - name: Emeline Pommier
     orcid: 0000-0000-0000-0000
     equal-contrib: false
     affiliation: 1
   - name: Gregory Hammad
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0003-1083-3869
     equal-contrib: false
     affiliation: 1
   - name: Christophe Phillips
@@ -27,7 +27,7 @@ authors:
     equal-contrib: false
     affiliation: 1
 affiliations:
- - name: GIGA Cyclotron Research Centre in vivo imaging, University of Liege, Liege, Belgium
+ - name: GIGA - Cyclotron Research Centre in vivo imaging, University of Liege, Liege, Belgium
    index: 1
 date: 23 November 2022
 bibliography: paper.bib
@@ -35,11 +35,11 @@ bibliography: paper.bib
 
 # Summary
 
-The purpose of Bidsme is to organize a given medical image dataset following "Brain Image Dataset Standard" (BIDS) [@Gorgolewski2016]. Bidsme is an all-in-one organizer tool, that not only re-structures and renames the original data files, but also fills the necessary metadata. During the organization of the data, Bidsme provides the user with the full control over the data, allowing the use of non-standard metadata and file names. Likewise, it allows to organize modalities that are not yet described in BIDS. Instead of strictly imposing this standard, Bidsme allows the user to fully configure how the source dataset will be organized and what metadata will be included. Bidsme can be used both as python package and command-line tool, and includes a tutorial with a test dataset.
+The purpose of Bidsme is to organize a given medical image dataset following the "Brain Image Dataset Standard" (BIDS) [@Gorgolewski2016]. Bidsme is an all-in-one organizer tool, that not only renames and re-structures the original data files, but also extracts and formats the necessary metadata. During the data organization, Bidsme provides the user with the full control over these processes, allowing the use of non-standard metadata and file names, as well as the addition of modalities not yet described by the BIDS. Instead of strictly imposing this standard, Bidsme allows the user to fully configure how the source dataset will be organized and what metadata will be included. Bidsme can be used both as python package and command-line tool, and includes a tutorial with a test dataset.
 
 # Statement of need
 
-For a long time, the neuroimaging community suffered by a lack of standardization of stored datasets, formats and metadata conventions. Different laboratories (and even different researches within a laboratory) had their own, idiosyncratic ways to organize their data. Analysis was performed with scripts tailored to a specific data structure, which made sharing data and analysis methods unnecessarily complicated. Consequently, it was difficult to ensure results repeatability and validation. 
+For a long time, the neuroimaging community suffered by a lack of standardization of stored datasets, formats and metadata conventions. Different laboratories (and even different research groups within a laboratory) had their own, idiosyncratic ways to organize their data. Analysis was performed with scripts tailored to a specific data structure, which made sharing data and analysis methods unnecessarily complicated. Consequently, it was difficult to ensure results repeatability and validation.
 
 The situation started to change after the introduction of the Brain Image Dataset Standard (BIDS) [@Gorgolewski2016], which imposes a standard structure to stored data, and defines the required associated metadata. Once a dataset follows the imposed structure, any analysis tool, supporting the BIDS, should be able to automaticaly find the needed data and process it.
 
