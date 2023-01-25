@@ -35,7 +35,7 @@ bibliography: paper.bib
 
 # Summary
 
-The purpose of Bidsme is to organize a given medical image dataset following the "Brain Image Dataset Structure" (BIDS) [@Gorgolewski2016]. Bidsme is an all-in-one organizer tool, that not only renames and re-structures the original data files, but also extracts and formats the necessary metadata. During the data organization, Bidsme provides the user with the full control over these processes, allowing the use of non-standard metadata and file names, as well as the addition of modalities not yet described by the BIDS. Instead of strictly imposing this standard, Bidsme allows the user to fully configure how the source dataset will be organized and what metadata will be included. Bidsme can be used both as python package and command-line tool, and includes a tutorial with a test dataset.
+The purpose of Bidsme is to organize a given medical image dataset following the "Brain Image Dataset Structure" (BIDS) [@Gorgolewski2016]. Bidsme is an all-in-one organizer tool, that not only renames and re-structures the original data files, but also extracts and formats the necessary metadata. During the data organization, Bidsme provides the user with the full control over these processes, allowing the use of non-standard metadata and file names, as well as the addition of modalities not yet described by the BIDS. Instead of strictly imposing this structure, Bidsme allows the user to fully configure how the source dataset will be organized and what metadata will be included. Bidsme can be used both as python package and command-line tool, and includes a tutorial with a test dataset.
 
 # Statement of need
 
