@@ -87,12 +87,12 @@ Bidsme was developed to work with multiple data types and data formats. At the t
 
 </center>
 
-Bidsme was implemented using an object-oriented approach, where the interactions with the actual data files are implemented in base class in the Modules package. Every data type inherits from the base class and implements the BIDS requirements for that data type. Interactions with the data files are defined in a class which inherits from data type class and implements the metadata extraction, file validation, copy etc. Hence, it is relatively easy to expand Bidsme to support new data modalities and formats,  simply by creating a new class and defining a handful of low-level functions. This allow to quickly include additional data modalities, even if they are not currently supported by BIDS (for example, MEG or actigraphy data).
+Bidsme was implemented using an object-oriented approach, where the interactions with the actual data files are implemented in base class in the Modules package. Every data type inherits from the base class and implements the BIDS requirements for that data type. Interactions with the data files are defined in a class which inherits from data type class and implements the metadata extraction, file validation, copy etc. Hence, it is relatively easy to expand Bidsme to support new data modalities and formats, simply by creating a new class and defining a handful of low-level functions. This allows users to quickly include additional data modalities, even if they are not currently supported by BIDS (for example, MEG or actigraphy data).
 
 # Acknowledgements
 
 This work and Nikita Beliy were supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium) through Grant No. EOS 30446199 and the University of Liège. Christophe Phillips is supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium).
 
-As Bidsme was developped basing on [Bidscoin](https://github.com/Donders-Institute/bidscoin)[@Zwiers2022] package, we would like to thanks its developpers, and in particular it lead developper Marcel Zweirs.
+As Bidsme was developped basing on [Bidscoin](https://github.com/Donders-Institute/bidscoin)[@Zwiers2022] package, we would like to thanks its developpers, and in particular its lead developper Marcel Zweirs.
 
 # References
