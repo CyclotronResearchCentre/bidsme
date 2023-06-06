@@ -53,7 +53,7 @@ These fundamental principles have been adopted as guidelines for the development
 
 # Bidsme overview and usage
 
-The bidsification workflow using Bidsme is presented in Fig \autoref{fig:workflow}. It is organized into two main steps: the "preparation" and the "bidsification".
+The bidsification workflow using Bidsme is presented in \autoref{fig:workflow}. It is organized into two main steps: the "preparation" and the "bidsification".
 
 <center>
 ![Workflow of a bidsification using Bidsme. Dashed arrows and boxes represent optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
@@ -63,13 +63,13 @@ The preparation step organizes the dataset into BIDS-like structure, with separa
 
 The proper bidsification step is then performed on the prepared dataset. Bidsme scans for all data and with the help of a configuration file, i.e. `bidsmap.yaml`, it identifies each data file, generates the new bids-compliant name, and exports the desired metadata into a sidecar json file.
 
-The aforementioned `bidsmap.yaml` configuration file is the central piece of the bidsification workflow. For each supported data format and data type (Tab \autoref{tab:formats}), it defines a set of criteria to identify a given modality and a set of rules to bidsifiy the identified files. Identification criteria will match a given data file metadata with user-defined values, and in case of success, the bidsification rules will be applied. The file naming rules are defined as a list of entities and corresponding values, which can be either provided by the user or retrieved dynamically from the metadata. The metadata rules in the sidecar json file are defined in the same way, allowing the user to automatically export specific values from the metadata, or provide a value manually in case of missing metadata.
+The aforementioned `bidsmap.yaml` configuration file is the central piece of the bidsification workflow. For each supported data format and data type (\autoref{tab:formats}), it defines a set of criteria to identify a given modality and a set of rules to bidsifiy the identified files. Identification criteria will match a given data file metadata with user-defined values, and in case of success, the bidsification rules will be applied. The file naming rules are defined as a list of entities and corresponding values, which can be either provided by the user or retrieved dynamically from the metadata. The metadata rules in the sidecar json file are defined in the same way, allowing the user to automatically export specific values from the metadata, or provide a value manually in case of missing metadata.
 
 In addition, Bidsme implements a flexible system of plugins that can be used at any stage. A plug-in is a python file with a set of user-implemented functions, which are executed at specific processing steps and gives access to the relevant data. Plugins allow users, for example, to rename subjects and sessions, to provide subject-related metadata, to incorporate auxiliary data (e.g. physiological) into the dataset, to add user calculated values into the metadata or to control data integrity. To help with the implementation of the plugins, Bidsme provides a template that describes the signature of the plugin functions, and a set of helper functions that implement common tasks like, for example, assembling a set 3D MRI images into one 4D MRI image, or extracting b-values from diffusion MRI image.
 
 # Supported data types and formats
 
-Bidsme was developed to work with multiple data types and data formats. At the time of writing, Bidsme supports MRI, PET and EEG data types and a variety of data formats, summarized in Tab \autoref{tab:formats}.
+Bidsme was developed to work with multiple data types and data formats. At the time of writing, Bidsme supports MRI, PET and EEG data types and a variety of data formats, summarized in \autoref{tab:formats}.
 
 <center>
 
@@ -85,6 +85,7 @@ Bidsme was developed to work with multiple data types and data formats. At the t
 | EEG       | BrainVision   | mne                   |
 |              | EDF/EDF+    | mne                   |
 
+: List of supported data formats together with Python3 modules\label{tab:formats}
 </center>
 
 Bidsme was implemented using an object-oriented approach, where the interactions with the actual data files are implemented in base class in the Modules package. Every data type inherits from the base class and implements the BIDS requirements for that data type. Interactions with the data files are defined in a class which inherits from data type class and implements the metadata extraction, file validation, copy etc. Hence, it is relatively easy to expand Bidsme to support new data modalities and formats, simply by creating a new class and defining a handful of low-level functions. This allows users to quickly include additional data modalities, even if they are not currently supported by BIDS (for example, MEG or actigraphy data).

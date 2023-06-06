@@ -1,5 +1,5 @@
 {
-  "@context": "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme",
+  "@context": "https://github.com/CyclotronResearchCentre/bidsme",
   "@type": "Code",
   "author": [
     {
