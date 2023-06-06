@@ -1,0 +1,23 @@
+{
+  "@context": "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "https://orcid.org/0009-0002-0830-3279",
+      "@type": "Person",
+      "email": "nikita.beliy@uliege.be",
+      "name": "Nikita Beliy",
+      "affiliation": "GIGA Cyclotron Research Centre in vivo imaging, University of Liege, Liege, Belgium"
+    }
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/CyclotronResearchCentre/bidsme",
+  "datePublished": "",
+  "dateModified": "",
+  "dateCreated": "2023-01-18",
+  "description": "An extendable bidsifier of multimodal datasets",
+  "keywords": "BIDS, data management, standardization",
+  "license": "GNU GPL 2+",
+  "title": "bidsme",
+  "version": "1.4.0.post4"
+}
