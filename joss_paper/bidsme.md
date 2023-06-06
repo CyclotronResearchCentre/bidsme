@@ -7,11 +7,11 @@ tags:
   - standardization
 authors:
   - name: Nikita Beliy
-    orcid: 0000-0000-0000-0000
+    orcid: 0009-0002-0830-3279
     equal-contrib: false
     affiliation: 1
   - name: Camille Guillemin
-    orcid: 0000-0000-0000-0000
+    orcid: 0000-0002-5377-7417
     equal-contrib: false
     affiliation: 1
   - name: Emeline Pommier
@@ -43,7 +43,7 @@ For a long time, the neuroimaging community suffered from a lack of standardized
 
 The Brain Image Dataset Structure (BIDS) [@Gorgolewski2016] was introduced to change this situation; it imposes a standard data structure and defines the required associated metadata. Once a dataset follows the imposed structure, any analysis tool, supporting the BIDS, should be able to automatically find the needed data to process it.
 
-Prior to the introduction of the BIDS, the main challenge was to adapt the processing scripts to the different (typically inconsistent) dataset structures. With the advent of the BIDS, the main challenge is now to **"bidsify" a given dataset**, i.e. adapt a dataset to the BIDS. Not only the image files must be renamed according to the standard, but also the associated metadata must contain all expected values, using expected conventions and measurement units.
+Prior to the introduction of the BIDS, the main challenge was to adapt the processing scripts to the different (typically inconsistent) dataset structures. With the advent of the BIDS, the main challenge is now to "bidsify" a given dataset, i.e. adapt a dataset to the BIDS. Not only the image files must be renamed according to the standard, but also the associated metadata must contain all expected values, using expected conventions and measurement units.
 
 The challenge increases for datasets acquired prior to the introduction of BIDS, where often mandatory information may not even be present in the original data, or be encoded in a non-common way. This makes it difficult to use generalized tools like, e.g. [dcm2niix](https://github.com/rordenlab/dcm2niix) [@Li2016]. Any new experimental acquisition protocol may introduce new important metadata, which risks to be ignored by generalized tools. Developers will do their best to incorporate the most popular protocols, but the most exotic ones will be probably overlooked. Other tools, like, e.g. [Bidscoin](https://github.com/Donders-Institute/bidscoin) [@Zwiers2022] may rely on conventions used in the laboratory of the developers, and may be difficult to use in laboratories following different conventions.
 
@@ -91,7 +91,7 @@ Bidsme was implemented using an object-oriented approach, where the interactions
 
 # Acknowledgements
 
-This work and Nikita Beliy were supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium) through Grant No. EOS 30446199 and the University of Liège. Christophe Phillips is supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium).
+This work and Nikita Beliy were supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium) through Grant No. EOS 30446199 and the University of Liège. Camille Guillemin was supported by University of Liege. Christophe Phillips is supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium).
 
 As Bidsme was developped basing on [Bidscoin](https://github.com/Donders-Institute/bidscoin)[@Zwiers2022] package, we would like to thanks its developpers, and in particular its lead developper Marcel Zweirs.
 
