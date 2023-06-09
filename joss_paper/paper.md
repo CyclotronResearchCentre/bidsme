@@ -15,7 +15,6 @@ authors:
     equal-contrib: false
     affiliation: 1
   - name: Emeline Pommier
-    orcid: 0000-0000-0000-0000
     equal-contrib: false
     affiliation: 1
   - name: Gregory Hammad
