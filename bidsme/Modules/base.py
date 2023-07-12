@@ -1141,18 +1141,20 @@ class baseModule(abstract):
             else:
                 self.labels = OrderedDict.fromkeys(
                         self.bidsmodalities[run.model])
-            self.suffix = self.getDynamicField(run.suffix)
-            for key in run.entity:
-                val = self.getDynamicField(run.entity[key])
-                self.labels[key] = val
         elif run.modality == ignoremodality:
             self._modality = run.modality
             return
         else:
-            logger.error("{}/{}: Unregistered modality {}"
-                         .format(self.get_rec_id(),
-                                 self.index,
-                                 run.model))
+            if not run.checked:
+                logger.warning("{}: Non BIDS modality {}"
+                               .format(self.recIdentity(),
+                                       run.model))
+            self.labels = OrderedDict.fromkeys(run.entity)
+
+        self.suffix = self.getDynamicField(run.suffix)
+        for key in run.entity:
+            val = self.getDynamicField(run.entity[key])
+            self.labels[key] = val
 
         self.metaAuxiliary = dict()
         for key, val in run.json.items():
