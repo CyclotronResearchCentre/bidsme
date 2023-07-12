@@ -100,8 +100,7 @@ class Bidsmap(object):
                 if not form:
                     continue
                 if f_name not in self.Modules[module]:
-                    logger.warning("Failed to find type {}/{} "
-                                   "readed from {}"
+                    logger.warning("Failed to find type {}/{} readed from {}. "
                                    .format(module, f_name, yamlfile))
                     continue
                 # Over Modalities
@@ -116,7 +115,7 @@ class Bidsmap(object):
                             .isValidModality(m_name):
                         logger.warning("Modality {} not defined for {}/{}"
                                        .format(m_name, module, f_name))
-                        continue
+
                     self.Modules[module][f_name][m_name] =\
                         [None] * len(modality)
                     for ind, run in enumerate(modality):
