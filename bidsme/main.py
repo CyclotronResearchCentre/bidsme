@@ -195,7 +195,7 @@ def cli_bidsme():
     Funtion hook for setup-tools executable
     """
     res = main(sys.argv[1:])
-    return(res)
+    return res
 
 
 def cli_bidsme_pdb():
