@@ -174,9 +174,8 @@ class ECAT(PET):
             try:
                 tmp = tmp.decode()
             except UnicodeError:
-                logger.warning("Unable to decode '{}'"
-                               .format(tmp))
-                tmp = "UnicodeError"
+                logger.debug("Can't decode bytes string")
+                tmp = "BytesString"
         return tmp
 
     def _adaptMetaField(self, name):

@@ -28,8 +28,9 @@ modalities dictionary contains a name of modality
 tuple of entities names for corresponding modslity
 as value
 """
+sub-<label>[_ses-<label>][_task-<label>][_trc-<label>][_rec-<label>][_run-<index>]_pet.
 modalities = {
-        "pet": ("task", "acq", "rec", "run"),
+        "pet": ("task", "trc", "rec", "run"),
         "ct": ("acq", "ce", "rec", "run"),
         }
 
@@ -46,7 +47,7 @@ for sidcar json.
 """
 required_common = [
         # Info section
-        "Modality", "Manufacturer", "ManufacturersModelName",
+        "Manufacturer", "ManufacturersModelName",
         ]
 
 recommended_common = [
@@ -78,9 +79,6 @@ required_modality = {
             "ReconMethodParameterUnits", "ReconMethodParameterValues",
             "ReconFilterType", "ReconFilterSize",
             "AttenuationCorrection",
-            # Blood
-            "PlasmaAvail", "MetaboliteAvail", "WholeBloodAvail",
-            "DispersionCorrected"
             ],
         "ct": [
             "CTDIvol", "CTDIvolUnit",
@@ -119,11 +117,6 @@ recommended_modality = {
             "AttenuationCorrectionMethodReference",
             "ScaleFactor", "ScatterFraction", "DecayCorrectionFactor",
             "PromptRate", "RandomRate", "SinglesRate",
-            # Blood
-            "TubingType", "TubingLength", "DispersionConstant",
-            "Haematocrit", "BloodDensity",
-            "PlasmaFreeFraction", "PlasmaFreeFractionMethod",
-            "MetaboliteMethod", "MetaboliteRecoveryCorrectionApplied"
             ],
         "ct": [
             "DeviceSerialNumber", "StationName", "SoftwareVersions",
