@@ -28,7 +28,6 @@ modalities dictionary contains a name of modality
 tuple of entities names for corresponding modslity
 as value
 """
-sub-<label>[_ses-<label>][_task-<label>][_trc-<label>][_rec-<label>][_run-<index>]_pet.
 modalities = {
         "pet": ("task", "trc", "rec", "run"),
         "ct": ("acq", "ce", "rec", "run"),
