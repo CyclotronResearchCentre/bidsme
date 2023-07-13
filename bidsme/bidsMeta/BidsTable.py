@@ -90,7 +90,10 @@ class BidsTable(object):
                 raise FileNotFoundError(definitionsFile)
 
         with open(definitionsFile, "r") as f:
-            self._definitions = json.load(f)
+            self._definitions = {key: val for key, val in json.load(f).items()
+                                 if isinstance(val, dict)
+                                 and "Description" in val
+                                 }
 
         # loading table
         self.df = None

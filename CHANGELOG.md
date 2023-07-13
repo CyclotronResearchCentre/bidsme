@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed:
+  - Table sidecars (including participants.json) now supports extra phields, not related to columns names
+
 ## [1.4.1] - 2023-07-12
 
 ### Fixed:
