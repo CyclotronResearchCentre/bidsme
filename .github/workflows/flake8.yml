@@ -16,10 +16,12 @@ jobs:
     - name: Install dependencies
       run: |
           python -m pip install --upgrade pip
-          pip install flake8
+          pip install flake8 wheel
           pip install .
     - name: instalation test
-      run: bidsme --help
+      run: |
+        cd
+        bidsme --help
     - name: lint with flake8
       run: |
         flake8 .
