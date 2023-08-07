@@ -22,3 +22,16 @@ jobs:
     - name: lint with flake8
       run: |
         flake8 .
+    - name: getting Test DS
+      run: |
+        cd
+        git clone https://github.com/CyclotronResearchCentre/bidsme_examples.git
+        cd bidsme_examples/example1
+    - name: preparation
+      run: bidsme prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
+    - name: mapping
+      run:  bidsme map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
+    - name: process
+      run:  bidsme process renamed/ bids/ --plugin resources/plugins/process_plugin.py
+    - name: bidsfify 
+      run: bidsme bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
