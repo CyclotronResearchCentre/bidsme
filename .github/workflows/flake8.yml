@@ -18,6 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install xlrd==1.2.0 openpyxl
           pip install flake8 wheel
+          pip index versions pandas
           pip install .
     - name: instalation test
       run: |
