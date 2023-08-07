@@ -33,6 +33,7 @@ jobs:
         cd
         git clone https://github.com/CyclotronResearchCentre/bidsme_examples.git
         cd bidsme_examples/example1
+        pip install xldr
     - name: preparation
       run: |
         cd ~/bidsme_examples/example1
