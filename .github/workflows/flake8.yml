@@ -16,6 +16,7 @@ jobs:
     - name: Install dependencies
       run: |
           python -m pip install --upgrade pip
+          pip install xlrd==1.2.0
           pip install flake8 wheel
           pip install .
     - name: instalation test
@@ -33,7 +34,6 @@ jobs:
         cd
         git clone https://github.com/CyclotronResearchCentre/bidsme_examples.git
         cd bidsme_examples/example1
-        pip install openpyxl
     - name: preparation
       run: |
         cd ~/bidsme_examples/example1
