@@ -437,7 +437,6 @@ latest/02-common-principles.html
                       if isinstance(val, dict)
                       and "Description" in val
                       }
-                        
 
         for name, lib in struct.items():
             longName = lib.get("LongName", "")
