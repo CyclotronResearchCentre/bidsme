@@ -1,5 +1,5 @@
-pandas<=1.4.4
-ruamel.yaml>=0.15.35
+pandas <= 1.4.4
+ruamel.yaml >= 0.15.35
 coloredlogs
 pydicom >= 1.4.2
 nibabel
