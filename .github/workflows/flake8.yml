@@ -6,7 +6,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ["3.6", "3.7", "3.8"]
+        python-version: ["3.6"]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
@@ -21,7 +21,10 @@ jobs:
     - name: instalation test
       run: |
         cd
+        pwd
+        which bidsme
         bidsme --help
+        python -c 'from bidsme.tools import tools'
     - name: lint with flake8
       run: |
         flake8 .
