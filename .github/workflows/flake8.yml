@@ -41,12 +41,12 @@ jobs:
     - name: mapping
       run:  |
         cd ~/bidsme_examples/example1
-        bidsme map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
+        bidsme map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py -b resources/map/bidsmap.yaml
     - name: process
       run:  |
         cd ~/bidsme_examples/example1
-        bidsme process renamed/ bids/ --plugin resources/plugins/process_plugin.py
+        bidsme process renamed/ bids/ --plugin resources/plugins/process_plugin.py -b resources/map/bidsmap.yaml
     - name: bidsfify 
       run: |
         cd ~/bidsme_examples/example1
-        bidsme bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py
+        bidsme bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py -b resources/map/bidsmap.yaml
