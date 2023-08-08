@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added:
  - Integrartion test for GitHub
+### Changed:
+  - Table sidecars (including participants.json) now supports extra phields, not related to columns names
 
 ## [1.4.1] - 2023-07-12
 
