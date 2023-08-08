@@ -1,3 +1,5 @@
+![integration test](https://github.com/github/docs/actions/workflows/integration.yml/badge.svg)
+
 # BIDSme
 
 [BIDSme](https://github.com/CyclotronResearchCentre/bidsme)

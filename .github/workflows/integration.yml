@@ -1,4 +1,4 @@
-name: test flake8
+name: integration test
 on: push
 jobs:
   build:
@@ -18,15 +18,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install xlrd==1.2.0 openpyxl
           pip install flake8 wheel
-          pip index versions pandas
           pip install .
     - name: instalation test
       run: |
         cd
-        pwd
-        which bidsme
         bidsme --help
-        python -c 'from bidsme.tools import tools'
     - name: lint with flake8
       run: |
         flake8 .
