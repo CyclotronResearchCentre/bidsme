@@ -1,4 +1,4 @@
-![integration test](https://github.com/github/docs/actions/workflows/integration.yml/badge.svg)
+![integration test](https://github.com/CyclotronResearchCentre/bidsme/actions/workflows/integration.yml/badge.svg)
 
 # BIDSme
 
