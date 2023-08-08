@@ -433,7 +433,10 @@ latest/02-common-principles.html
             raise TypeError("filename must be a string")
 
         with open(filename, "r") as f:
-            struct = json.load(f)
+            struct = {key: val for key, val in json.load(f).items()
+                      if isinstance(val, dict)
+                      and "Description" in val
+                      }
 
         for name, lib in struct.items():
             longName = lib.get("LongName", "")

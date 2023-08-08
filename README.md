@@ -1,6 +1,8 @@
+![integration test](https://github.com/CyclotronResearchCentre/bidsme/actions/workflows/integration.yml/badge.svg)
+
 # BIDSme
 
-[BIDSme](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme)
+[BIDSme](https://github.com/CyclotronResearchCentre/bidsme)
 is a open-source python tool that converts ("bidsifies") source-level (raw) neuroimaging 
 datasets to [BIDS-conformed](https://bids-specification.readthedocs.io/en/stable).
 Rather then depending on complex or ambiguous programmatic logic for the 
@@ -21,28 +23,24 @@ The mapping information is stored as key-value pairs in human-readable,
 widely supported [YAML](http://yaml.org/) files, generated from a template yaml-file.
 
 
-## <a name="requirements"></a> Requirements
+## Installation
 
-See `requirements.txt`.
+Bidsme can be installed using pip:
 
-### Mandatory
-- python>=3.6
-- pandas
-- ruamel.yaml>=0.15.35
-- coloredlogs
+```bash
+python3 -m pip install git+https://github.com/CyclotronResearchCentre/bidsme.git
+```
 
-### Optional
+It will automatically install packages from `requirements.txt`. When treating specific data formats, additional modules may be required:
 
-These modules are needed for working with specific image formats:
+- pydicom>=1.4.2 (for DICOM images)
+- nibabel>=3.1.0 (for ECAT7 images)
+- mne (for various EEG/MEG recordings)
 
-- pydicom>=1.4.2
-- nibabel>=3.1.0
-- mne
+It is recommended to use virtual environment when installing bidsme (more info [here](https://github.com/CyclotronResearchCentre/bidsme_tutorial#using-virtual-environments-and-kernels) and [here](https://docs.python.org/3/library/venv.html)).
 
 ## Instructions and examples
 
-`bidsme` comes with an
-[example/toy dataset](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example),
-and the [tutorial](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_tutorial).
+`bidsme` comes with an [example/toy dataset](https://github.com/CyclotronResearchCentre/bidsme_examples), and the [tutorial](https://github.com/CyclotronResearchCentre/bidsme_tutorial).
 
 Additianl info are aviable in `doc` folder.

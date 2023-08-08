@@ -1,0 +1,49 @@
+name: integration test
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+          python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+          python -m pip install --upgrade pip
+          pip install xlrd==1.2.0 openpyxl
+          pip install flake8 wheel
+          pip install .
+    - name: instalation test
+      run: |
+        cd
+        bidsme --help
+    - name: lint with flake8
+      run: |
+        flake8 .
+    - name: getting Test DS
+      run: |
+        cd
+        git clone https://github.com/CyclotronResearchCentre/bidsme_examples.git
+        cd bidsme_examples/example1
+    - name: preparation
+      run: |
+        cd ~/bidsme_examples/example1
+        bidsme prepare source/ renamed/ -r nii=MRI --part-template resources/participants.json --plugin resources/plugins/rename_plugin.py
+    - name: mapping
+      run:  |
+        cd ~/bidsme_examples/example1
+        bidsme map renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py -b resources/map/bidsmap.yaml
+    - name: process
+      run:  |
+        cd ~/bidsme_examples/example1
+        bidsme process renamed/ bids/ --plugin resources/plugins/process_plugin.py -b resources/map/bidsmap.yaml
+    - name: bidsfify 
+      run: |
+        cd ~/bidsme_examples/example1
+        bidsme bidsify renamed/ bids/ --plugin resources/plugins/bidsify_plugin.py -b resources/map/bidsmap.yaml

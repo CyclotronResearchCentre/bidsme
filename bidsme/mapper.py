@@ -89,6 +89,7 @@ def createmap(destination,
                         )
                 continue
             run.template = True
+            run.checked = False
             modality, r_index, run = bidsmap.add_run(
                     run,
                     recording.Module(),

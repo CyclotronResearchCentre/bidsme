@@ -3,6 +3,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+## [1.4.2] - 2023-08-08
+### Added:
+ - Integrartion test for GitHub
+### Changed:
+  - Table sidecars (including participants.json) now supports extra phields, not related to columns names
+
+## [1.4.1] - 2023-07-12
+
+### Fixed:
+  - PET: Updated entities list, remobved some nore more required json metadata
+  - PET/ECAT: Degraded warning of non-decodable bytes string to debug
+  - plugins/template: Fixed (finally) the import of classes in template
+
+### Changed:
+  - bidsmap: Accepting non-bids modality with a warning
+  - bidsmap: Runs loaded from template are now unchecked
+  - README.md: liknks points to GitHub repo
+
 ## [1.4.0.post4] - 2022-10-17
 
 ### Fixed:
