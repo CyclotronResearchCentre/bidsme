@@ -48,7 +48,7 @@ The challenge increases for datasets acquired prior to the introduction of BIDS,
 
 The ideal organizer tool must be able to be flexibly adapted to any original data structure and to any reasonable laboratory practices. It must try to retrieve as much necessary metadata as possible, but also allow the user to add additional metadata. It must suggest to follow the current standard but allow deviations from it, e.g. when a given modality is not defined in BIDS.
 
-These fundamental principles have been adopted as guidelines for the development of Bidsme. Bidsme gives full control of the data organization workflow to the user, imposing only the core of BIDS -- the directory structure, the file naming style and the global metadata. The actual names and set of entities are suggested to the user but are not imposed. Likewise, the user is free to add, remove or modify any automatically retrieved metadata.
+These fundamental principles have been adopted as guidelines for the development of Bidsme. Bidsme gives full control of the data organization workflow to the user, imposing only the core of BIDS -- the directory structure, the file naming style and some minimal metadata (those included in `participants.tsv` and `*_scans.tsv` tabular files). The actual names and set of entities are suggested to the user but are not imposed. Likewise, the user is free to add, remove or modify any automatically retrieved metadata.
 
 # Bidsme overview and usage
 
