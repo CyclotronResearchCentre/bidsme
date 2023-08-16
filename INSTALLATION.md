@@ -65,9 +65,9 @@ python, others are less common.
 In order to keep python installation clean, usage of virtual environments and/or kernels
 are suggested.
 
-If you are using \*NIX and/or (Ana)conda, then creating a new envoronment is
+If you are using [virtual environment](https://docs.python.org/3/library/venv.html) and/or [(Ana)conda](https://anaconda.org/), then creating a new envoronment is
 straightforward, in terminal you just need to:
-**[NIX](https://docs.python.org/3/tutorial/venv.html)**:
+**[venv](https://docs.python.org/3/tutorial/venv.html)**:
 ``` 
 python3 -m venv bidsme_env
 source bidsme_env/bin/activate
@@ -80,7 +80,7 @@ conda activate bidsme_env
 ```
 
 In order to deactivate (return to your default) environment, you just need
-`deactivate` in \*NIX or `conda deactivate` in conda.
+`deactivate` with venv or `conda deactivate` in conda.
 
 Once the environment is activated you need to install the kernel --
 a library that will link iPython/jupyter interface with environment.
