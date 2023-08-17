@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.4.3] - 2023-08-17
+### Fixed:
+ - Bug in bidsification when working with bare nifty file
 
 ## [1.4.2] - 2023-08-08
 ### Added:
