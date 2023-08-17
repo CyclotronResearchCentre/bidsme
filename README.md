@@ -40,6 +40,8 @@ It will automatically install packages from `requirements.txt`. When treating sp
 
 It is recommended to use virtual environment when installing bidsme (more info [here](https://github.com/CyclotronResearchCentre/bidsme_tutorial#using-virtual-environments-and-kernels) and [here](https://docs.python.org/3/library/venv.html)).
 
+More details on how to install `bidsme` can be found in [INSTALLATION.md](INSTALLATION.md)
+
 ## Instructions and examples
 
 `bidsme` comes with an [example/toy dataset](https://github.com/CyclotronResearchCentre/bidsme_examples), and the [tutorial](https://github.com/CyclotronResearchCentre/bidsme_tutorial).
