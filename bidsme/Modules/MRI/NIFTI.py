@@ -154,13 +154,13 @@ class NIFTI(MRI):
                          os.path.join(directory, bidsname + ".img"))
         else:
             out_fname = os.path.join(directory, bidsname + ext)
-            if self.zip:
+            if self.switches["zipFile"] and\
+                    not self.currentFile().endswith(".gz"):
                 with open(self.currentFile(), 'rb') as f_in:
                     with gzip.open(out_fname, 'wb') as f_out:
                         shutil.copyfileobj(f_in, f_out)
             else:
-                shutil.copy2(self.currentFile(),
-                             os.path.join(directory, bidsname + ext))
+                shutil.copy2(self.currentFile(), out_fname)
 
     def _getAcqTime(self) -> datetime:
         return None
