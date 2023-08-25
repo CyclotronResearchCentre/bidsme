@@ -1,4 +1,4 @@
-## The BIDSme workflow
+# The BIDSme workflow
 
 The BIDSme workflow is composed in two steps:
 
@@ -7,7 +7,7 @@ The BIDSme workflow is composed in two steps:
 
 This organisation allows the user to intervene before the bidsification in case of detected errors, or to complete the data manually if it could not be completed numerically.
 
-### <a name="wf_prep"></a>Data preparation 
+## <a name="wf_prep"></a>Data preparation 
 
 In order to be bidsified, dataset should be put into a form:
 ```
@@ -102,7 +102,7 @@ A working example of source dataset and `prepare` configuration can be found
 > NB: The logs for standard output and separately errors and warnings are stored
 in destination folder in `code/bidsme/prepare/log` directory.
 
-### <a name="wf_process"></a> Data processing
+## <a name="wf_process"></a> Data processing
 
 The processing is completely optional step between data preparation and
 bidsification. It is intended to allow data modification based on data identification
@@ -113,7 +113,7 @@ If plugins are not implemented, this step will only check if data are identifiab
 
  
 
-### <a name="wf_bids"></a>Data bidsification
+## <a name="wf_bids"></a>Data bidsification
 
 Considering that the data are [prepared](#wf_prep) together with 
 [bidsmap](#wf_map) and [plugins](#wf_plug),
@@ -143,7 +143,7 @@ permutation on the subjects, to add additional layers of anonymisation.
 destination directory in `source/bidsme/bidsify/log` sub-directory.
 
 
-### <a name="wf_map"></a>Bidsmap configuration
+## <a name="wf_map"></a>Bidsmap configuration
 
 Bidsmap is the central piece of BIDSme. 
 It allows bidsme to identify any data file, and select modalities and BIDS labels 
