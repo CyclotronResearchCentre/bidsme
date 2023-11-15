@@ -53,7 +53,7 @@ Often, organizer tools, for example,
 provide access only on a limitted subset of source file metadata.
 As consequence, any additional metadata,
 introduced by a new experimental acquisition protocol,
-will be ignored, or at least will be difficult to encode.
+will be ignored, or at least will be difficult to retrieve.
 Developers will do their best to incorporate the most popular protocols,
 but the most exotic ones will be probably overlooked.
 
