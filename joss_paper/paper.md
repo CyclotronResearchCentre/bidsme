@@ -46,7 +46,27 @@ The Brain Imaging Data Structure (BIDS) [@Gorgolewski2016] was introduced to cha
 
 Prior to the introduction of the BIDS, the main challenge was to adapt the processing scripts to the different (typically inconsistent) dataset structures. With the advent of the BIDS, the main challenge is now to "bidsify" a given dataset, i.e., adapt a dataset to the BIDS. Not only the image files must be renamed according to the standard, but also the associated metadata must contain all expected values, using expected conventions and measurement units.
 
-The challenge increases for datasets acquired prior to the introduction of BIDS, where often mandatory information may not even be present in the original data, or be encoded in a non-common way. This makes it difficult to use generalized tools like, e.g., [dcm2niix](https://github.com/rordenlab/dcm2niix) [@Li2016]. Any new experimental acquisition protocol may introduce new important metadata, which risks to be ignored by generalized tools. Developers will do their best to incorporate the most popular protocols, but the most exotic ones will be probably overlooked. Other tools, like, e.g., [Bidscoin](https://github.com/Donders-Institute/bidscoin) [@Zwiers2022] may rely on conventions used in the laboratory of the developers, and may be difficult to use in laboratories following different conventions.
+The challenge increases for datasets acquired prior to the introduction of BIDS, where often mandatory information may not even be present in the original data, or be encoded in a non-common way.
+Often, organizer tools, e.g.,
+[heudiconv](https://heudiconv.readthedocs.io/en/latest/index.html) [@heudiconv23] and
+[dcm2bids](https://unfmontreal.github.io/Dcm2Bids) [@BoreDcm2Bids2023],
+provide access only on a limitted subset of source file metadata.
+As consequence, any new important metadata,
+eventually introduced by an experimental acquisition protocol,
+will be ignored, or at least will be difficult to encode.
+Developers will do their best to incorporate the most popular protocols,
+but the most exotic ones will be probably overlooked.
+
+Moreover, tools, mentioned above, are used subject-by-subject, and session-by-session,
+making them akward to use on the larger datasets.
+
+Other tools, like, e.g., [Bidscoin](https://github.com/Donders-Institute/bidscoin) [@Zwiers2022]
+may rely on conventions used in the laboratory of the developers,
+and may be difficult to use in laboratories following different conventions.
+
+The ideal organizer tool must be able to be flexibly adapted to any original data structure and to any reasonable laboratory practices. It must try to retrieve as much necessary metadata as possible, but also allow the user to add additional metadata. It must suggest to follow the current standard but allow deviations from it, e.g., when a given modality is not defined in BIDS.
+Moreover, existing tools, often rely on conventions used in the laboratory of the developers,
+and will require prior organisation of the dataset
 
 The ideal organizer tool must be able to be flexibly adapted to any original data structure and to any reasonable laboratory practices. It must try to retrieve as much necessary metadata as possible, but also allow the user to add additional metadata. It must suggest to follow the current standard but allow deviations from it, e.g., when a given modality is not defined in BIDS.
 
