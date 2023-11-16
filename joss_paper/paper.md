@@ -50,13 +50,11 @@ The challenge increases for datasets acquired prior to the introduction of BIDS,
 Often, organizer tools, for example, 
 [heudiconv](https://heudiconv.readthedocs.io/en/latest/index.html) [@heudiconv23] or
 [dcm2bids](https://unfmontreal.github.io/Dcm2Bids) [@BoreDcm2Bids2023],
-provide access only on a limitted subset of source file metadata.
-As consequence, any additional metadata,
-introduced by a new experimental acquisition protocol,
+provide access only to a limited subset of source file metadata.
+As a consequence, any additional metadata, introduced by an experimental acquisition protocol,
 will be ignored, or at least will be difficult to retrieve.
 Developers will do their best to incorporate the most popular protocols,
 but the most exotic ones will be probably overlooked.
-
 Other tools, like, e.g., [Bidscoin](https://github.com/Donders-Institute/bidscoin) [@Zwiers2022]
 may rely on conventions used in the laboratory of the developers,
 and may be difficult to use in laboratories following different conventions.
