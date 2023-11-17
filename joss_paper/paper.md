@@ -17,7 +17,7 @@ authors:
   - name: Emeline Pommier
     equal-contrib: false
     affiliation: 2
-  - name: Gregory Hammad
+  - name: Grégory Hammad
     orcid: 0000-0003-1083-3869
     equal-contrib: false
     affiliation: 1
