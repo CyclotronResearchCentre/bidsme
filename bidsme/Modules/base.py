@@ -720,7 +720,7 @@ class baseModule(abstract):
                 subid = res.group(1)
         if subid is None or subid == "":
             logger.error("{}: Unable to determine subject Id from '{}'"
-                         .format(self.recIdentity, name))
+                         .format(self.recIdentity(), name))
             raise ValueError("Invalid subject Id")
         self._bidsSession.unlock_subject()
         self._bidsSession.subject = subid
