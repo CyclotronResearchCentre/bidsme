@@ -1,5 +1,5 @@
 ---
-title: 'Bidsme: expandable bidsifier of brain imagery datasets'
+title: 'Bidsme: expandable BIDS-ifier of brain imagery datasets'
 tags:
   - Python
   - BIDS
@@ -44,7 +44,7 @@ For a long time, the neuroimaging community suffered from a lack of standardized
 
 The Brain Imaging Data Structure (BIDS) [@Gorgolewski2016] was introduced to change this situation; it imposes a standard data structure and defines the required associated metadata. Once a dataset follows the imposed structure, any analysis tool, supporting the BIDS, should be able to automatically find the needed data to process it.
 
-Prior to the introduction of the BIDS, the main challenge was to adapt the processing scripts to the different (typically inconsistent) dataset structures. With the advent of the BIDS, the main challenge is now to "bidsify" a given dataset, i.e., adapt a dataset to the BIDS. Not only the image files must be renamed according to the standard, but also the associated metadata must contain all expected values, using expected conventions and measurement units.
+Prior to the introduction of the BIDS, the main challenge was to adapt the processing scripts to the different (typically inconsistent) dataset structures. With the advent of the BIDS, the main challenge is now to "BIDS-ify" a given dataset, i.e., adapt a dataset to the BIDS. Not only the image files must be renamed according to the standard, but also the associated metadata must contain all expected values, using expected conventions and measurement units.
 
 The challenge increases for datasets acquired prior to the introduction of BIDS, where often mandatory information may not even be present in the original data, or be encoded in a non-common way.
 Often, organizer tools, for example, 
@@ -62,7 +62,7 @@ and may be difficult to use in laboratories following different conventions.
 Multi-modal datasets provide an additional challenge: the organizer tools usually
 focuses only on one modality, for example
 [pet2bids](https://pet2bids.readthedocs.io/en/latest/index.html) [@PET2BIDS_2022]
-would bidsify only PET data, forcing to use additional tools for EEG or MRI data.
+would BIDS-ify only PET data, forcing to use additional tools for EEG or MRI data.
 
 The ideal organizer tool must be able to be flexibly adapted to any original data structure and to any reasonable laboratory practices. It must try to retrieve as much necessary metadata as possible, but also allow the user to add additional metadata. It must suggest to follow the current standard but allow deviations from it, e.g., when a given modality is not defined in BIDS.
 
@@ -70,17 +70,17 @@ These fundamental principles have been adopted as guidelines for the development
 
 # Bidsme overview and usage
 
-The bidsification workflow using Bidsme is presented in \autoref{fig:workflow}. It is organized into two main steps: the "preparation" and the "bidsification".
+The BIDS-ification workflow using Bidsme is presented in \autoref{fig:workflow}. It is organized into two main steps: the "preparation" and the "BIDS-ification".
 
 <center>
-![Workflow of a bidsification using Bidsme. Dashed arrows and boxes represent optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
+![Workflow of a BIDS-ification using Bidsme. Dashed arrows and boxes represent optional steps.\label{fig:workflow}](plots/bidsme_schema.png)
 </center>
 
-The preparation step organizes the dataset into BIDS-like structure, with separate directories for each subject and session. The standardized structure of the prepared dataset not only facilitates the subsequent bidsification, but also helps with visual inspection of data integrity and provides an opportunity for intervention on the dataset (e.g., with removal of corrupted or failed data samples), while keeping the original dataset untouched. Several original datasets can be prepared into the same dataset, as long as there is no overlapping data. This can be useful when bidsifying datasets with several modalities (MRI, EEG, PET).
+The preparation step organizes the dataset into BIDS-like structure, with separate directories for each subject and session. The standardized structure of the prepared dataset not only facilitates the subsequent BIDS-ification, but also helps with visual inspection of data integrity and provides an opportunity for intervention on the dataset (e.g., with removal of corrupted or failed data samples), while keeping the original dataset untouched. Several original datasets can be prepared into the same dataset, as long as there is no overlapping data. This can be useful when BIDS-ifying datasets with several modalities (MRI, EEG, PET).
 
-The proper bidsification step is then performed on the prepared dataset. Bidsme scans for all data and with the help of a configuration file, i.e., `bidsmap.yaml`, it identifies each data file, generates the new BIDS-compliant name, and exports the desired metadata into a sidecar json file.
+The proper BIDS-ification step is then performed on the prepared dataset. Bidsme scans for all data and with the help of a configuration file, i.e., `bidsmap.yaml`, it identifies each data file, generates the new BIDS-compliant name, and exports the desired metadata into a sidecar json file.
 
-The aforementioned `bidsmap.yaml` configuration file is the central piece of the bidsification workflow. For each supported data format and data type (\autoref{tab:formats}), it defines a set of criteria to identify a given modality and a set of rules to bidsifiy the identified files. Identification criteria will match a given data file metadata with user-defined values, and in case of success, the bidsification rules will be applied. The file naming rules are defined as a list of entities and corresponding values, which can be either provided by the user or retrieved dynamically from the metadata. The metadata rules in the sidecar json file are defined in the same way, allowing the user to automatically export specific values from the metadata, or provide a value manually in case of missing metadata.
+The aforementioned `bidsmap.yaml` configuration file is the central piece of the BIDS-ification workflow. For each supported data format and data type (\autoref{tab:formats}), it defines a set of criteria to identify a given modality and a set of rules to BIDS-ifiy the identified files. Identification criteria will match a given data file metadata with user-defined values, and in case of success, the BIDS-ification rules will be applied. The file naming rules are defined as a list of entities and corresponding values, which can be either provided by the user or retrieved dynamically from the metadata. The metadata rules in the sidecar json file are defined in the same way, allowing the user to automatically export specific values from the metadata, or provide a value manually in case of missing metadata.
 
 In addition, Bidsme implements a flexible system of plugins that can be used at any stage. A plugin is a Python file with a set of user-implemented functions, which are executed at specific processing steps and gives access to the relevant data. Plugins allow users, for example, to rename subjects and sessions, to provide subject-related metadata, to incorporate auxiliary data (e.g., physiological) into the dataset, to add user calculated values into the metadata or to control data integrity. To help with the implementation of the plugins, Bidsme provides a template that describes the signature of the plugin functions, and a set of helper functions that implement common tasks like, for example, assembling a set 3D MRI images into one 4D MRI image, or extracting b-values from diffusion MRI image.
 
