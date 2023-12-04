@@ -111,6 +111,6 @@ Bidsme was implemented using an object-oriented approach, where the interactions
 
 This work and Nikita Beliy were supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium) through Grant No. EOS 30446199 and the University of Liège. Camille Guillemin was supported by University of Liege. Christophe Phillips is supported by the Fonds National de la Recherche Scientifique (F.R.S.-FNRS, Belgium).
 
-As Bidsme was developped based on [Bidscoin](https://github.com/Donders-Institute/bidscoin)[@Zwiers2022] package, we would like to thanks its developpers, and in particular its lead developper Marcel Zweirs.
+As Bidsme was developed based on [Bidscoin](https://github.com/Donders-Institute/bidscoin)[@Zwiers2022] package, we would like to thanks its developers, and in particular its lead developer Marcel Zweirs.
 
 # References
