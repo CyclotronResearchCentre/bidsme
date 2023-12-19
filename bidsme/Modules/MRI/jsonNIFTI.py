@@ -130,10 +130,18 @@ class jsonNIFTI(MRI):
         return res
 
     def recNo(self):
-        return self.index
+        return self.getField("SeriesNumber", self.index)
 
     def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+        seriesdescr = self.getField("SeriesDescription")
+        if seriesdescr is None:
+            seriesdescr = self.getField("ProtocolName")
+        if seriesdescr is None:
+            logger.warning("{}: Unable to get recording Id for file {}"
+                           .format(self.formatIdentity(),
+                                   self.currentFile()))
+            seriesdescr = os.path.splitext(self.currentFile(True))[0]
+        return seriesdescr.strip()
 
     def isCompleteRecording(self):
         return True
