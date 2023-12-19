@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.5.1] - 2023-12-19
+
+### Fixed
+ - Module/MRI/hmriNIFTY: Extra error log, if encountered standard json instead of hmriNIFTY json
+
 ## [1.5.0] - 2023-11-22
 
 Release for the publication in JOSS
