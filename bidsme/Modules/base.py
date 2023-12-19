@@ -1218,7 +1218,7 @@ class baseModule(abstract):
     #############################################
     # JSON sidecar meta-fields related methodes #
     #############################################
-    def reserMetaFields(self) -> None:
+    def resetMetaFields(self) -> None:
         """
         Virtual function
         Resets currently defined meta fields dictionaries
