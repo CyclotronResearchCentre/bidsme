@@ -107,6 +107,8 @@ class hmriNIFTI(MRI):
 
             try:
                 acqpar = cls.__loadJsonDump(file)
+                if not acqpar:
+                    return False
                 manufacturer = acqpar.get("Manufacturer").strip()
                 if manufacturer.lower() == "siemens":
                     acqpar["CSASeriesHeaderInfo"]
@@ -341,4 +343,8 @@ class hmriNIFTI(MRI):
     def __loadJsonDump(file: str) -> dict:
         json_dump = tools.change_ext(file, "json")
         with open(json_dump, "r") as f:
-            return json.load(f)["acqpar"][0]
+            js = json.load(f)
+            if "acqpar" in js:
+                return js["acqpar"][0]
+            else:
+                return None
