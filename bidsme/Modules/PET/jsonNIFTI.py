@@ -73,22 +73,21 @@ class jsonNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        path, base = os.path.split(file)
-        base, ext = os.path.splitext(base)
-        header = os.path.join(path, base + ".json")
-        if os.path.isfile(header):
-            return True
-        else:
-            logger.debug("{}: Missing json file"
-                         .format(cls.formatIdentity()))
-            return False
+        if os.path.isfile(file):
+            if os.path.basename(file).startswith('.'):
+                logger.warning('{}: file {} is hidden'
+                               .format(cls.formatIdentity(),
+                                       file))
+                return False
+            header = tools.change_ext(file, "json")
+            if os.path.isfile(header):
+                return True
+        return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
-            path, base = os.path.split(path)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
+            header = tools.change_ext(path, "json")
             try:
                 with open(header, "r") as f:
                     dicomdict = json.load(f)
@@ -100,6 +99,8 @@ class jsonNIFTI(PET):
             self._FILE_CACHE = path
             self._HEADER_CACHE = dicomdict
             self._header_file = header
+
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer", "Unknown")
 
     def _getAcqTime(self) -> datetime:
         return None
@@ -132,7 +133,13 @@ class jsonNIFTI(PET):
         return self.index
 
     def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+        tracer = self.getField("TracerName")
+        body = self.getField("BodyPart")
+        if tracer is None:
+            tracer = os.path.splitext(self.currentFile(True))[0]
+        elif body:
+            tracer = "{}-{}".format(tracer, body)
+        return tracer.strip()
 
     def isCompleteRecording(self):
         return True
