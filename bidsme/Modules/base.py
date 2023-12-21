@@ -1426,6 +1426,11 @@ class baseModule(abstract):
         for key, field in metaFields.items():
             if key in exportDict:
                 continue
+
+            if key in self.custom:
+                exportDict[key] = self.custom[key]
+                continue
+
             if not field:
                 if required:
                     logger.warning("{}: Required field {} not set"

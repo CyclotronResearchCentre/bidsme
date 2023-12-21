@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+ - MRI/jsonNIFTY: All bids metafields are by default completed from the provided json
+ - Modules/base: If BIDS metadata has the same name as a custom metadata, then the content of custom metadata is used
+
 ## [1.5.1] - 2023-12-19
 
 ### Fixed
