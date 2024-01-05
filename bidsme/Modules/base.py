@@ -1596,7 +1596,7 @@ class ExtendEncoder(json.JSONEncoder):
             return obj.strftime("%Y-%m-%d")
         if isinstance(obj, bytes):
             try:
-                return obj.decode(self.encoding)
+                return obj.decode("ascii")
             except UnicodeDecodeError:
                 return "<bytes>"
         if isinstance(obj, numpy.ndarray):
