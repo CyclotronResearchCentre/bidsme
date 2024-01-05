@@ -339,15 +339,16 @@ def decodeCSA(val):
     from nibabel.nicom import csareader
     csaheader = dict()
     for tag, item in csareader.read(val)["tags"].items():
+        if tag == "MrPhoenixProtocol" or tag == "MrProtocol":
+            csaheader[tag] = parse_ascconv(item["items"][0], '""')[0]
+            continue
+
         if len(item["items"]) == 0:
             continue
         if len(item["items"]) == 1:
             csaheader[tag] = item["items"][0]
         else:
             csaheader[tag] = item["items"]
-
-        if tag == "MrPhoenixProtocol" or tag == "MrProtocol":
-            csaheader[tag] = parse_ascconv(item["items"][0], '""')[0]
 
     return csaheader
 
