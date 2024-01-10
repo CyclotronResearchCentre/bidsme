@@ -39,7 +39,8 @@ setuptools.setup(
           ],
       extras_require={
           "nifti": ["nibabel"],
-          "dicom": ["pydicom>=1.4.2", "dcm2niix>=1.0.20220715", "dicom_parser>=1.2.3"],
+          "dicom": ["nibabel", "pydicom>=1.4.2",
+                    "dcm2niix>=1.0.20220715", "dicom_parser>=1.2.3"],
           "eeg": ["mne"],
           "all": ["nibabel", "pydicom>=1.4.2", "mne",
                   "dcm2niix>=1.0.20220715", "dicom_parser>=1.2.3"]
