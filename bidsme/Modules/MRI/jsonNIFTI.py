@@ -102,7 +102,8 @@ class jsonNIFTI(MRI):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
-            self.manufacturer = self._HEADER_CACHE.get("Manufacturer", "Unknown")
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
+                                                       "Unknown")
             self.resetMetaFields()
             meta = {"Unknown": {}}
             meta[self.manufacturer] = {key: ("<{}>".format(key), None)

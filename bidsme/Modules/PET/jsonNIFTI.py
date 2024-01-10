@@ -31,6 +31,8 @@ import shutil
 import json
 from datetime import datetime
 
+from bidsme.tools import tools
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,7 +102,8 @@ class jsonNIFTI(PET):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
-            self.manufacturer = self._HEADER_CACHE.get("Manufacturer", "Unknown")
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
+                                                       "Unknown")
 
     def _getAcqTime(self) -> datetime:
         return None
