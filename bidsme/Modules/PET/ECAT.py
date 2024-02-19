@@ -146,10 +146,10 @@ class ECAT(PET):
                          .format(self.formatIdentity(),
                                  prefix, e))
 
-    def recNo(self):
+    def _recNo(self):
         return self._getField(["acquisition_type"])
 
-    def recId(self):
+    def _recId(self):
         return self._getField(["study_type"])
 
     def _getSubId(self) -> str:

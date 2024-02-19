@@ -25,6 +25,8 @@ import logging
 import pydicom
 import re
 
+from dicom_parser.utils.siemens.csa.ascii.ascconv import parse_ascconv
+
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -172,14 +174,17 @@ def DICOMtransform(element: pydicom.dataelem.DataElement,
     val = element.value
 
     try:
+        if VR == "OB" and (element.tag == (0x0029, 0x1010)
+                           or element.tag == (0x0029, 0x1020)):
+            return decodeCSA(val)
         if VM > 1:
             return [decodeValue(val[i], VR, clean) for i in range(VM)]
         else:
             return decodeValue(val, VR, clean)
 
     except Exception as e:
-        logger.warning('Failed to decode value of type {} for: {}'
-                       .format(VR, e))
+        logger.warning('Failed to decode tag {} of type {} for: {}'
+                       .format(element.name, VR, e))
         return None
 
 
@@ -318,19 +323,35 @@ def decodeValue(val, VR: str, clean=False):
     # Attributes and sequences will produce warning and return
     # None
     if VR in ("AT", "SQ", "UN"):
-        logger.warning("Invalid VR: {}".format(VR))
-        return None
+        raise ValueError("invalid VR: {}".format(VR))
 
     # Other type
+    # Attempting to decode SV10 formatted bytes string
     # Not clear how parce them
     if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
-        # logger.warning("Other VR: {}".format(VR))
-        # return VR + ': ' +  repr(val)
-        return None
+        return "{}: {}".format(VR, repr(val))
 
     # unregistered VR
-    logger.error("{} is not valid DICOM VR".format(VR))
     raise ValueError("invalid VR: {}".format(VR))
+
+
+def decodeCSA(val):
+    from nibabel.nicom import csareader
+    csaheader = dict()
+    for tag, item in csareader.read(val)["tags"].items():
+        if len(item["items"]) == 0:
+            continue
+
+        if tag == "MrPhoenixProtocol" or tag == "MrProtocol":
+            csaheader[tag] = parse_ascconv(item["items"][0], '""')[0]
+            continue
+
+        if len(item["items"]) == 1:
+            csaheader[tag] = item["items"][0]
+        else:
+            csaheader[tag] = item["items"]
+
+    return csaheader
 
 
 def extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
@@ -357,7 +378,9 @@ def extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
     for el in dataset:
         key = el.keyword
         if key == '':
-            key = str(el.tag)
+            key = el.name.replace(" ", "").strip("[]")
+            if key == "Unknown":
+                key = str(el.tag)
         if el.VR == "SQ":
             res[key] = [extractStruct(val)
                         for val in el]

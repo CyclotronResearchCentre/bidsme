@@ -69,10 +69,10 @@ class dummy(baseModule):
     def _getField(self):
         raise NotImplementedError
 
-    def recNo(self):
+    def _recNo(self):
         raise NotImplementedError
 
-    def recId(self):
+    def _recId(self):
         raise NotImplementedError
 
     def isCompleteRecording(self) -> bool:

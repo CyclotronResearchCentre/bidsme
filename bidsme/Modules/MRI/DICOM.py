@@ -127,10 +127,10 @@ class DICOM(MRI):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.getField("SeriesNumber", 0)
 
-    def recId(self):
+    def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")

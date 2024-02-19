@@ -216,7 +216,7 @@ class EDF(EEG):
             res = None
         return res
 
-    def recNo(self) -> int:
+    def _recNo(self) -> int:
         """
         Virtual function returning current serie number
         (i.e. numero of scan in session).
@@ -230,7 +230,7 @@ class EDF(EEG):
         """
         return self.index
 
-    def recId(self) -> str:
+    def _recId(self) -> str:
         """
         Virtual function returning current serie id
         (i.e. name of scan in session).

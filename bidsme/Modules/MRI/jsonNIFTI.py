@@ -102,6 +102,15 @@ class jsonNIFTI(MRI):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
+                                                       "Unknown")
+            self.resetMetaFields()
+            meta = {"Unknown": {}}
+            meta[self.manufacturer] = {key: ("<{}>".format(key), None)
+                                       for key in self._HEADER_CACHE}
+            self.setupMetaFields(meta)
+            self.testMetaFields()
+
     def _getAcqTime(self) -> datetime:
         return None
 
@@ -129,11 +138,19 @@ class jsonNIFTI(MRI):
             res = None
         return res
 
-    def recNo(self):
-        return self.index
+    def _recNo(self):
+        return self.getField("SeriesNumber", self.index)
 
-    def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+    def _recId(self):
+        seriesdescr = self.getField("SeriesDescription")
+        if seriesdescr is None:
+            seriesdescr = self.getField("ProtocolName")
+        if seriesdescr is None:
+            logger.warning("{}: Unable to get recording Id for file {}"
+                           .format(self.formatIdentity(),
+                                   self.currentFile()))
+            seriesdescr = os.path.splitext(self.currentFile(True))[0]
+        return seriesdescr.strip()
 
     def isCompleteRecording(self):
         return True

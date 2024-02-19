@@ -67,6 +67,9 @@ class baseModule(abstract):
                  "index",
                  "files",
                  "_recPath",
+                 # series identifier
+                 "series_id",
+                 "series_no",
                  # json meta variables
                  "metaAuxiliary",
                  "metaFields_req",
@@ -129,6 +132,8 @@ class baseModule(abstract):
         self.files = list()
         self._recPath = ""
         self.index = -1
+        self.series_id = None
+        self.series_no = None
         self.attributes = dict()
         self.custom = dict()
         self.labels = OrderedDict()
@@ -796,6 +801,12 @@ class baseModule(abstract):
         """
         self._acqTime = None
 
+    def recNo(self):
+        return self.series_no
+
+    def recId(self):
+        return self.series_id
+
     def recIdentity(self, padding: int = 3, index=True):
         """
         Returns identification string for current recording
@@ -928,6 +939,9 @@ class baseModule(abstract):
         self.attributes = {}
         # for key in self.attributes:
         #     self.attributes[key] = self.getField(key)
+        # Updating series No and Id
+        self.series_no = self._recNo()
+        self.series_id = self._recId()
 
     def setRecPath(self, folder: str) -> int:
         """
@@ -1218,7 +1232,7 @@ class baseModule(abstract):
     #############################################
     # JSON sidecar meta-fields related methodes #
     #############################################
-    def reserMetaFields(self) -> None:
+    def resetMetaFields(self) -> None:
         """
         Virtual function
         Resets currently defined meta fields dictionaries
@@ -1426,6 +1440,11 @@ class baseModule(abstract):
         for key, field in metaFields.items():
             if key in exportDict:
                 continue
+
+            if key in self.custom:
+                exportDict[key] = self.custom[key]
+                continue
+
             if not field:
                 if required:
                     logger.warning("{}: Required field {} not set"
@@ -1591,7 +1610,7 @@ class ExtendEncoder(json.JSONEncoder):
             return obj.strftime("%Y-%m-%d")
         if isinstance(obj, bytes):
             try:
-                return obj.decode(self.encoding)
+                return obj.decode("ascii")
             except UnicodeDecodeError:
                 return "<bytes>"
         if isinstance(obj, numpy.ndarray):

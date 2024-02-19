@@ -141,7 +141,8 @@ def parceNIFTIheader_1(path: str, endian: str) -> dict:
     with open(path, "rb") as niifile:
         header = niifile.read(348)
 
-    res["diminfo"] = struct.unpack("c", header[39:40])[0]
+    diminfo = struct.unpack("c", header[39:40])[0]
+    res["diminfo"] = int.from_bytes(diminfo, 'big')
     res["dim"] = struct.unpack(endian + "8h", header[40:56])
     res["intent_p1"] = struct.unpack(endian + "f", header[56:60])[0]
     res["intent_p2"] = struct.unpack(endian + "f", header[60:64])[0]

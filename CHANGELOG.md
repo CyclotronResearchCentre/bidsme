@@ -3,6 +3,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+## [1.6.0] - 2024-02-19
+
+### Added
+ - Modules/base: The series Id and No can now be changed in plugins via attributes `recording.series_id` and `recording.series_no`
+ - MRI/jsonNIFTY: All bids metafields are by default completed from the provided json
+ - Modules/base: If BIDS metadata has the same name as a custom metadata, then the content of custom metadata is used
+ - plugins/tools: A tool that uses dcm2niix to convert and merge dicoms after preparation
+
+### Changed:
+ - Modules/MRI/Nifti, Modules/PET/Nifti: the header dump is now created by default
+ - MRI/DICOM: Using nibabel and mri\_parser to parse Siemens-specific headers CSAHeaderInfo and CSASeriesInfo
+
+### Fixed
+ - Modules/MRI/Nifti, Modules/PET/Nifti: diminfo from header are now retrieved as integer instead of bytes
+ - Modules/MRI/Nifti, Modules/PET/Nifti: header dump exported as dict, instead of string
+
+
 ## [1.5.1] - 2023-12-19
 
 ### Fixed

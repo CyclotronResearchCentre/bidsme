@@ -164,10 +164,10 @@ class bidsmeNIFTI(MRI):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self._headerData["recNo"]
 
-    def recId(self):
+    def _recId(self):
         return self._headerData["recId"]
 
     def isCompleteRecording(self):
