@@ -61,6 +61,7 @@ class NIFTI(PET):
         self._FILE_CACHE = ""
         self._nii_type = ""
         self._endiannes = "<"
+        self.switches["exportHeader"] = True
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -104,14 +105,9 @@ class NIFTI(PET):
                                                          self._endianness)
 
     def dump(self):
-        if self._NIFTI_CACHE is not None:
-            return str(self._NIFTI_CACHE)
-        elif len(self.files) > 0:
+        if self._NIFTI_CACHE is None:
             self.loadFile(0)
-            return str(self._NIFTI_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._NIFTI_CACHE
 
     def _getField(self, field: list):
         res = None
@@ -147,10 +143,10 @@ class NIFTI(PET):
     def _getAcqTime(self) -> datetime:
         return None
 
-    def recNo(self):
+    def _recNo(self):
         return self.index
 
-    def recId(self):
+    def _recId(self):
         return os.path.splitext(self.currentFile(True))[0]
 
     def _getSubId(self) -> str:

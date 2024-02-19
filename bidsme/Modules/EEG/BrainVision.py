@@ -223,10 +223,10 @@ class BrainVision(EEG):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.index
 
-    def recId(self):
+    def _recId(self):
         return os.path.splitext(self.currentFile(True))[0]
 
     def isCompleteRecording(self):

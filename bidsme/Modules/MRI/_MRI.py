@@ -30,7 +30,7 @@ as value
 """
 modalities = {
         "anat": ("acq", "ce", "rec", "run", "mod"),
-        "func": ("task", "acq", "ce", "dir", "rec", "run", "echo"),
+        "func": ("task", "acq", "ce", "dir", "rec", "run", "echo", "part"),
         "dwi": ("acq", "dir", "run"),
         "fmap": ("acq", "ce", "dir", "run"),
         # MPM modalities
