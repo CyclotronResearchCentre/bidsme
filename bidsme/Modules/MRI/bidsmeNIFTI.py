@@ -100,14 +100,8 @@ class bidsmeNIFTI(MRI):
                                   + tools.change_ext(base, "json"))
             try:
                 with open(header, "r") as f:
-                    dicomdict = json.load(f)
-                    self._headerData = {
-                            "format": dicomdict["format"],
-                            "acqDateTime": dicomdict["acqDateTime"],
-                            "manufacturer": dicomdict["manufacturer"],
-                            }
-                    dicomdict["header"]
-                    self.custom = dicomdict["custom"]
+                    self._headerData = json.load(f)
+                    self.custom = self._headerData["custom"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),
@@ -120,27 +114,20 @@ class bidsmeNIFTI(MRI):
                                      header))
                 raise
             self._FILE_CACHE = path
-            self._HEADER_CACHE = dicomdict["header"]
+            self._HEADER_CACHE = self._headerData.pop("header")
             self._header_file = header
-            form = dicomdict["format"].split("/")
+            form = self._headerData["format"].split("/")
             if form[0] != self._module:
                 logger.error("{}: format is not {}"
                              .format(self.recIdentity,
                                      self._module))
                 raise Exception("Wrong format")
             if form[1] == "DICOM":
-                mod = _DICOM
-            else:
-                logger.error("{}: unknown format {}"
-                             .format(self.recIdentity,
-                                     form[1]))
-                raise Exception("Wrong format")
-
-            if self.setManufacturer(dicomdict["manufacturer"],
-                                    mod.manufacturers):
-                self.resetMetaFields()
-                self.setupMetaFields(mod.metafields)
-                self.testMetaFields()
+                if self.setManufacturer(self._headerData["manufacturer"],
+                                        _DICOM.manufacturers):
+                    self.resetMetaFields()
+                    self.setupMetaFields(_DICOM.metafields)
+                    self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         if self._headerData["acqDateTime"]:
