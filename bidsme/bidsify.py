@@ -237,12 +237,11 @@ def bidsify(source: str, destination: str,
     ###############
     # Plugin setup
     ###############
-    if plugin_file:
-        plugins.ImportPlugins(plugin_file)
-        plugins.InitPlugin(source=source,
-                           destination=destination,
-                           dry=dry_run,
-                           **plugin_opt)
+    plugins.ImportPlugins(plugin_file)
+    plugins.InitPlugin(source=source,
+                       destination=destination,
+                       dry=dry_run,
+                       **plugin_opt)
 
     ###############################
     # Checking participants list
