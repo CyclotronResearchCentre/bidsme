@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.6.2] - 2024-03-04
+
 ### Fixed
   - Plugins import is explicetely reset in the beginning of preparation/mapping/processing/bidsification
 
