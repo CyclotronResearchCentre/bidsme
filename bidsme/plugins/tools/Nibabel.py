@@ -127,7 +127,7 @@ def Convert3Dto4D(outfolder: str,
 
     for file in f_list[1:]:
         os.remove(file)
-        
+
         aux_file = tools.change_ext(file, "json")
         if os.path.isfile(aux_file):
             os.remove(aux_file)
