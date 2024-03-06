@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - Plugin/Nibabel: crash in Convert3Dto4D when removing merged files
+
+### Added
+  - Plugin/Nibabel: Convert3Dto4D will also remove json files, not only nifti
+  - Plugin/Nibabel: Convert3Dto4D will conserve the written data scale, if all merged files have the same slope and intercept
+
+### Changed
+  - Plugin/Nibabel: Convert3Dto4D will produce an error when trying merging of 2-file nifti (hdr/img)
+
+
 ## [1.6.2] - 2024-03-04
 
 ### Fixed

@@ -28,6 +28,7 @@ import logging
 import nibabel
 
 from bidsme.Modules import baseModule
+from bidsme.tools import tools
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +39,18 @@ def Convert3Dto4D(outfolder: str,
                   check_affines: bool = True, axis: int = None) -> str:
     """
     Concat nii images from recording into one 4D image, using
-    nibabel.funcs.concat_images function
+    nibabel.funcs.concat_images function. The scaling parameters
+    of Nifti will be preserved if all files has the same slope and
+    intercept, otherwise, the scaling will be recalculated.
+
+    It will work only on single file nii images, not with hdr/img pair.
 
     If number of files in recording is too small (0, 1, <=skip)
     a warning will be shown and no concatination will be performed
 
-    Original 3D images are removed, and filelist in recording
-    is adapted.
+    Original 3D images are removed.
 
-    This function is intended to be run in SequennceEndEP, in order
+    This function is intended to be run in SequenceEndEP, in order
     to avoid conflicts due to file removal
 
     Resulting file will be named as first file used to concatenation
@@ -103,10 +107,29 @@ def Convert3Dto4D(outfolder: str,
     f_list = [file for file in f_list
               if os.path.exists(file)]
 
-    img = nibabel.funcs.concat_images(f_list,
+    imgs = [nibabel.load(f) for f in f_list]
+    slope = imgs[0].dataobj.slope
+    inter = imgs[0].dataobj.inter
+
+    for img in imgs[1:]:
+        if slope != img.dataobj.slope or inter != img.dataobj.inter:
+            logger.warning('Concatenation of images of different scale. '
+                           'Will recalculate scale for all files.')
+            slope = None
+            inter = None
+            break
+
+    img = nibabel.funcs.concat_images(imgs,
                                       check_affines=check_affines,
                                       axis=axis)
-    for file in recording.files:
-        os.remove(os.path.join(outfolder, file))
+    img.header.set_slope_inter(slope, inter)
     img.to_filename(f_list[0])
+
+    for file in f_list[1:]:
+        os.remove(file)
+        
+        aux_file = tools.change_ext(file, "json")
+        if os.path.isfile(aux_file):
+            os.remove(aux_file)
+
     return f_list[0]
