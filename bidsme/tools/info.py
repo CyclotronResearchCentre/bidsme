@@ -24,6 +24,7 @@
 
 
 import os
+import sys
 import logging
 import coloredlogs
 
@@ -117,7 +118,8 @@ def setup_logging(logger: logging.Logger,
     # Set & add the streamhandler and
     # add some color to those boring terminal logs! :-)
     if not quiet:
-        coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
+        coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt,
+                            stream=sys.stdout, isatty=True)
 
 
 def addFileLogger(logger, log_dir):
