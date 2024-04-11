@@ -3,6 +3,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - logging output redirected to stdout, and forcing colors (fixing red background in jupyther-lab)
+  - Import issue for MRI/DICOM when installed `pydicom` will raise error with not installed `dicom-parcer`
+
+### Changed
+  - Limited support for Python <3.11
+
 ## [1.6.3] - 2024-03-06
 
 ### Fixed
