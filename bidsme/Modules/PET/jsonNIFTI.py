@@ -162,7 +162,16 @@ class jsonNIFTI(PET):
         return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
-        return ""
+        tags = ["patient_id",  # ecat header dump
+                "PatientID"  # dcm2niix
+                ]
+        res = ""
+        for t in tags:
+            res = self.getField(t, "")
+            if res:
+                break
+
+        return res
 
     def _getSesId(self) -> str:
         return ""

@@ -52,7 +52,7 @@ class NIFTI(MRI):
                        "PatientId",
                        "SessionId"}
 
-    _file_extentions = [".nii", ".hdr"]
+    _file_extentions = [".nii", ".nii.gz", ".hdr"]
 
     def __init__(self, rec_path=""):
         super().__init__()
