@@ -3,6 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Fixed
+  - jsonNIFTI: fixed retrieval of ParticipantID, based on `dcm2niix` entry `PatientID`
+  - BaseModule: `series_no`/`series_id` becomes prperties with type check (int/str resp.)
+
+### Added
+  - Log entry while loading tables
+  - NIFTI: added support for compressed files
+
 ## [1.6.4] - 2024-04-11
 
 ### Fixed

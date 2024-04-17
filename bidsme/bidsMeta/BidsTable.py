@@ -131,11 +131,15 @@ class BidsTable(object):
                 else:
                     for c in mismatch:
                         self.df[c] = None
+            logger.info("Loaded {} table with {} entries"
+                        .format(self._name, len(self.df)))
         else:
             columns = self._definitions.keys()
             if index and index not in columns:
                 columns = [index] + list(columns)
             self.df = pandas.DataFrame(columns=columns)
+            logger.info("Created empty {} table"
+                        .format(self._name))
 
     def getTablePath(self) -> str:
         """

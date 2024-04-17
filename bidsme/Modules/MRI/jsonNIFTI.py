@@ -170,7 +170,7 @@ class jsonNIFTI(MRI):
         return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
-        return ""
+        return self.getField("PatientID", "")
 
     def _getSesId(self) -> str:
         return ""

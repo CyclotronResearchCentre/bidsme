@@ -23,9 +23,31 @@
 
 import logging
 import struct
+import gzip
 
 
 logger = logging.getLogger(__name__)
+
+
+def _nii_open(path: str, mode="rb"):
+    """
+    Returns open file stream with open or gzip.open
+
+    Parameters:
+    -----------
+    path: str
+        Path to file to open
+    mode: str
+        Mode in wich open
+
+    Returns:
+    --------
+    (decompressed) opened stream
+    """
+    if path.endswith('.gz'):
+        return gzip.open(path, mode)
+    else:
+        return open(path, mode)
 
 
 def isValidNIFTI(file: str) -> bool:
@@ -39,8 +61,10 @@ def isValidNIFTI(file: str) -> bool:
     file: str
         path to file (must exist)
     """
-    with open(file, 'rb') as niifile:
+
+    with _nii_open(file, 'rb') as niifile:
         d = niifile.read(4)
+
         if len(d) != 4:
             logger.debug('File too short')
             return False
@@ -79,7 +103,7 @@ def getEndType(path: str) -> tuple:
     (str, str):
         tuple of endianess symbol and nifti type
     """
-    with open(path, "rb") as niifile:
+    with _nii_open(path, "rb") as niifile:
         header_size = struct.unpack("<i", niifile.read(4))[0]
         if header_size in (348, 540):
             endian = "<"
@@ -138,7 +162,7 @@ def parceNIFTIheader_1(path: str, endian: str) -> dict:
         parced header
     """
     res = dict()
-    with open(path, "rb") as niifile:
+    with _nii_open(path, "rb") as niifile:
         header = niifile.read(348)
 
     diminfo = struct.unpack("c", header[39:40])[0]
@@ -199,7 +223,7 @@ def parceNIFTIheader_2(path: str, endian: str) -> dict:
         parced header
     """
     res = dict()
-    with open(path, "rb") as niifile:
+    with _nii_open(path, "rb") as niifile:
         header = niifile.read(540)
 
     res["datatype"] = struct.unpack(endian + "h", header[12:14])[0]

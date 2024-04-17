@@ -68,8 +68,8 @@ class baseModule(abstract):
                  "files",
                  "_recPath",
                  # series identifier
-                 "series_id",
-                 "series_no",
+                 "_series_id",
+                 "_series_no",
                  # json meta variables
                  "metaAuxiliary",
                  "metaFields_req",
@@ -132,8 +132,8 @@ class baseModule(abstract):
         self.files = list()
         self._recPath = ""
         self.index = -1
-        self.series_id = None
-        self.series_no = None
+        self._series_id = None
+        self._series_no = None
         self.attributes = dict()
         self.custom = dict()
         self.labels = OrderedDict()
@@ -801,8 +801,30 @@ class baseModule(abstract):
         """
         self._acqTime = None
 
+    @property
+    def series_no(self):
+        return self._series_no
+
+    @series_no.setter
+    def series_no(self, val):
+        if not isinstance(val, int):
+            raise ValueError("{}: series_no must be an int, {} recieved"
+                             .format(self.currentFile(), type(val)))
+        self._series_no = val
+
     def recNo(self):
         return self.series_no
+
+    @property
+    def series_id(self):
+        return self._series_id
+
+    @series_id.setter
+    def series_id(self, val):
+        if not isinstance(val, str):
+            raise ValueError("{}: series_id must be a string, {} recieved"
+                             .format(self.currentFile(), type(val)))
+        self._series_id = val
 
     def recId(self):
         return self.series_id

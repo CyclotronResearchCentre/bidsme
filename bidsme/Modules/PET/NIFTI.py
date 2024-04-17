@@ -46,7 +46,7 @@ class NIFTI(PET):
     __slots__ = ["_NIFTI_CACHE", "_FILE_CACHE",
                  "_nii_type", "_endiannes"
                  ]
-    _file_extentions = [".nii", ".hdr"]
+    _file_extentions = [".nii", ".nii.gz", ".hdr"]
 
     __specialFields = {"AcquisitionTime",
                        "SeriesNumber",
