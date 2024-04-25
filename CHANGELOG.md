@@ -3,6 +3,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.6.6] - 2024-04-25
+
+### Fixed
+ - bidsify: Error when trying bidsify non-BIDS modalities ([issue #29](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme/-/issues/29))
+
+
 ## [1.6.5] - 2024-04-17
 
 ### Fixed
