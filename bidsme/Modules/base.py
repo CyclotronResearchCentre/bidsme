@@ -1082,10 +1082,9 @@ class baseModule(abstract):
             raise ValueError("{}: Recording have invalid bids session"
                              .format(self.recIdentity()))
         if not self.isValidModality(self._modality, False):
-            logger.error("{}: Invalid modality {}"
-                         .format(self.recIdentity(),
-                                 self._modality))
-            raise ValueError("Invalid modality")
+            logger.warning("{}: Non-BIDS modality {}"
+                           .format(self.recIdentity(),
+                                   self._modality))
 
         outdir = os.path.join(bidsfolder,
                               self.getBidsPrefix('/'),
@@ -1186,6 +1185,7 @@ class baseModule(abstract):
                                .format(self.recIdentity(),
                                        run.model))
             self.labels = OrderedDict.fromkeys(run.entity)
+            self._modality = run.modality
 
         self.suffix = self.getDynamicField(run.suffix)
         for key in run.entity:
