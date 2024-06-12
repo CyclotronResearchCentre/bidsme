@@ -26,6 +26,8 @@ import os
 import logging
 import pandas
 
+from copy import deepcopy
+
 from bidsme import exceptions
 from bidsme import plugins
 from bidsme import Modules
