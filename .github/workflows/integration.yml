@@ -26,6 +26,9 @@ jobs:
     - name: lint with flake8
       run: |
         flake8 .
+    - name: unittests
+      run: |
+        python -m unittest
     - name: getting Test DS
       run: |
         cd

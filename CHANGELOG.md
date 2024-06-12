@@ -3,11 +3,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.7.0] - 2024-06-12
+
 ### Added:
  - The sidecar and entities are retrieved from official BIDS schema via `bidsschematools`
  - During mapping, the same schema is used to validate the entities and sidecars
  - unittests for schema retrieval and validation
-  - plugin.tools.General: Functions for helping prepared data curation, namely LoadCurationList, CleanupPrepared and CheckPrepared
+ - plugin.tools.General: Functions for helping prepared data curation, namely LoadCurationList, CleanupPrepared and CheckPrepared
+ - unittests for data curation
 
 ### Changed
  - mapping,bidsification: the list of entities and sidecar fields are extracted from current BIDS schema
