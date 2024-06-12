@@ -422,8 +422,9 @@ class TestBIDSschema(unittest.TestCase):
         # Testing with skip
         inputs = {"datatype": "eeg",
                   "suffix": "coordsystem"}
-        rules = BIDSschema.get_sidecar_rule(skip="(sidecar|entities|modality|dataset)",
-                                            ruleset=ruleset, **inputs)
+        rules = BIDSschema.get_sidecar_rule(
+                skip="(sidecar|entities|modality|dataset)",
+                ruleset=ruleset, **inputs)
         rules_list = list(rules.keys())
         self.assertCountEqual(
                       ["eeg/EEGCoordsystemGeneral",
@@ -574,7 +575,7 @@ class TestBIDSschema(unittest.TestCase):
         fname = "anat/sub-123_ses-456_T1w.nii"
         sidecar = {}
         self.assertTrue(BIDSschema.validate(fname, sidecar))
-        
+
         # invalid name
         fname = "anat/sub-123_ses-456_T1w"
         with self.assertLogs(level=logging.ERROR):
@@ -631,7 +632,6 @@ class TestBIDSschema(unittest.TestCase):
         sidecar = {"IntendedFor": None,
                    "EEGCoordinateSystem": "<<placeholder>>",
                    "EEGCoordinateUnits": "<<placeholder>>",
-                   "EEGCoordinateSystemDescription": "",
                    "EEGCoordinateSystemDescription": "<<placeholder>>",
                    "FiducialsDescription": None,
                    "FiducialsCoordinates": "",
