@@ -88,5 +88,4 @@ badges:
     - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsme/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
   only:
     - dev
-    - master
     - tag
