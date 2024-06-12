@@ -28,6 +28,8 @@ import os
 import logging
 import pandas
 
+from copy import deepcopy
+
 from bidsme import exceptions
 from bidsme import plugins
 from bidsme import Modules
@@ -94,7 +96,12 @@ def coin(destination: str,
                         .format(recording.recIdentity()))
             continue
         recording.setLabels(r_obj)
-        recording.generateMeta()
+        model = recording.schema.get_sidecar(r_obj.modality,
+                                             r_obj.suffix,
+                                             entities=r_obj.entity,
+                                             sidecar=r_obj.json)
+        recording.metaAuxiliary = deepcopy(r_obj.json)
+        recording.expandSidecar(model, use_placeholder=False)
 
         bidsname = recording.getBidsname()
         bidsmodality = os.path.join(out_path, recording.Modality())

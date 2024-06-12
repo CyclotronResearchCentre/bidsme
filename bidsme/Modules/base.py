@@ -33,12 +33,13 @@ import gzip
 
 from datetime import datetime, date, time
 from collections import OrderedDict
+from copy import deepcopy
 
 from .abstract import abstract
 from bidsme.tools import tools
-from bidsme.bidsMeta import MetaField
 from bidsme.bidsMeta import BIDSfieldLibrary
 from bidsme.bidsMeta import BidsSession
+from bidsme.schema.BIDSschema import BIDSschema
 
 from bidsme.bidsmap import Run
 
@@ -70,11 +71,11 @@ class baseModule(abstract):
                  # series identifier
                  "_series_id",
                  "_series_no",
+                 # BIDS schema
+                 "schema",
                  # json meta variables
                  "metaAuxiliary",
-                 "metaFields_req",
-                 "metaFields_rec",
-                 "metaFields_opt",
+                 "meta_shorcut",
                  # tsv meta variables
                  "rec_BIDSvalues",
                  "sub_BIDSvalues",
@@ -89,10 +90,13 @@ class baseModule(abstract):
     _module = "base"
     _type = "None"
 
+    # Name of modality as defined in BIDS schema
+    _schema_mod = None
+    # List of associated data-types, as defined in BIDS schema
+    _schema_data_types = []
+
     # list of valid file extentions
     _file_extentions = list()
-
-    bidsmodalities = dict()
 
     rec_BIDSfields = BIDSfieldLibrary()
     rec_BIDSfields.AddField(
@@ -141,9 +145,8 @@ class baseModule(abstract):
         self._modality = unknownmodality
         self._bidsSession = None
 
-        self.metaFields_req = dict()
-        self.metaFields_rec = dict()
-        self.metaFields_opt = dict()
+        self.schema = BIDSschema(self._schema_mod)
+        self.meta_shorcut = dict()
         self.metaAuxiliary = dict()
         self.rec_BIDSvalues = self.rec_BIDSfields.GetTemplate()
         self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
@@ -472,7 +475,7 @@ class baseModule(abstract):
         passed = False
         if include_ignored and modality == ignoremodality:
             passed = True
-        if modality in cls.bidsmodalities:
+        if modality in cls._schema_data_types:
             passed = True
         return passed
 
@@ -1164,50 +1167,20 @@ class baseModule(abstract):
         if not run:
             return
 
-        if run.model in self.bidsmodalities:
-            self._modality = run.modality
-            tags = set(run.entity)\
-                - set(self.bidsmodalities[run.model])
-            if tags:
-                if not run.checked:
-                    logger.warning("{}: Naming schema not BIDS"
-                                   .format(self.recIdentity()))
-                self.labels = OrderedDict.fromkeys(run.entity)
-            else:
-                self.labels = OrderedDict.fromkeys(
-                        self.bidsmodalities[run.model])
-        elif run.modality == ignoremodality:
-            self._modality = run.modality
-            return
-        else:
-            if not run.checked:
-                logger.warning("{}: Non BIDS modality {}"
-                               .format(self.recIdentity(),
-                                       run.model))
-            self.labels = OrderedDict.fromkeys(run.entity)
-            self._modality = run.modality
+        self._modality = run.modality
 
+        # ignored modality
+        if run.modality == ignoremodality:
+            return
+
+        self.labels = OrderedDict.fromkeys(run.entity)
         self.suffix = self.getDynamicField(run.suffix)
         for key in run.entity:
             val = self.getDynamicField(run.entity[key])
             self.labels[key] = val
 
-        self.metaAuxiliary = dict()
         for key, val in run.json.items():
-            if key:
-                if isinstance(val, list):
-                    self.metaAuxiliary[key] = [
-                            MetaField(key, None,
-                                      self.getDynamicField(v,
-                                                           cleanup=False,
-                                                           raw=True))
-                            for v in val]
-                else:
-                    self.metaAuxiliary[key] = MetaField(
-                            key, None,
-                            self.getDynamicField(val,
-                                                 cleanup=False,
-                                                 raw=True))
+            self.metaAuxiliary[key] = deepcopy(val)
 
     def getBidsPrefix(self, sep: str = '_') -> str:
         """
@@ -1254,14 +1227,6 @@ class baseModule(abstract):
     #############################################
     # JSON sidecar meta-fields related methodes #
     #############################################
-    def resetMetaFields(self) -> None:
-        """
-        Virtual function
-        Resets currently defined meta fields dictionaries
-        to None values
-        """
-        raise NotImplementedError
-
     def setupMetaFields(self, definitions: dict) -> None:
         """
         Setup json fields to values from given dictionary.
@@ -1279,279 +1244,96 @@ class baseModule(abstract):
         definitions: dict
             dictionary with metadata fields definitions
         """
-        if self.manufacturer in definitions:
-            meta = definitions[self.manufacturer]
-        else:
-            meta = None
-        meta_default = definitions["Unknown"]
 
-        for metaFields in (self.metaFields_req,
-                           self.metaFields_rec,
-                           self.metaFields_opt):
-            for mod in metaFields:
-                for key in metaFields[mod]:
-                    if meta and key in meta:
-                        val = meta[key]
-                        if isinstance(val, list):
-                            metaFields[mod][key] = [MetaField(f[0],
-                                                              scaling=None,
-                                                              default=f[1])
-                                                    for f in val]
-                        else:
-                            metaFields[mod][key]\
-                                = MetaField(val[0],
-                                            scaling=None,
-                                            default=val[1])
-                            continue
-                    if key in meta_default:
-                        val = meta_default[key]
-                        if isinstance(val, list):
-                            metaFields[mod][key] = [MetaField(f[0],
-                                                              scaling=None,
-                                                              default=f[1])
-                                                    for f in val]
-                        else:
-                            metaFields[mod][key]\
-                                = MetaField(val[0],
-                                            scaling=None,
-                                            default=val[1])
+        self.meta_shorcut = definitions.get("Unknown", {})
+        self.meta_shorcut.update(definitions.get(self.manufacturer, {}))
 
-    def testMetaFields(self):
+    def expandSidecar(self, model,
+                      sidecar: OrderedDict = None,
+                      use_placeholder: bool = False):
         """
-        Test all metafields values and resets not found ones
+        Expand provided sidecar (OrderedDict) with metafields
+        retrieved from loaded schema based on model.
+
+        If sidecar is None, the metaAuxiliary is used.
+        If use_placeholder, fields that are in schema but not
+        retrieved will be expanded with corresponding placeholder.
+        Additionally, if use_placeholder, the required and
+        retrieved variables will be expanded explicetly.
+
+        The fields will be attempted to be retrieved in following
+        order:
+            custom variables
+            shorctuts defined for given data format
+            metadata from file header
+
+        Parameters:
+        -----------
+            model: str
+                Model name with which expand sidecar
+            sidecar: OrderedDict, optional
+                sidecar to expand, if None, the self.metaAuxiliary
+                will be used
+            use_placeholder: bool, optional
+                If False (default) all not retrieved fields will
+                be ignored.
+                If True, all not retrieved fields will be replaced
+                by corresponding placeholder.
         """
-        for metaFields in (self.metaFields_req,
-                           self.metaFields_rec,
-                           self.metaFields_opt):
-            for mod in metaFields:
-                for key, field in metaFields[mod].items():
-                    if isinstance(field, list):
-                        continue
-                    if field is None or "<<" in field.name:
-                        continue
-                    res = None
-                    try:
-                        res = self.getDynamicField(field.name,
-                                                   default=field.default,
-                                                   raw=True,
-                                                   cleanup=False,
-                                                   warning=False)
-                    except Exception:
-                        metaFields[mod][key] = None
-                        pass
-                    if res is None:
-                        metaFields[mod][key] = None
+        if sidecar is None:
+            sidecar = self.metaAuxiliary
 
-    def generateMeta(self) -> dict:
+        for key, placeholder in model.items():
+            # Already defined
+            if key in sidecar:
+                continue
+            test_key = ""
+            if key in self.custom:
+                test_key = "<<custom:{}>>".format(key)
+            elif key in self.meta_shorcut:
+                test_key = self.meta_shorcut[key]
+            else:
+                test_key = "<{}>".format(key)
+            res = self.getDynamicField(test_key, warning=False,
+                                       cleanup=False, raw=True)
+            if res is None:
+                # Test key field not found
+                if use_placeholder:
+                    sidecar[key] = placeholder
+            else:
+                if not use_placeholder or placeholder:
+                    sidecar[key] = test_key
+
+    def exportMeta(self, keys: list = []) -> dict:
         """
-        Fills standard meta values. Must be called before exporting
-        these meta-data into json
-        """
-        if not self._modality:
-            logger.error("{}/{}: Modality not defined"
-                         .format(self.Module(), self.Type()))
-            raise ValueError("Modality wasn't defined")
-
-        mod = self._modality
-        if mod in self.metaFields_req:
-            for key, field in self.metaFields_req[mod].items():
-                if field is None:
-                    continue
-                if key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_rec:
-            for key, field in self.metaFields_rec[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_opt:
-            for key, field in self.metaFields_opt[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        mod = "__common__"
-        if mod in self.metaFields_req:
-            for key, field in self.metaFields_req[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_rec:
-            for key, field in self.metaFields_rec[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_opt:
-            for key, field in self.metaFields_opt[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-
-    def exportMeta(self) -> dict:
-        """
-        Exports recording metadata into dictionary structure
-
-        The metadata keys are put in order:
-            1. The auxiliary (defined in bidsmap)
-            2. Modality required
-            3. Modality recommended
-            4. Modality optional
-            5. Common required
-            6. Common recommended
-            7. Common optional
-
-        Already existing keys are ignored
+        Retrieves metadata values for sidecar json
 
         Returns
         -------
         dict:
             resulting dictionary
         """
-        exp = dict()
-        self.__fillMetaDict(exp, self.metaAuxiliary,
-                            required=False,
-                            ignore_null=True)
-        mod = self._modality
-        if mod in self.metaFields_req:
-            self.__fillMetaDict(exp, self.metaFields_req[mod],
-                                required=True,
-                                ignore_null=False)
-        if mod in self.metaFields_rec:
-            self.__fillMetaDict(exp, self.metaFields_rec[mod],
-                                required=False,
-                                ignore_null=False)
-        if mod in self.metaFields_opt:
-            self.__fillMetaDict(exp, self.metaFields_opt[mod],
-                                required=False,
-                                ignore_null=False)
-        mod = "__common__"
-        if mod in self.metaFields_req:
-            self.__fillMetaDict(exp, self.metaFields_req[mod],
-                                required=True,
-                                ignore_null=False)
-        if mod in self.metaFields_rec:
-            self.__fillMetaDict(exp, self.metaFields_rec[mod],
-                                required=False,
-                                ignore_null=False)
-        if mod in self.metaFields_opt:
-            self.__fillMetaDict(exp, self.metaFields_opt[mod],
-                                required=False,
-                                ignore_null=False)
-        return exp
+        if not keys:
+            keys = self.metaAuxiliary.keys()
 
-    def __fillMetaDict(self,
-                       exportDict: dict, metaFields: dict,
-                       required: bool, ignore_null: bool) -> None:
-        """
-        Helper function to fill exportDict by values from metaFields dict
-        If key is already filled, it is not updated.
-
-        If required is true, missing values will produce a warning
-
-        Parameters
-        ----------
-        exportDict: dict
-            dictionary to fill
-        metaFields: dict
-            dictionary with betaField as values
-        required: bool
-            switch if given values are required or not
-        ignore_null: bool
-            switch if empty values must be filled
-        """
-        for key, field in metaFields.items():
-            if key in exportDict:
+        exp = {}
+        for key in keys:
+            val = self.metaAuxiliary.get(key, None)
+            if val is None:
                 continue
 
-            if key in self.custom:
-                exportDict[key] = self.custom[key]
-                continue
-
-            if not field:
-                if required:
-                    logger.warning("{}: Required field {} not set"
-                                   .format(self.recIdentity(),
-                                           key))
-                if not ignore_null:
-                    exportDict[key] = None
-                continue
-
-            if isinstance(field, list):
-                exportDict[key] = [f.value for f in field]
+            if isinstance(val, list):
+                res = [self.getDynamicField(v, warning=False,
+                                            raw=True, cleanup=False)
+                       for v in val]
+            elif isinstance(val, str):
+                res = self.getDynamicField(val, warning=False,
+                                           raw=True, cleanup=False)
             else:
-                exportDict[key] = field.value
-
-    def fillMissingJSON(self, run: Run) -> None:
-        """
-        Completes missing values from JSON dictionary in given Run
-
-        Required parameters are filled with '<<placeholder>>';
-        Recommended parameters are filled with '';
-        Optional parameters are filled with None
-
-        Also checks if existing JSON fields are interpretable
-
-        Parameters
-        ----------
-        run: Run
-            Run object with json dictionary to fill
-        """
-        model = run.model
-        if model == ignoremodality or model == unknownmodality:
-            return
-
-        if model in self.metaFields_req:
-            for key, field in self.metaFields_req[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = "<<placeholder>>"
-        if model in self.metaFields_rec:
-            for key, field in self.metaFields_rec[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = ""
-        if model in self.metaFields_opt:
-            for key, field in self.metaFields_opt[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = None
-        if "__common__" in self.metaFields_req:
-            for key, field\
-                    in self.metaFields_req["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = "<<placeholder>>"
-        if "__common__" in self.metaFields_rec:
-            for key, field\
-                    in self.metaFields_rec["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = ""
-        if "__common__" in self.metaFields_opt:
-            for key, field\
-                    in self.metaFields_opt["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = None
-
-    def __getMetaFieldSecure(self, field: MetaField, fallback):
-        if field is None:
-            return fallback
-        try:
-            val = self.getDynamicField(field.name,
-                                       default=fallback,
-                                       raw=True, cleanup=False)
-        except Exception:
-            return fallback
-        if val is None:
-            return fallback
-        return val
+                res = val
+            if res is not None:
+                exp[key] = res
+        return exp
 
     #####################################
     # Recording identification methodes #

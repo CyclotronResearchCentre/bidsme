@@ -28,11 +28,14 @@ import sys
 import logging
 import time
 
+import bidsschematools as bst
+
 from bidsme import exceptions
 from bidsme.prepare import prepare
 from bidsme.process import process
 from bidsme.bidsify import bidsify
 from bidsme.mapper import mapper
+from bidsme.schema import BIDSschema
 
 from bidsme.tools import config
 from bidsme.tools import info
@@ -41,7 +44,7 @@ from bidsme.tools import paths
 
 def init(level="INFO",
          formatter='%(name)s(%(lineno)d) - %(levelname)s %(message)s',
-         quiet=False, log_dir=""):
+         quiet=False, log_dir="", schema_path=None):
     """
     Initialize logger and prints out bidsme header
 
@@ -57,6 +60,8 @@ def init(level="INFO",
     log_dir: str
         Directory where the log file is placed,
         if empty, no log file is written
+    schema_path: str
+        Path to alternative bids schema directory
 
     Returns:
     --------
@@ -76,8 +81,7 @@ def init(level="INFO",
     logger.info("")
     logger.info("-------------- START bidsme ----------------")
     logger.info("{}".format(time.asctime()))
-    logger.info("programm version: {}".format(info.version()))
-    logger.info("bids version: {}".format(info.bidsversion()))
+    logger.info("version: {}".format(info.version()))
 
     logger.debug("User: {}".format(paths.user))
     logger.debug("Application: {}".format(paths.app))
@@ -85,6 +89,10 @@ def init(level="INFO",
     logger.debug("Instal dir: {}".format(paths.installation))
     logger.debug("Conf dir: {}".format(paths.config))
 
+    if not schema_path:
+        schema_path = bst.utils.get_bundled_schema_path()
+    logger.debug("Schema dir: {}".format(schema_path))
+    BIDSschema.load_schema(schema_path)
     return logger
 
 

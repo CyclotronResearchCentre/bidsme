@@ -28,6 +28,8 @@ import logging
 import pandas
 import glob
 
+from copy import deepcopy
+
 from bidsme import bidsmap
 from bidsme import plugins
 from bidsme import Modules
@@ -38,6 +40,8 @@ from bidsme.tools import tools
 
 from bidsme.bidsMeta import BidsSession
 from bidsme.bidsMeta import BidsTable
+
+from .Modules._constants import ignoremodality, unknownmodality
 
 logger = logging.getLogger(__name__)
 
@@ -96,28 +100,57 @@ def createmap(destination,
                     recording.Type()
                     )
 
-        if modality != "__ignore__":
-            bidsified_name = "{}/{}".format(modality, recording.getBidsname())
-            logger.debug("{}/{}: {}".format(recording.Module(),
-                                            recording.recIdentity(),
-                                            bidsified_name))
-        else:
-            bidsified_name = None
+        if modality == ignoremodality or modality == unknownmodality:
+            continue
 
+        bidsified_name = "{}/{}".format(modality, recording.getBidsname())
+        logger.debug("{}/{}: {}".format(recording.Module(),
+                                        recording.recIdentity(),
+                                        bidsified_name))
+
+        validate = False
         if first_name is None:
             first_name = bidsified_name
-        elif modality != "__ignore__":
-            if first_name == bidsified_name:
-                logger.error("{}/{}: Bidsified name same "
-                             "as first file of recording: {}"
-                             .format(recording.Module(),
-                                     recording.recIdentity(),
-                                     bidsified_name))
+            if not run.checked:
+                validate = True
 
-        if not run.checked:
-            if not run.entity:
-                run.genEntities(recording.bidsmodalities.get(run.model, []))
-            recording.fillMissingJSON(run)
+        elif first_name == bidsified_name:
+            logger.error("{}/{}: Bidsified name same "
+                         "as first file of recording: {}"
+                         .format(recording.Module(),
+                                 recording.recIdentity(),
+                                 bidsified_name))
+            break
+
+        if validate:
+            # Generating entities list
+            if (not run.entity) or run.template:
+                logger.info("Retrieving entities for model {}"
+                            .format(run.model))
+                model = recording.schema.get_entities(run.model)
+                run.genEntities(model)
+            model = recording.schema.get_sidecar(run.modality,
+                                                 run.suffix,
+                                                 entities=run.entity,
+                                                 sidecar=run.json)
+            # Expanding recording sidecar
+            recording.metaAuxiliary = deepcopy(run.json)
+            recording.expandSidecar(model, use_placeholder=False)
+            sidecar = recording.exportMeta()
+
+            # Validating bidsified name and sidecar
+            base, ext = os.path.splitext(recording.currentFile(False))
+            if ext == ".gz":
+                ext = os.path.splitext(base)[1] + ext
+            logger.info("Validating file {}".format(bidsified_name))
+            recording.schema.validate(bidsified_name + ext, sidecar)
+
+            if (not run.json) or run.template:
+                # Expanding run json fiels
+                logger.info("Expanding sidecar")
+                recording.expandSidecar(model, run.json,
+                                        use_placeholder=True)
+
         elif "IntendedFor" in recording.metaAuxiliary:
             sub_path = os.path.join(destination, recording.subId())
             out_path = os.path.join(destination,
@@ -127,15 +160,18 @@ def createmap(destination,
 
             if os.path.isfile(os.path.join(bidsmodality,
                                            bidsname + '.json')):
+                sidecar = recording.exportMeta(["IntendedFor"])
                 # checking the IntendedFor validity
-                intended = recording.metaAuxiliary["IntendedFor"]
+                intended = sidecar["IntendedFor"]
+                if isinstance(intended, str):
+                    intended = [intended]
                 for i in intended:
-                    dest = os.path.join(sub_path, i.value)
+                    dest = os.path.join(sub_path, i)
                     if not glob.glob(dest):
                         logger.error("{}/{}({}): IntendedFor value {} "
                                      "not found"
                                      .format(modality, r_index,
-                                             run.example, i.value))
+                                             run.example, i))
 
     plugins.RunPlugin("SequenceEndEP", None, recording)
     return first_name
@@ -242,8 +278,9 @@ def mapper(source: str, destination: str,
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
     logger.debug("Creating bidsmap for unknown modalities")
+    mapfolder = os.path.dirname(bidsmapfile)
     # removing old unknown files
-    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
+    bidsunknown = os.path.join(mapfolder, 'unknown.yaml')
     if os.path.isfile(bidsunknown):
         os.remove(bidsunknown)
     bidsmap_unk = bidsmap.Bidsmap(bidsunknown)

@@ -142,9 +142,7 @@ class BrainVision(EEG):
                         break
 
             if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
-                self.resetMetaFields()
                 self.setupMetaFields(_EDF.metafields)
-                self.testMetaFields()
 
     def _load_channels(self) -> pandas.DataFrame:
         return self.mne.load_channels()

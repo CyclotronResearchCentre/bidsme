@@ -119,15 +119,11 @@ class bidsmeNIFTI(PET):
             if form[1] == "DICOM":
                 if self.setManufacturer(self._headerData["manufacturer"],
                                         _DICOM.manufacturers):
-                    self.resetMetaFields()
                     self.setupMetaFields(_DICOM.metafields)
-                    self.testMetaFields()
             elif form[1] == "ECAT":
                 if self.setManufacturer(self._headerData["manufacturer"],
                                         _ECAT.manufacturers):
-                    self.resetMetaFields()
                     self.setupMetaFields(_ECAT.metafields)
-                    self.testMetaFields()
             else:
                 logger.error("{}: unknown format {}"
                              .format(self.recIdentity,
