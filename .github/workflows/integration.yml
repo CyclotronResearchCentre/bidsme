@@ -8,8 +8,8 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
     steps:
-    - using: node20
     - uses: actions/checkout@v3
+      using: node20
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
