@@ -103,6 +103,13 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
             version="%(prog)s: {}\nBIDS: {}".format(info.version(),
                                                     info.bidsversion())
             )
+
+    parser.add_argument(
+            '--version-bids',
+            help="Show BIDS schema version and exit",
+            action="version",
+            version=info.bidsversion()
+            )
     subparsers = parser.add_subparsers(
             title="subcommands",
             metavar="",
