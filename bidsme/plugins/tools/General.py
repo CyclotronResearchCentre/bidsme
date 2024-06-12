@@ -530,11 +530,14 @@ def CheckPrepared(prepared_path, white_list, session,
             return True
 
         for default in defaults:
+            test_dict = white_list[mod].get(default, {})
+            acqs = test_dict.get(ses, [])
+            if not acqs:
+                continue
             logger.info("{}/{}/{}: Comparing acquisitions with {} list"
                         .format(sub, ses, mod, default))
-            acqs = default.get(ses, [])
             if CheckSeries(path, acqs, strict=True, level=logging.DEBUG):
-                logger.info("{}/{}/{}: Maching {} list"
+                logger.info("{}/{}/{}: Matched {} list"
                             .format(sub, ses, mod, default))
                 return True
 
