@@ -21,8 +21,9 @@ before_script:
   - mkdir -p .cache/pip
   - pip --cache-dir=.cache/pip install .
   - pip --cache-dir=.cache/pip install flake8
-  - pip --cache-dir=.cache/pip install xlrd==1.2.0
+  - pip --cache-dir=.cache/pip install openpyxl
   - pip --cache-dir=.cache/pip install anybadge
+  - pip --cache-dir=.cache/pip install coverage
 
 stages:
   - test
@@ -35,7 +36,6 @@ flake8:
   script:
     - python -m flake8 bidsme
   allow_failure: true
-  <<: *only_branches
     
 include_test:
   stage: test
@@ -50,7 +50,7 @@ include_test:
 unittest:
   stage: test
   script:
-    - python3 -m unittest
+    - coverage run -m unittest
 
 get_examples:
   stage: get_examples
