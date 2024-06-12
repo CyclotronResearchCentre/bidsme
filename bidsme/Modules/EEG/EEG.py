@@ -33,7 +33,6 @@ from bidsme.bidsMeta import BIDSfieldLibrary
 from bidsme.tools import paths
 
 from ..base import baseModule
-from . import _EEG
 
 
 logger = logging.getLogger(__name__)
@@ -98,6 +97,8 @@ channel_types = {
 
 class EEG(baseModule):
     _module = "EEG"
+    _schema_mod = "eeg"
+    _schema_data_types = ["eeg"]
 
     bidsmodalities = {
             "eeg": ("task", "acq", "run"),
@@ -121,7 +122,6 @@ class EEG(baseModule):
     # Lists of EOG and Misc channels names
     def __init__(self):
         super().__init__()
-        self.resetMetaFields()
         self.manufacturer = None
 
         self.TableChannels = None
@@ -129,28 +129,6 @@ class EEG(baseModule):
         self.TableEvents = None
 
         self._channels_count = dict.fromkeys(channel_kinds, 0)
-
-    def resetMetaFields(self) -> None:
-        """
-        Resets currently defined meta fields dictionaries
-        to None values
-        """
-        self.metaFields_req["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_required_common}
-        for mod in _EEG.eeg_meta_required_modality:
-            self.metaFields_req[mod] = {key: None for key in
-                                        _EEG.eeg_meta_required_modality[mod]}
-        self.metaFields_rec["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_recommended_common}
-        for mod in _EEG.eeg_meta_recommended_modality:
-            self.metaFields_rec[mod] = {key: None for key in
-                                        _EEG.eeg_meta_recommended_modality[mod]
-                                        }
-        self.metaFields_opt["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_optional_common}
-        for mod in _EEG.eeg_meta_optional_modality:
-            self.metaFields_opt[mod] = {key: None for key in
-                                        _EEG.eeg_meta_optional_modality[mod]}
 
     def load_channels(self, base_name: str, ):
         """

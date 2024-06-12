@@ -61,8 +61,7 @@ class Bidsmap(object):
         self.filename = os.path.basename(yamlfile)
 
         if not os.path.isfile(yamlfile):
-            logger.info("{} not found. Bidsmap will be empty"
-                        .format(yamlfile))
+            # No map -- creatind new empty map
             return
 
         # Read the heuristics from the bidsmap file
@@ -243,7 +242,6 @@ class Bidsmap(object):
             (modality, run index, run)
         """
         run = copy(run)
-        run.save()
         if run.modality in self.Modules[module][form]:
             self.Modules[module][form][run.modality].append(run)
         else:

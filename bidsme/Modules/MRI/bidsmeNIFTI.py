@@ -125,9 +125,7 @@ class bidsmeNIFTI(MRI):
             if form[1] == "DICOM":
                 if self.setManufacturer(self._headerData["manufacturer"],
                                         _DICOM.manufacturers):
-                    self.resetMetaFields()
                     self.setupMetaFields(_DICOM.metafields)
-                    self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         if self._headerData["acqDateTime"]:

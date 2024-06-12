@@ -32,19 +32,16 @@ from bidsme.tools import tools
 
 from ..base import baseModule
 
-from . import _MRI
-
 logger = logging.getLogger(__name__)
 
 
 class MRI(baseModule):
     _module = "MRI"
-
-    bidsmodalities = _MRI.modalities
+    _schema_mod = "mri"
+    _schema_data_types = ["anat", "asl", "dwi", "fmap", "func"]
 
     def __init__(self):
         super().__init__()
-        self.resetMetaFields()
 
     def _post_copy_bidsified(self,
                              directory: str,
@@ -70,7 +67,7 @@ class MRI(baseModule):
         """
         bids_base = os.path.join(directory, bidsname)
 
-        if self.Modality() == "dwi":
+        if self.Modality() == "dwi" and self.suffix == "dwi":
             bvec = tools.change_ext(self.currentFile(), "bvec")
             if os.path.isfile(bvec):
                 shutil.copy2(bvec,
@@ -85,30 +82,3 @@ class MRI(baseModule):
             else:
                 logger.warning("{} missing bval file for diffusion recording"
                                .format(self.recIdentity()))
-
-    def resetMetaFields(self) -> None:
-        """
-        Resets currently defined meta fields dictionaries
-        to None values
-        """
-        self.metaFields_req["__common__"] = {
-                key: None for key in
-                _MRI.required_common}
-        for mod in _MRI.required_modality:
-            self.metaFields_req[mod] = {
-                key: None for key in
-                _MRI.required_modality[mod]}
-        self.metaFields_rec["__common__"] = {
-                key: None for key in
-                _MRI.recommended_common}
-        for mod in _MRI.recommended_modality:
-            self.metaFields_rec[mod] = {
-                key: None for key in
-                _MRI.recommended_modality[mod]}
-        self.metaFields_opt["__common__"] = {
-                key: None for key in
-                _MRI.optional_common}
-        for mod in _MRI.optional_modality:
-            self.metaFields_opt[mod] = {
-                key: None for key in
-                _MRI.optional_modality[mod]}

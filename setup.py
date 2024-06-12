@@ -16,7 +16,7 @@ CLASSIFIERS = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.8",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
     "Topic :: Scientific/Engineering :: Medical Science Apps."
     ]
@@ -30,12 +30,14 @@ setuptools.setup(
       long_description=long_description,
       author="Nikita Beliy",
       author_email="nikita.beliy@uliege.be",
-      python_requires=">=3.6,<3.11",
+      python_requires=">=3.8,<3.11",
       packages=setuptools.find_packages(),
       install_requires=[
           "pandas <= 1.4.4",
           "ruamel.yaml>=0.15.35",
-          "coloredlogs"
+          "coloredlogs",
+          "pyparsing",
+          "bidsschematools"
           ],
       extras_require={
           "nifti": ["nibabel"],

@@ -28,6 +28,8 @@ import sys
 import logging
 import coloredlogs
 
+import bidsschematools as bst
+
 from . import paths
 
 fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
@@ -73,12 +75,8 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    with open(os.path.join(paths.installation,
-                           "bidsme",
-                           'bidsversion.txt')) as fid:
-        version = fid.read().strip()
-
-    return str(version)
+    schema_dir = bst.utils.get_bundled_schema_path()
+    return bst.schema._get_bids_version(schema_dir)
 
 
 def version() -> str:

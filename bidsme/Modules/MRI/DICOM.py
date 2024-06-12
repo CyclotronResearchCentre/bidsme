@@ -92,9 +92,7 @@ class DICOM(MRI):
             self._DICOM_CACHE = dicomdict
             if self.setManufacturer(self.getField("Manufacturer"),
                                     _DICOM.manufacturers):
-                self.resetMetaFields()
                 self.setupMetaFields(_DICOM.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         for Id in ("Acquisition", "Content", "Instance"):

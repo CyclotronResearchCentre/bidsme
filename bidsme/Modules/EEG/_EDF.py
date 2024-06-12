@@ -24,19 +24,6 @@
 
 metafields = {
         "Unknown": {
-            # "PowerLineFrequency": ("<line_freq>", None),
-            "SamplingFrequency": ("<sfreq>", None),
-            "RecordingDuration": ("<RecordingDuration>", None),
-            "RecordingType": ("<RecordingType>", None),
-            "MEGChannelCount": ("<MEGChannelCount>", None),
-            "MEGREFChannelCount": ("<MEGREFChannelCount>", None),
-            "ECOGChannelCount": ("<ECOGChannelCount>", None),
-            "SEEGChannelCount": ("<SEEGChannelCount>", None),
-            "EEGChannelCount": ("<EEGChannelCount>", None),
-            "EOGChannelCount": ("<EOGChannelCount>", None),
-            "ECGChannelCount": ("<ECGChannelCount>", None),
-            "EMGChannelCount": ("<EMGChannelCount>", None),
-            "MiscChannelCount": ("<MiscChannelCount>", None),
-            "TriggerChannelCount": ("<TriggerChannelCount>", None)
+            "SamplingFrequency": "<sfreq>",
         }
 }

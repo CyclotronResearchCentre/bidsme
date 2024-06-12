@@ -1,4 +1,4 @@
-image: "python:3.6"
+image: "python:3.8"
 
 # run on branches
 .only_branches: &only_branches
@@ -46,6 +46,11 @@ include_test:
     - $RUN prepare --help
     - $RUN bidsify --help
     - $RUN map --help
+
+unittest:
+  stage: test
+  script:
+    - python3 -m unittest
 
 get_examples:
   stage: get_examples

@@ -3,6 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added:
+ - The sidecar and entities are retrieved from official BIDS schema via `bidsschematools`
+ - During mapping, the same schema is used to validate the entities and sidecars
+ - unittests for schema retrieval and validation
+  - plugin.tools.General: Functions for helping prepared data curation, namely LoadCurationList, CleanupPrepared and CheckPrepared
+
+### Changed
+ - mapping,bidsification: the list of entities and sidecar fields are extracted from current BIDS schema
+(based on `bidsschematools` package)
+ - Python>=3.8, Python<3.11: Restricted python to >=3.8 to satisfy dependence to `bidsschematools`
+ - bidsmap: model parameter is now explicitly saved in bidsmap
+ - bidsmap: model now takes form of `<data type>:<suffix>` and used to retrieve entities and sidecat fields
+ - mapping: template == true will now also expand json and entities sections
+ - Modules: the metadata fields in modality class definitions are now replaced by shotrcuts, which
+links sidecar JSON field with corresponding dynamic field in metadata
+ - bidsmap: required sidecar json fields that BIDSME can retrieve automatically (in custom variables,
+via shortcuts, or directly in metadata) are now explicetly saved in bidsmap
+ - unknown map is now created in same folder as bidsmap
+ - DWI: warning about missing bval/vec files now triggers only for suffix dwi
+
 ## [1.6.6] - 2024-04-25
 
 ### Fixed

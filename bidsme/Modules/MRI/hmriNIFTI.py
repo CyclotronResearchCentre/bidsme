@@ -160,9 +160,7 @@ class hmriNIFTI(MRI):
                         self.__phoenix["sWipMemBlock"].get("adFree", [])
 
             if manuf_changed:
-                self.resetMetaFields()
                 self.setupMetaFields(_hmriNIFTI.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
@@ -268,7 +266,7 @@ class hmriNIFTI(MRI):
             elif name == "PhaseEncodingSign":
                 value = self.__csai.get("PhaseEncodingDirectionPositive", 0)
                 if value:
-                    return "+"
+                    return ""
                 else:
                     return "-"
             elif name == "B1mapNominalFAValues":
@@ -315,9 +313,9 @@ class hmriNIFTI(MRI):
             elif name == "MTState":
                 value = self.__phoenix["sPrepPulses"].get("ucMTC", 0)
                 if value == 0:
-                    value = "Off"
+                    value = False
                 else:
-                    value = "On"
+                    value = True
             elif name == "ReceiveCoilActiveElements":
                 value = self.__csai.get("CoilString", "")
             elif name == "EffectiveEchoSpacing":

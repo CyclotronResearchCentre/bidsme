@@ -1,5 +1,4 @@
 include bidsme/version.txt
-include bidsme/bidsversion.txt
 include bidsme/heuristics/*.yaml
 include bidsme/table_templates/*.json
 global-exclude *.pyc

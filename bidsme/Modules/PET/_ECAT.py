@@ -28,8 +28,6 @@ metafields = {
             "TracerName": ("<radiopharmaceutical>", None),
             "TracerRadionuclide": ("<isotope_name>", None),
             "InjectedRadioactivity": ("<dosage>", None),
-            "ScanStart": ("<ScanStart>", None),
-            "InjectionStart": ("<InjectionStart>", None),
             "TimeZero": ("<time:scan_start_time>", None),
             "AcquisitionMode": ("<acquisition_mode>", None),
             "ScanDate": ("<date:scan_start_time>", None),

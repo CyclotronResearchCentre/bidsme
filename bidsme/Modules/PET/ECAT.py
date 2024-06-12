@@ -87,10 +87,7 @@ class ECAT(PET):
             self._ECAT_CACHE = e.header
             self._SUB_CACHE = e.get_subheaders().subheaders
             self._FILE_CACHE = path
-            self.setManufacturer("Unknown", {})
-            self.resetMetaFields()
             self.setupMetaFields(_ECAT.metafields)
-            self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         return self.getField("datetime:scan_start_time")
