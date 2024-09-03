@@ -24,15 +24,15 @@
 
 metafields = {
         "Unknown": {
-            "Unit": ("<data_units>", None),
-            "TracerName": ("<radiopharmaceutical>", None),
-            "TracerRadionuclide": ("<isotope_name>", None),
-            "InjectedRadioactivity": ("<dosage>", None),
-            "TimeZero": ("<time:scan_start_time>", None),
-            "AcquisitionMode": ("<acquisition_mode>", None),
-            "ScanDate": ("<date:scan_start_time>", None),
-            "FrameTimesStart": ("<FramesStart>", None),
-            "FrameDuration": ("<FramesDuration>", None),
+            "Unit": "<data_units>",
+            "TracerName": "<radiopharmaceutical>",
+            "TracerRadionuclide": "<isotope_name>",
+            "InjectedRadioactivity": "<dosage>",
+            "TimeZero": "<time:scan_start_time>",
+            "AcquisitionMode": "<acquisition_mode>",
+            "ScanDate": "<date:scan_start_time>",
+            "FrameTimesStart": "<FramesStart>",
+            "FrameDuration": "<FramesDuration>",
             },
         }
 

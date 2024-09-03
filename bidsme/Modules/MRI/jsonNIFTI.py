@@ -105,7 +105,7 @@ class jsonNIFTI(MRI):
             self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
                                                        "Unknown")
             meta = {"Unknown": {}}
-            meta[self.manufacturer] = {key: ("<{}>".format(key), None)
+            meta[self.manufacturer] = {key: "<{}>".format(key)
                                        for key in self._HEADER_CACHE}
             self.setupMetaFields(meta)
 
