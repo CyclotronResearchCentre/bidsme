@@ -513,6 +513,8 @@ def CheckPrepared(prepared_path, white_list, session,
 
     for mod in white_list:
         path = os.path.join(prepared_path, sub, ses, mod)
+        if not os.path.isdir(path):
+            continue
 
         check_list = white_list[mod].get(sub, {})
 
