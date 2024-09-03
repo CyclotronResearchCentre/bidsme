@@ -6,6 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Fixed
  - plugins/tools/General: in `CheckPrepared`, the check is not performed if modality folder is not present
  - jsonNIFTI: The default metadata is now correctly imported
+ - setup.py: Limited numpy version to `1.26.4`, see issue [!15](https://github.com/CyclotronResearchCentre/bidsme/issues/15)
 
 
 ## [1.7.0] - 2024-06-12

@@ -33,6 +33,7 @@ setuptools.setup(
       python_requires=">=3.8,<3.11",
       packages=setuptools.find_packages(),
       install_requires=[
+          "numpy<=1.26.4",
           "pandas <= 1.4.4",
           "ruamel.yaml>=0.15.35",
           "coloredlogs",
