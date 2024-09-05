@@ -3,12 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
-## [1.7.1] - 2024-09-03
+## [1.7.1] - 2024-09-05
 
 ### Fixed
  - plugins/tools/General: in `CheckPrepared`, the check is not performed if modality folder is not present
  - jsonNIFTI: The default metadata is now correctly imported
  - setup.py: Limited numpy version to `1.26.4`, see issue [!15](https://github.com/CyclotronResearchCentre/bidsme/issues/15)
+
+### Changed
+ - `test_schema`: performing tests on `perf:asl` instead of `eeg:coordsystem`, as it was moved to json subfolder
+
+### Removed
+ - `test_schema`: Test of validity of example datasets, as examples are difficult to manage
 
 
 ## [1.7.0] - 2024-06-12

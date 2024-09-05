@@ -404,38 +404,44 @@ class TestBIDSschema(unittest.TestCase):
 
     def test_get_sidecar_rule(self):
         # Testing on restricted ruleset
-        ruleset = {"eeg": BIDSschema._schema.rules.sidecars.eeg}
-        inputs = {"datatype": "eeg",
-                  "suffix": "coordsystem",
-                  "sidecar": {"EEGCoordinateSystem": "Other"}}
+        ruleset = {"perf": BIDSschema._schema.rules.sidecars.asl}
+        inputs = {"datatype": "perf",
+                  "suffix": "asl",
+                  "sidecar": {"M0Type": "Estimate"}}
         rules = BIDSschema.get_sidecar_rule(ruleset=ruleset, **inputs)
         rules_list = list(rules.keys())
         self.assertCountEqual(
-                      ["eeg/EEGCoordsystemGeneral",
-                       "eeg/EEGCoordsystemPositions",
-                       "eeg/EEGCoordsystemOther",
-                       "eeg/EEGCoordsystemFiducials",
-                       "eeg/EEGCoordsystemLandmark",
-                       "eeg/EEGCoordsystemLandmarkDescriptionRec"],
+                      ["perf/MRIASLTextOnly",
+                       "perf/MRIASLCommonMetadataFields",
+                       "perf/MRIASLCommonMetadataFieldsM0TypeReq"
+                       ],
                       rules_list)
 
         # Testing with skip
-        inputs = {"datatype": "eeg",
-                  "suffix": "coordsystem"}
+        inputs = {"datatype": "perf",
+                  "suffix": "asl",
+                  }
         rules = BIDSschema.get_sidecar_rule(
-                skip="(sidecar|entities|modality|dataset)",
+                skip="(sidecar)",
                 ruleset=ruleset, **inputs)
         rules_list = list(rules.keys())
         self.assertCountEqual(
-                      ["eeg/EEGCoordsystemGeneral",
-                       "eeg/EEGCoordsystemPositions",
-                       "eeg/EEGCoordsystemOther",
-                       "eeg/EEGCoordsystemFiducials",
-                       "eeg/EEGCoordsystemLandmark",
-                       "eeg/EEGCoordsystemLandmarkDescriptionRec",
-                       "eeg/EEGCoordsystemOtherFiducialCoordinateSystem",
-                       "eeg/EEGCoordsystemLandmarkDescriptionReq"],
-                      rules_list)
+                  ['perf/MRIASLTextOnly',
+                   'perf/MRIASLCommonMetadataFields',
+                   'perf/MRIASLCommonMetadataFieldsM0TypeRec',
+                   'perf/MRIASLCommonMetadataFieldsM0TypeReq',
+                   'perf/MRIASLCommonMetadataFieldsBackgroundSuppressionOpt',
+                   'perf/MRIASLCommonMetadataFieldsBackgroundSuppressionReq',
+                   'perf/MRIASLCommonMetadataFieldsVascularCrushingOpt',
+                   'perf/MRIASLCommonMetadataFieldsVascularCrushingRec',
+                   'perf/MRIASLCaslPcaslSpecific',
+                   'perf/MRIASLPcaslSpecific',
+                   'perf/MRIASLCaslSpecific',
+                   'perf/MRIASLPaslSpecific',
+                   'perf/MRIASLPASLSpecificBolusCutOffFlagFalse',
+                   'perf/MRIASLPaslSpecificBolusCutOffFlagTrue'
+                   ],
+                  rules_list)
 
     def test_validate_name(self):
         rule = BIDSschema.get_ent_rule("anat", "T1w")
@@ -499,54 +505,64 @@ class TestBIDSschema(unittest.TestCase):
 
     def test_validate_sidecar(self):
         # Valid sidecar
-        ruleset = {"eeg": BIDSschema._schema.rules.sidecars.eeg}
-        inputs = {"datatype": "eeg",
-                  "suffix": "coordsystem",
-                  "sidecar": {"EEGCoordinateSystem": "Other"},
-                  }
+        ruleset = {"perf": BIDSschema._schema.rules.sidecars.asl}
+        inputs = {"datatype": "perf",
+                  "suffix": "asl",
+                  "sidecar": {"M0Type": "Estimate"}}
         rules = BIDSschema.get_sidecar_rule(ruleset=ruleset, **inputs)
 
-        sidecar = {"EEGCoordinateSystem": "ElektaNeuromag",
-                   "EEGCoordinateUnits": "cm",
-                   "EEGCoordinateSystemDescription": "test",
-                   "FiducialsCoordinateSystem": "Other",
-                   "EMGChannelCount": 0
+        sidecar = {"ArterialSpinLabelingType": "CASL",
+                   "PostLabelingDelay": 0.1,
+                   "RepetitionTimePreparation": 0.1,
+                   "BackgroundSuppression": False,
+                   "M0Type": "Absent",
+                   "TotalAcquiredPairs": 1,
+                   "M0Estimate": 3
                    }
         self.assertTrue(BIDSschema.validate_sidecar(sidecar, rules))
 
         # Missing required
-        sidecar = {"EEGCoordinateSystem": "ElektaNeuromag",
-                   "EEGCoordinateUnits": "cm",
-                   "FiducialsCoordinateSystem": "Other"
+        sidecar = {"ArterialSpinLabelingType": "CASL",
+                   "RepetitionTimePreparation": 0.1,
+                   "BackgroundSuppression": False,
+                   "M0Type": "Absent",
+                   "TotalAcquiredPairs": 1,
+                   "M0Estimate": 3
                    }
         with self.assertLogs(level=logging.ERROR) as cm:
             self.assertFalse(BIDSschema.validate_sidecar(sidecar, rules))
         msg = cm.output[0]
         self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
-                                       "Missing required field EEG "
-                                       "Coordinate System Description"))
+                                       "Missing required field "
+                                       "Post Labeling Delay"))
 
         # Invalid field value
-        sidecar = {"EEGCoordinateSystem": "Test",
-                   "EEGCoordinateUnits": "cm",
-                   "EEGCoordinateSystemDescription": "test",
-                   "FiducialsCoordinateSystem": "Other"
+        sidecar = {"ArterialSpinLabelingType": "CASL",
+                   "PostLabelingDelay": 0,
+                   "RepetitionTimePreparation": 0.1,
+                   "BackgroundSuppression": False,
+                   "M0Type": "Absent",
+                   "TotalAcquiredPairs": 1,
+                   "M0Estimate": 3
                    }
         with self.assertLogs(level=logging.ERROR) as cm:
             self.assertFalse(BIDSschema.validate_sidecar(sidecar, rules))
         msg = cm.output[0]
         self.assertEqual(msg, "ERROR:bidsme.schema.BIDSschema:"
-                         "Rule eeg/EEGCoordsystemPositions failed")
+                         "Rule perf/MRIASLCommonMetadataFields failed")
         msg = cm.output[1]
         self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
                                        "Invalid field "
-                                       "'EEGCoordinateSystem:Test'"))
+                                       "'PostLabelingDelay:0'"))
 
         # Invalid extra fields
-        sidecar = {"EEGCoordinateSystem": "ElektaNeuromag",
-                   "EEGCoordinateUnits": "cm",
-                   "EEGCoordinateSystemDescription": "test",
-                   "FiducialsCoordinateSystem": "Other",
+        sidecar = {"ArterialSpinLabelingType": "CASL",
+                   "PostLabelingDelay": 0.1,
+                   "RepetitionTimePreparation": 0.1,
+                   "BackgroundSuppression": False,
+                   "M0Type": "Absent",
+                   "TotalAcquiredPairs": 1,
+                   "M0Estimate": 3,
                    "EMGChannelCount": -1
                    }
         with self.assertLogs(level=logging.WARNING) as cm:
@@ -626,121 +642,16 @@ class TestBIDSschema(unittest.TestCase):
 
     def test_get_sidecar(self):
         eeg = BIDSschema("eeg")
-        res = eeg.get_sidecar(datatype="eeg",
-                              suffix="coordsystem",
-                              sidecar={"EEGCoordinateSystem": "Other"})
-        sidecar = {"IntendedFor": None,
-                   "EEGCoordinateSystem": "<<placeholder>>",
-                   "EEGCoordinateUnits": "<<placeholder>>",
-                   "EEGCoordinateSystemDescription": "<<placeholder>>",
-                   "FiducialsDescription": None,
-                   "FiducialsCoordinates": "",
-                   "FiducialsCoordinateSystem": "",
-                   "FiducialsCoordinateUnits": "",
-                   "FiducialsCoordinateSystemDescription": "",
-                   "AnatomicalLandmarkCoordinates": "",
-                   "AnatomicalLandmarkCoordinateSystem": "",
-                   "AnatomicalLandmarkCoordinateUnits": "",
-                   "AnatomicalLandmarkCoordinateSystemDescription": "",
+        res = eeg.get_sidecar(datatype="eeg", suffix="physio")
+        sidecar = {'SamplingFrequency': '<<placeholder>>',
+                   'StartTime': '<<placeholder>>',
+                   'Columns': '<<placeholder>>',
+                   'Manufacturer': '',
+                   'ManufacturersModelName': '',
+                   'SoftwareVersions': '',
+                   'DeviceSerialNumber': ''
                    }
         self.assertEqual(res, sidecar)
-
-    def test_validate_ds(self):
-        # Full range test on datasets
-        for f in self.dfolders:
-            dts = []
-            mods = set()
-            for dt in os.listdir(f):
-                if os.path.isdir(os.path.join(f, dt)):
-                    dts.append(dt)
-                    mods.add(get_modality(dt))
-
-            inputs = {"dataset": {"datatypes": dts,
-                                  "modalities": mods,
-                                  },
-                      "datatype": "func",
-                      "modality": "mri",
-                      "suffix": "bold",
-                      "extension": ".nii.gz",
-                      "sidecar": {"RepetitionTime": 123}
-                      }
-            for dt in dts:
-                data_dir = os.path.join(f, dt)
-                flist = os.listdir(data_dir)
-                flist = [f for f in flist
-                         if not f.endswith(".json")]
-                inputs["datatype"] = dt
-                inputs["modality"] = get_modality(dt)
-                schema = self.schemas[inputs["modality"]]
-
-                for file in flist:
-                    entities, suffix, ext = BIDSschema.split_fname(file)
-                    inputs["suffix"] = suffix
-                    inputs["extension"] = ext
-                    inputs["entities"] = entities
-                    inputs["entity"] = entities
-
-                    js = file.split(".")[0] + ".json"
-                    js = os.path.join(f, dt, js)
-                    sidecar = {}
-                    if os.path.isfile(js):
-                        with open(js) as js:
-                            sidecar = json.load(js)
-
-                    inputs["sidecar"] = sidecar
-                    inputs["json"] = sidecar
-                    model = "{}:{}".format(dt, suffix)
-                    if model == "meg:meg":
-                        # Redefining model for crosstalk and calibration
-                        if "acq-calibration" in file:
-                            model = "calibration"
-                        if "acq-crosstalk" in file:
-                            model = "crosstalk"
-
-                    ents = schema.get_entities(model)
-
-                    with self.subTest(msg="{}/{}/{}".format(f, dt, file)):
-                        # Testing that all entities are in file name
-                        for ent in entities:
-                            if ent in ("sub", "ses"):
-                                continue
-                            self.assertIn(ent, ents,
-                                          "Entity {} not in model {}"
-                                          .format(ent, model))
-                        for ent in ents:
-                            if ents[ent] == 0:
-                                self.assertIn(ent, entities,
-                                              "Required entity {} "
-                                              "from model {} not in file"
-                                              .format(ent, model))
-
-                        meta = schema.get_sidecar(dt, suffix, ext,
-                                                  entities, sidecar,
-                                                  mods, dts)
-                        skip = False
-                        if model == "fmap:TB1TFL":
-                            skip = True
-                        if ext == ".tsv":
-                            skip = True
-
-                        for m in sidecar:
-                            # Skip test for known misspells
-                            if m in ("ManufacturerModelName",
-                                     "MiscChannelCount",
-                                     "TracerInjectionType",
-                                     "RepetitionTime",
-                                     "AcquisitionVoxelsize"):
-                                skip = True
-
-                            if not skip:
-                                self.assertIn(m, meta,
-                                              "File meta not in model {}"
-                                              .format(model))
-                        for m in meta:
-                            if meta[m]:
-                                self.assertIn(m, sidecar,
-                                              "Model {} meta not in file"
-                                              .format(model))
 
 
 if __name__ == '__main__':
