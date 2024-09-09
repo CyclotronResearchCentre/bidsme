@@ -27,6 +27,7 @@ import logging
 import shutil
 import json
 from datetime import datetime
+from copy import copy
 
 from bidsme.tools import tools
 
@@ -35,6 +36,10 @@ from ..common import retrieveFormDict
 
 logger = logging.getLogger(__name__)
 
+# Shorcuts for metadata are based on spec2nii v0.7.2
+meta_shortcuts = {"ReceiveCoilName": "<RxCoil>",
+                  "PulseSequenceType": "<SequenceName>",
+                  "FlipAngle": "<ExcitationFlipAngle>"}
 
 class jsonNIFTI(MRS):
     _type = "jsonNIFTI"
@@ -105,8 +110,10 @@ class jsonNIFTI(MRS):
             self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
                                                        "Unknown")
             meta = {"Unknown": {}}
-            meta[self.manufacturer] = {key: "<{}>".format(key)
-                                       for key in self._HEADER_CACHE}
+            meta[self.manufacturer] = copy(meta_shortcuts)
+            meta[self.manufacturer].update({key: "<{}>".format(key)
+                                            for key in self._HEADER_CACHE})
+            print(meta[self.manufacturer])
             self.setupMetaFields(meta)
 
     def _getAcqTime(self) -> datetime:
