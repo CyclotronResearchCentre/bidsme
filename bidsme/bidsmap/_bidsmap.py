@@ -273,20 +273,21 @@ class Bidsmap(object):
 
         # Modules
         for m_name, module in self.Modules.items():
-            if not module and not empty_modules:
-                continue
-            d[m_name] = dict()
+            mod = dict()
             # formats
             for f_name, form in module.items():
                 if not form:
                     continue
-                d[m_name][f_name] = dict()
+                mod[f_name] = dict()
                 # modalities
                 for mod_name, modality in form.items():
                     if not modality:
                         continue
-                    d[m_name][f_name][mod_name] = [run.dump(empty_attributes)
-                                                   for run in modality]
+                    mod[f_name][mod_name] = [run.dump(empty_attributes)
+                                             for run in modality]
+            if mod and not empty_modules:
+                d[m_name] = mod
+
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
 
