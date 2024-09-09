@@ -113,7 +113,6 @@ class jsonNIFTI(MRS):
             meta[self.manufacturer] = copy(meta_shortcuts)
             meta[self.manufacturer].update({key: "<{}>".format(key)
                                             for key in self._HEADER_CACHE})
-            print(meta[self.manufacturer])
             self.setupMetaFields(meta)
 
     def _getAcqTime(self) -> datetime:
