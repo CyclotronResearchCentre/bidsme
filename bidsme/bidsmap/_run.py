@@ -89,10 +89,10 @@ class Run(object):
         self.provenance = provenance
         self._modality = check_type("modality", str, modality)
         self._suffix = check_type("suffix", str, suffix)
-        if self._modality.startswith("__"):
-            self._model = self._modality
-        else:
+        if self._modality and self._suffix:
             self._model = ":".join([self._modality, self._suffix])
+        else:
+            self._model = "__unknown__"
         self.attribute = dict(check_type("attribute", dict, attribute))
         self.entity = OrderedDict(check_type("entity", dict, entity))
         # Checking if values of entity are strings

@@ -140,7 +140,7 @@ class Bidsmap(object):
                                 r.template = run["template"]
                             if "checked" in run:
                                 r.checked = run["checked"]
-                            if "model" in run:
+                            if not run.get("model", "__").startswith("__"):
                                 r.model = run["model"]
                             if not r.checked:
                                 r.provenance = None

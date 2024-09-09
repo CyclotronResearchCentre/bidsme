@@ -103,6 +103,12 @@ def createmap(destination,
         if modality == ignoremodality or modality == unknownmodality:
             continue
 
+        if not recording.suffix:
+            logger.error("{}/{}: Suffix must be defined"
+                         .format(recording.Module(),
+                                 recording.recIdentity()))
+            continue
+
         bidsified_name = "{}/{}".format(modality, recording.getBidsname())
         logger.debug("{}/{}: {}".format(recording.Module(),
                                         recording.recIdentity(),

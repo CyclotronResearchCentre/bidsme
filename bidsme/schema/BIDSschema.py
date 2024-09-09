@@ -183,7 +183,7 @@ class BIDSschema(object):
             rule = self.get_ent_rule(model, rulesets=self.ent_rules)
 
         if not rule:
-            logger.error("Schema {}: no matching rule for {}"
+            logger.error("Schema {}: no matching rule for '{}'"
                          .format(self.modality, model))
             return res
 
@@ -362,7 +362,7 @@ class BIDSschema(object):
 
         rule = self.get_ent_rule(dt, suffix)
         if not rule:
-            logger.error("No file rule matching datatype {} and suffix {}"
+            logger.error("No file rule matching datatype '{}' and suffix '{}'"
                          .format(dt, suffix))
             return False
 

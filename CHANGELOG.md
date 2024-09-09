@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Added
  - MRS: support for [Magnetic Resonance Spectroscopy](https://bids-specification.readthedocs.io/en/stable/modality-specific-files/magnetic-resonance-spectroscopy.html)
 
+### Fixed
+ - bidsmap: Empty modules no longer saved to bidsmap
+
+### Changed
+ - bidsmap/run: If modality or suffix not defined, default model will be `__unknown__`, otherwise `<modality>:suffix`
+ - bidsmap/bidsmap: For `__unknown__` and `__ignore__` modalities, the model will be fixed to `__unknown__`
+ - mapper: If suffix is not defined, an error will be shown, and no further vqalidations will be performed on that file
+
 
 ## [1.7.1] - 2024-09-05
 
