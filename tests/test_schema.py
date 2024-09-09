@@ -1,7 +1,6 @@
 import unittest
 import os
 import glob
-import json
 import logging
 
 from bidsschematools import schema as bst
