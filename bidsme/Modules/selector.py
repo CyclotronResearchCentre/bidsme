@@ -25,7 +25,7 @@
 
 from collections import OrderedDict
 
-from . import MRI, EEG, PET
+from . import MRI, EEG, PET, MRS
 
 types_list = OrderedDict(
              {"MRI": (MRI.hmriNIFTI, MRI.bidsmeNIFTI,
@@ -34,7 +34,8 @@ types_list = OrderedDict(
               "PET": (PET.DICOM, PET.ECAT,
                       PET.bidsmeNIFTI,
                       PET.NIFTI),
-              "EEG": (EEG.BrainVision, EEG.EDF)}
+              "EEG": (EEG.BrainVision, EEG.EDF),
+              "MRS": (MRS.jsonNIFTI, MRS.NIFTI)}
              )
 
 
