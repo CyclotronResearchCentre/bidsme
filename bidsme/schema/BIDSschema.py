@@ -48,13 +48,14 @@ requirement = IntEnum('req',
 req_values = ["<<placeholder>>", "", None, None]
 
 # List of datatypes (coinciding with schema file names) for
-# given modality
+# given modality, task and photo will be added automatically
 modalities = {"mri": ["anat", "dwi", "fmap", "func", "perf", "asl"],
               "pet": ["pet"], "beh": ["beh"],
               "eeg": ["eeg", "channels"],
               "ieeg": ["ieeg", "channels"],
               "meg": ["meg", "channels"], "nirs": ["nirs", "channels"],
               "micr": ["micr"], "motion": ["motion", "channels"],
+              "mrs": ["mrs"]
               }
 
 
