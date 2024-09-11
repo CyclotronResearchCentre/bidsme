@@ -8,11 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed
  - bidsmap: Empty modules no longer saved to bidsmap
+ - bidsmap: In case of BIDS version change, warning shows incorrect version
+ - hmriNIFTI: Fixed error of corrupted file on Siemens derivated MRI images lacking `CSASeriesHeaderInfo` sections
 
 ### Changed
  - bidsmap/run: If modality or suffix not defined, default model will be `__unknown__`, otherwise `<modality>:suffix`
  - bidsmap/bidsmap: For `__unknown__` and `__ignore__` modalities, the model will be fixed to `__unknown__`
  - mapper: If suffix is not defined, an error will be shown, and no further vqalidations will be performed on that file
+ - BidsTable: Updated `lineterminator` parameter, making it compatible with modern (>1.4) Pandas, and Pythons up to 3.12
 
 
 ## [1.7.1] - 2024-09-05
