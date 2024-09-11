@@ -537,7 +537,7 @@ class TestBIDSschema(unittest.TestCase):
 
         # Invalid field value
         sidecar = {"ArterialSpinLabelingType": "CASL",
-                   "PostLabelingDelay": 0,
+                   "PostLabelingDelay": -1,
                    "RepetitionTimePreparation": 0.1,
                    "BackgroundSuppression": False,
                    "M0Type": "Absent",
@@ -552,7 +552,7 @@ class TestBIDSschema(unittest.TestCase):
         msg = cm.output[1]
         self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
                                        "Invalid field "
-                                       "'PostLabelingDelay:0'"))
+                                       "'PostLabelingDelay:-1'"))
 
         # Invalid extra fields
         sidecar = {"ArterialSpinLabelingType": "CASL",
