@@ -41,6 +41,7 @@ meta_shortcuts = {"ReceiveCoilName": "<RxCoil>",
                   "PulseSequenceType": "<SequenceName>",
                   "FlipAngle": "<ExcitationFlipAngle>"}
 
+
 class jsonNIFTI(MRS):
     _type = "jsonNIFTI"
 

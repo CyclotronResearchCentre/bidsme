@@ -602,7 +602,7 @@ class TestBIDSschema(unittest.TestCase):
             self.assertFalse(BIDSschema.validate(fname, sidecar))
         self.assertEqual(cm.output, ["ERROR:bidsme.schema.BIDSschema:"
                                      "No file rule matching datatype "
-                                     "anat and suffix TTT"])
+                                     "'anat' and suffix 'TTT'"])
 
         # Wrong extension
         fname = "anat/sub-123_ses-456_T1w.dcm"
