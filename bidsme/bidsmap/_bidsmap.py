@@ -86,7 +86,7 @@ class Bidsmap(object):
             logger.warning('BIDS version conflict: '
                            '{} was created using version {}, '
                            'but this is version {}'
-                           .format(yamlfile, ver, info.version())
+                           .format(yamlfile, ver, info.bidsversion())
                            )
 
         # Over Modules (MRI, EEG etc..)
