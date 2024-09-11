@@ -30,11 +30,10 @@ setuptools.setup(
       long_description=long_description,
       author="Nikita Beliy",
       author_email="nikita.beliy@uliege.be",
-      python_requires=">=3.8,<3.11",
+      python_requires=">=3.8",
       packages=setuptools.find_packages(),
       install_requires=[
-          "numpy<=1.26.4",
-          "pandas <= 1.4.4",
+          "pandas>1.4.4",
           "ruamel.yaml>=0.15.35",
           "coloredlogs",
           "pyparsing",
