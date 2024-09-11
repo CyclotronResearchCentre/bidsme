@@ -109,10 +109,6 @@ class hmriNIFTI(MRI):
                 acqpar = cls.__loadJsonDump(file)
                 if not acqpar:
                     return False
-                manufacturer = acqpar.get("Manufacturer").strip()
-                if manufacturer.lower() == "siemens":
-                    acqpar["CSASeriesHeaderInfo"]
-                    acqpar["CSAImageHeaderInfo"]
             except json.JSONDecodeError as e:
                 logger.error("{}:{} corrupted file {}"
                              .format(cls.formatIdentity(),
@@ -148,16 +144,16 @@ class hmriNIFTI(MRI):
             manuf_changed = self.setManufacturer(manufacturer,
                                                  _hmriNIFTI.manufacturers)
             if self.manufacturer == "Siemens":
-                self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
-                self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
+                self.__csas = \
+                    self._DICOMDICT_CACHE.get("CSASeriesHeaderInfo", {})
+                self.__csai = \
+                    self._DICOMDICT_CACHE.get("CSAImageHeaderInfo", {})
                 self.__phoenix = self.__csas.get("MrPhoenixProtocol", {})
                 if not self.__phoenix:
                     self.__phoenix = self.__csas.get("MrProtocol", {})
-                if "sWipMemBlock" in self.__phoenix:
-                    self.__alFree = \
-                        self.__phoenix["sWipMemBlock"].get("alFree", [])
-                    self.__adFree = \
-                        self.__phoenix["sWipMemBlock"].get("adFree", [])
+                sWip = self.__phoenix.get("sWipMemBlock", {})
+                self.__alFree = sWip.get("alFree", [0] * 20)
+                self.__adFree = sWip.get("adFree", [0] * 20)
 
             if manuf_changed:
                 self.setupMetaFields(_hmriNIFTI.metafields)
