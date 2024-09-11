@@ -32,6 +32,7 @@ from bidsme import exceptions
 from bidsme import plugins
 from bidsme import Modules
 
+from bidsme.tools import selector
 from bidsme.tools import paths
 from bidsme.tools import tools
 
@@ -369,7 +370,7 @@ def process(source: str, destination: str,
                             .format(scan.session))
                 continue
 
-            for module in Modules.selector.types_list:
+            for module in selector.types_list:
                 mod_dir = os.path.join(ses_dir, module)
                 if not os.path.isdir(mod_dir):
                     logger.debug("Module {} not found in {}"
@@ -377,7 +378,7 @@ def process(source: str, destination: str,
                     continue
                 for run in tools.lsdirs(mod_dir):
                     scan.in_path = run
-                    cls = Modules.select(run, module)
+                    cls = selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(run))

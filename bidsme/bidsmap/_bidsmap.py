@@ -32,6 +32,7 @@ from collections import OrderedDict
 
 from bidsme.tools import info
 from bidsme.tools.yaml import yaml
+from bidsme.tools import selector
 
 from ._run import Run
 from bidsme import Modules
@@ -55,7 +56,7 @@ class Bidsmap(object):
         self.version = info.bidsversion()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
-                        for mod, types in Modules.types_list.items()
+                        for mod, types in selector.types_list.items()
                         }
 
         self.filename = os.path.basename(yamlfile)
@@ -110,7 +111,7 @@ class Bidsmap(object):
                     raise TypeError("Malformed map")
 
                 for m_name, modality in form.items():
-                    if not Modules.selectByName(f_name, module)\
+                    if not selector.selectByName(f_name, module)\
                             .isValidModality(m_name):
                         logger.warning("Modality {} not defined for {}/{}"
                                        .format(m_name, module, f_name))

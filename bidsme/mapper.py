@@ -34,6 +34,7 @@ from bidsme import bidsmap
 from bidsme import plugins
 from bidsme import Modules
 
+from bidsme.tools import selector
 from bidsme.tools import paths
 from bidsme.tools import info
 from bidsme.tools import tools
@@ -403,14 +404,14 @@ def mapper(source: str, destination: str,
 
             bidsified_list = []
 
-            for module in Modules.selector.types_list:
+            for module in selector.types_list:
                 mod_dir = os.path.join(ses_dir, module)
                 if not os.path.isdir(mod_dir):
                     logger.debug("Module {} not found in {}"
                                  .format(module, ses_dir))
                     continue
                 for run in tools.lsdirs(mod_dir):
-                    cls = Modules.selector.select(run, module)
+                    cls = selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(mod_dir))

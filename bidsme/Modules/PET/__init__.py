@@ -15,3 +15,5 @@ except ModuleNotFoundError as e:
 
 
 __all__ = ["DICOM", "ECAT", "bidsmeNIFTI", "NIFTI"]
+
+__formats = [DICOM, ECAT, bidsmeNIFTI, NIFTI]

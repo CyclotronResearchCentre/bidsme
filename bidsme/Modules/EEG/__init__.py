@@ -15,3 +15,5 @@ except ModuleNotFoundError as e:
     BrainVision.classes["BrainVision"] = e.name
 
 __all__ = ["BrainVision", "EDF", "channel_types", "channel_kinds"]
+
+__formats = [BrainVision, EDF]

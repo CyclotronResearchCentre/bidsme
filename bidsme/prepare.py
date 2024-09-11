@@ -31,6 +31,7 @@ from bidsme import exceptions
 from bidsme import plugins
 from bidsme import Modules
 
+from bidsme.tools import selector
 from bidsme.tools import tools
 from bidsme.tools import paths
 
@@ -332,7 +333,7 @@ def prepare(source: str, destination: str,
                                                scan.session,
                                                rec_dir))
                         continue
-                    cls = Modules.select(rec_dir, rec_type)
+                    cls = selector.select(rec_dir, rec_type)
                     if cls is None:
                         logger.warning("Unable to identify data in folder {}"
                                        .format(rec_dir))

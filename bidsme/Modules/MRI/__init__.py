@@ -11,3 +11,5 @@ except ModuleNotFoundError as e:
     DICOM.classes["DICOM"] = e.name
 
 __all__ = ["DICOM", "hmriNIFTI", "bidsmeNIFTI", "jsonNIFTI", "NIFTI"]
+
+__formats = [bidsmeNIFTI, hmriNIFTI, jsonNIFTI, NIFTI, DICOM]
