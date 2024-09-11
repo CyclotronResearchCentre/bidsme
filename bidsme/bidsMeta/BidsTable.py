@@ -270,4 +270,4 @@ class BidsTable(object):
         data.to_csv(path, mode=mode,
                     sep="\t", na_rep="n/a",
                     index=False, header=header,
-                    line_terminator="\n")
+                    lineterminator="\n")
