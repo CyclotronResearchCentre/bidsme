@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
  - bidsmap/bidsmap: For `__unknown__` and `__ignore__` modalities, the model will be fixed to `__unknown__`
  - mapper: If suffix is not defined, an error will be shown, and no further vqalidations will be performed on that file
  - BidsTable: Updated `lineterminator` parameter, making it compatible with modern (>1.4) Pandas, and Pythons up to 3.12
+ - Modules: Base module class selector has been moved into tools, new modalities are no longer decalred in `selector.py`
 
 
 ## [1.7.1] - 2024-09-05

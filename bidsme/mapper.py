@@ -34,7 +34,7 @@ from bidsme import bidsmap
 from bidsme import plugins
 from bidsme import Modules
 
-from bidsme.tools import selector
+from bidsme.tools import type_selector
 from bidsme.tools import paths
 from bidsme.tools import info
 from bidsme.tools import tools
@@ -45,6 +45,7 @@ from bidsme.bidsMeta import BidsTable
 from .Modules._constants import ignoremodality, unknownmodality
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def createmap(destination,

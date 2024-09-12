@@ -41,7 +41,7 @@ from bidsme.bidsMeta import BIDSfieldLibrary
 from bidsme.bidsMeta import BidsSession
 from bidsme.schema.BIDSschema import BIDSschema
 
-from bidsme.bidsmap import Run
+# from bidsme.bidsmap import Run
 
 
 from ._constants import ignoremodality, unknownmodality
@@ -1151,7 +1151,7 @@ class baseModule(abstract):
             self.rec_BIDSfields.DumpDefinitions(scans_json)
         return os.path.join(outdir, bidsname + ext)
 
-    def setLabels(self, run: Run = None):
+    def setLabels(self, run=None):
         """
         Set the BIDS tags (labels) according to given run
 

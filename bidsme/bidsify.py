@@ -36,12 +36,13 @@ from bidsme import Modules
 
 from bidsme.tools import paths
 from bidsme.tools import tools
-from bidsme.tools import selector
+from bidsme.tools import type_selector
 from bidsme.bidsmap import Bidsmap
 from bidsme.bidsMeta import BidsSession
 from bidsme.bidsMeta import BidsTable
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def coin(destination: str,

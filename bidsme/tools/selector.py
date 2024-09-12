@@ -24,14 +24,17 @@
 ##############################################################################
 from types import ModuleType
 
-from .. import Modules
+from bidsme import Modules
 
 
 class type_selector(object):
     __slots__ = ["types_list"]
 
     def __init__(self):
-
+        """
+        Class guessing the module and file format based on
+        path or folder
+        """
         self.types_list = {}
         for i in dir(Modules):
             obj = getattr(Modules, i)
@@ -52,6 +55,10 @@ class type_selector(object):
         module: str
             restrict type of class
         """
+        if module and module not in self.types_list:
+            raise KeyError("Module {} is not one of supported modules {}"
+                           .format(module, self.types_list.keys()))
+
         if module == "":
             for m in self.types_list:
                 for cls in self.types_list[m]:
@@ -74,6 +81,10 @@ class type_selector(object):
         module: str
             restrict type of class
         """
+        if module and module not in self.types_list:
+            raise KeyError("Module {} is not one of supported modules {}"
+                           .format(module, self.types_list.keys()))
+
         if module == "":
             for m in self.types_list:
                 for cls in self.types_list[m]:
@@ -96,6 +107,10 @@ class type_selector(object):
         module: str
             restrict type of class
         """
+        if module and module not in self.types_list:
+            raise KeyError("Module {} is not one of supported modules {}"
+                           .format(module, self.types_list.keys()))
+
         if module == "":
             for m in self.types_list:
                 for cls in self.types_list[m]:

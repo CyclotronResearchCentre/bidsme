@@ -32,12 +32,13 @@ from collections import OrderedDict
 
 from bidsme.tools import info
 from bidsme.tools.yaml import yaml
-from bidsme.tools import selector
+from bidsme.tools import type_selector
 
 from ._run import Run
 from bidsme import Modules
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 class Bidsmap(object):

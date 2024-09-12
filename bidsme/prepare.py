@@ -29,9 +29,8 @@ import logging
 
 from bidsme import exceptions
 from bidsme import plugins
-from bidsme import Modules
 
-from bidsme.tools import selector
+from bidsme.tools import type_selector
 from bidsme.tools import tools
 from bidsme.tools import paths
 
@@ -40,6 +39,7 @@ from bidsme.bidsMeta import BidsTable
 
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def sortsession(outfolder: str,
