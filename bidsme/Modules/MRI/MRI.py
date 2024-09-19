@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 class MRI(baseModule):
     _module = "MRI"
     _schema_mod = "mri"
-    _schema_data_types = ["anat", "asl", "dwi", "fmap", "func"]
+    _schema_data_types = ["anat", "dwi", "fmap", "func", "perf"]
 
     def __init__(self):
         super().__init__()
