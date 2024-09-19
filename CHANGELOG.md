@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.8.1] - 2024-09-19
+
 ### Changed:
  - `bidsmap_template`: Updated to BIDS 1.10.0 and added several new protocols
  - BIDSschema validation: BIDS-defined fields that are not defined for current data-type now raises an error
