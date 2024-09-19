@@ -646,7 +646,7 @@ class BIDSschema(object):
                                .format(field))
                 continue
             logger.error("Extra field '{}' do not match any rules"
-                           .format(ref_field.name))
+                         .format(ref_field.name))
             msg = validate_value(ref_field, value, self._formats)
             if msg:
                 logger.error("Invalid field value '{}:{}' -- {}"

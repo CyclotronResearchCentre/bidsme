@@ -572,8 +572,9 @@ class TestBIDSschema(unittest.TestCase):
                                        "do not match any rules"))
         msg = cm.output[1]
         self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
-                                       "Invalid field value 'EMGChannelCount:-1'"
-                                       " -- '-1' not of type integer"))
+                                       "Invalid field value "
+                                       "'EMGChannelCount:-1' -- '-1' not"
+                                       " of type integer"))
 
         # Testing deprecated
         rules = {"pet/PETTime": BIDSschema._schema.rules.sidecars.pet.PETTime}
