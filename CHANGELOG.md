@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed:
+ - `bidsmap_template`: Updated to BIDS 1.10.0 and added several new protocols
+ - BIDSschema validation: BIDS-defined fields that are not defined for current data-type now raises an error
+ - BIDSschema validation: Extra non BIDS fields now show a warning
+
+### Fixed:
+ - mapper: Error when testing an empty `IntendedFor` field
+ - mapper: When retrieving run from template, attributes wasn't adapted to the tested file
+ - MRI: `perf` data type wasn't in valid data types
+
+
 ## [1.8.0] - 2024-09-12
 
 ### Added
