@@ -649,7 +649,7 @@ class BIDSschema(object):
                            .format(ref_field.name))
             msg = validate_value(ref_field, value, self._formats)
             if msg:
-                logger.error("Invalid field value'{}:{}' -- {}"
+                logger.error("Invalid field value '{}:{}' -- {}"
                              .format(ref_field.name, value, msg)
                              )
             logger.info(ref_field.description)

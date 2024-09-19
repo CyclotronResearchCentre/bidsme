@@ -551,7 +551,7 @@ class TestBIDSschema(unittest.TestCase):
                          "Rule perf/MRIASLCommonMetadataFields failed")
         msg = cm.output[1]
         self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
-                                       "Invalid field "
+                                       "Invalid field value "
                                        "'PostLabelingDelay:-1'"))
 
         # Invalid extra fields
@@ -564,11 +564,16 @@ class TestBIDSschema(unittest.TestCase):
                    "M0Estimate": 3,
                    "EMGChannelCount": -1
                    }
-        with self.assertLogs(level=logging.WARNING) as cm:
+        with self.assertLogs(level=logging.ERROR) as cm:
             self.assertTrue(BIDSschema.validate_sidecar(sidecar, rules))
         msg = cm.output[0]
-        self.assertTrue(msg.startswith("WARNING:bidsme.schema.BIDSschema:"
-                                       "Invalid field 'EMGChannelCount:-1'"))
+        self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
+                                       "Extra field 'EMGChannelCount' "
+                                       "do not match any rules"))
+        msg = cm.output[1]
+        self.assertTrue(msg.startswith("ERROR:bidsme.schema.BIDSschema:"
+                                       "Invalid field value 'EMGChannelCount:-1'"
+                                       " -- '-1' not of type integer"))
 
         # Testing deprecated
         rules = {"pet/PETTime": BIDSschema._schema.rules.sidecars.pet.PETTime}
