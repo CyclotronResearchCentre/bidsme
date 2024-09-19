@@ -629,7 +629,7 @@ class BIDSschema(object):
                 msg = validate_value(ref_field, test_value, self._formats)
                 if msg:
                     logger.error("Rule {} failed".format(name))
-                    logger.error("Invalid field '{}:{}' -- {}"
+                    logger.error("Invalid field value '{}:{}' -- {}"
                                  .format(ref_field.name,
                                          test_value,
                                          msg)
@@ -642,14 +642,17 @@ class BIDSschema(object):
         for field, value in sidecar_extra.items():
             ref_field = self._metadata.get(field, None)
             if ref_field is None:
+                logger.warning("Extra field '{}' is not part of BIDS"
+                               .format(field))
                 continue
+            logger.error("Extra field '{}' do not match any rules"
+                           .format(ref_field.name))
             msg = validate_value(ref_field, value, self._formats)
             if msg:
-                logger.warning("Invalid field '{}:{}' -- {}"
-                               .format(ref_field.name,
-                                       value, msg)
-                               )
-                logger.info(ref_field.description)
+                logger.error("Invalid field value'{}:{}' -- {}"
+                             .format(ref_field.name, value, msg)
+                             )
+            logger.info(ref_field.description)
         return passed
 
     @classmethod
