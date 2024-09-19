@@ -159,7 +159,7 @@ def createmap(destination,
                 recording.expandSidecar(model, run.json,
                                         use_placeholder=True)
 
-        elif "IntendedFor" in recording.metaAuxiliary:
+        elif recording.metaAuxiliary.get("IntendedFor"):
             sub_path = os.path.join(destination, recording.subId())
             out_path = os.path.join(destination,
                                     recording.getBidsSession().getPath())
