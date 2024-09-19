@@ -211,16 +211,17 @@ class Bidsmap(object):
                                    res_mod,
                                    res_index,
                                    d[res_mod][res_index].modality))
-        if fix and res_run:
+        if res_run is None:
+            res_run = Run(modality="__unknown__",
+                          attribute=recording.attributes,
+                          provenance=recording.currentFile())
+        elif fix:
             res_run = copy(res_run)
             for att, val in res_run.attribute.items():
                 if val:
                     res_run.set_attribute(att, recording.getField(att))
             res_run.provenance = recording.currentFile()
-        if res_run is None:
-            res_run = Run(modality="__unknown__",
-                          attribute=recording.attributes,
-                          provenance=recording.currentFile())
+
         return (res_mod, res_index, res_run)
 
     def add_run(self, run: Run, module: str, form: str) -> tuple:
