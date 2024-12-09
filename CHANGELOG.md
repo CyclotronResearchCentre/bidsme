@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+## [1.8.2] - 2024-12-09
+
 ### Added:
  - `Module/base`: Added possibility to lock `seriesNo` and `seriesId` to avoid the retrieval of No and Id for each loaded file
  - `bidsify`, `map`: Series No and Id is retrieved from folder name and not automatically
