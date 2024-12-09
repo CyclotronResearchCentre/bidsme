@@ -126,18 +126,13 @@ class DICOM(MRI):
         return res
 
     def _recNo(self):
-        return self.getField("SeriesNumber", 0)
+        return self.getField("SeriesNumber")
 
     def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")
-        if seriesdescr is None:
-            logger.warning("{}: Unable to get recording Id for file {}"
-                           .format(self.formatIdentity(),
-                                   self.currentFile()))
-            seriesdescr = "unknown"
-        return seriesdescr.strip().replace('/', ' ').replace('\\', ' ')
+        return seriesdescr
 
     def isCompleteRecording(self):
         return True

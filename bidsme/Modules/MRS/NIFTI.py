@@ -159,10 +159,10 @@ class NIFTI(MRS):
                 shutil.copy2(self.currentFile(), out_fname)
 
     def _recNo(self):
-        return self.index
+        return None
 
     def _recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+        return None
 
     def _getAcqTime(self) -> datetime:
         return None

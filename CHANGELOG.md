@@ -3,6 +3,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added:
+ - `Module/base`: Added possibility to lock `seriesNo` and `seriesId` to avoid the retrieval of No and Id for each loaded file
+ - `bidsify`, `map`: Series No and Id is retrieved from folder name and not automatically
+
+### Changed:
+ - `tools.change_ext` will return basename if `new_ext` is None
+ - `Module/base`: If unable to recover series number or series id, the default values of 0 and 'unknown' will be used
+ - `Module/base`: In series id, the space and tabs will be replaced by underscores
+ - `Module/base`: Retriving an incorrect characteristic (`<<>>`) will pring an error to log
+
+### Fixed:
+ - `Module/jsonNIFTY`: no longer spams warnings if unable to determine series id
+
+
 ## [1.8.1] - 2024-09-19
 
 ### Changed:

@@ -226,7 +226,7 @@ class EDF(EEG):
         int:
             Number of current serie, or 0 if not defined
         """
-        return self.index
+        return None
 
     def _recId(self) -> str:
         """
@@ -242,7 +242,7 @@ class EDF(EEG):
         """
         if len(self._rec_info) >= 3 and self._rec_info[0] == "Startdate":
             return self._rec_info[2]
-        return os.path.splitext(self.currentFile(True))[0]
+        return None
 
     def isCompleteRecording(self) -> bool:
         """

@@ -144,10 +144,10 @@ class NIFTI(PET):
         return None
 
     def _recNo(self):
-        return self.index
+        return None
 
     def _recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+        return None
 
     def _getSubId(self) -> str:
         return None

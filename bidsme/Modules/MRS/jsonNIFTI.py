@@ -144,18 +144,13 @@ class jsonNIFTI(MRS):
         return res
 
     def _recNo(self):
-        return self.getField("SeriesNumber", self.index)
+        return self.getField("SeriesNumber")
 
     def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")
-        if seriesdescr is None:
-            logger.warning("{}: Unable to get recording Id for file {}"
-                           .format(self.formatIdentity(),
-                                   self.currentFile()))
-            seriesdescr = os.path.splitext(self.currentFile(True))[0]
-        return seriesdescr.strip()
+        return seriesdescr
 
     def isCompleteRecording(self):
         return True
