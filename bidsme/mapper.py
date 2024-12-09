@@ -422,6 +422,17 @@ def mapper(source: str, destination: str,
                         logger.error("unable to load data in folder {}"
                                      .format(run))
                     recording.setBidsSession(scan)
+
+                    try:
+                        recNo, recId = os.path.basename(run).split("-", 1)
+                        recording.series_no = int(recNo)
+                        recording.series_id = recId
+                        recording.series_locked = True
+                    except Exception as err:
+                        logger.error("Malformed series folder {} ({})"
+                                     .format(os.path.basename(run), err))
+                        continue
+
                     err_count = info.counthandler.level2count.copy()
                     try:
                         first_name = createmap(destination, recording,

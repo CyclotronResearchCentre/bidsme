@@ -133,16 +133,16 @@ class jsonNIFTI(PET):
         return res
 
     def _recNo(self):
-        return self.index
+        return None
 
     def _recId(self):
         tracer = self.getField("TracerName")
         body = self.getField("BodyPart")
         if tracer is None:
-            tracer = os.path.splitext(self.currentFile(True))[0]
+            return None
         elif body:
             tracer = "{}-{}".format(tracer, body)
-        return tracer.strip()
+        return tracer
 
     def isCompleteRecording(self):
         return True

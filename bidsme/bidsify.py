@@ -382,6 +382,17 @@ def bidsify(source: str, destination: str,
                                      .format(run))
                         continue
                     recording.setBidsSession(scan)
+
+                    try:
+                        recNo, recId = os.path.basename(run).split("-", 1)
+                        recording.series_no = int(recNo)
+                        recording.series_id = recId
+                        recording.series_locked = True
+                    except Exception as err:
+                        logger.error("Malformed series folder {} ({})"
+                                     .format(os.path.basename(run), err))
+                        continue
+
                     try:
                         coin(destination, recording, bidsmap, dry_run)
                     except Exception as err:

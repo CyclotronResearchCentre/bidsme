@@ -71,6 +71,7 @@ class baseModule(abstract):
                  # series identifier
                  "_series_id",
                  "_series_no",
+                 "series_locked",
                  # BIDS schema
                  "schema",
                  # json meta variables
@@ -138,6 +139,7 @@ class baseModule(abstract):
         self.index = -1
         self._series_id = None
         self._series_no = None
+        self.series_locked = False
         self.attributes = dict()
         self.custom = dict()
         self.labels = OrderedDict()
@@ -727,9 +729,9 @@ class baseModule(abstract):
             if res:
                 subid = res.group(1)
         if subid is None or subid == "":
-            logger.error("{}: Unable to determine subject Id from '{}'"
-                         .format(self.recIdentity(), name))
-            raise ValueError("Invalid subject Id")
+            logger.warning("{}: Unable to determine subject Id from"
+                           .format(self.recIdentity()))
+            subid = "unknown"
         self._bidsSession.unlock_subject()
         self._bidsSession.subject = subid
         self._bidsSession.lock_subject()
@@ -810,6 +812,9 @@ class baseModule(abstract):
 
     @series_no.setter
     def series_no(self, val):
+        if val is None:
+            # val = self.index
+            val = 0
         if not isinstance(val, int):
             raise ValueError("{}: series_no must be an int, {} recieved"
                              .format(self.currentFile(), type(val)))
@@ -824,9 +829,17 @@ class baseModule(abstract):
 
     @series_id.setter
     def series_id(self, val):
+        if val is None:
+            # val = tools.change_ext(val, None)
+            val = "unknown"
         if not isinstance(val, str):
             raise ValueError("{}: series_id must be a string, {} recieved"
                              .format(self.currentFile(), type(val)))
+        val = val.strip()
+        val = val.replace("\t", "_")
+        val = val.replace(" ", "_")
+        val = val.replace("/", "_")
+        val = val.replace("\\", "_")
         self._series_id = val
 
     def recId(self):
@@ -940,6 +953,9 @@ class baseModule(abstract):
             return "<<placeholder>>"
         if field == "None":
             return None
+        logger.error("{}: Invalid characteristic <<{}>>"
+                     .format(self.recIdentity(), field))
+        return None
 
     ##############################
     # File manipulation methodes #
@@ -965,8 +981,9 @@ class baseModule(abstract):
         # for key in self.attributes:
         #     self.attributes[key] = self.getField(key)
         # Updating series No and Id
-        self.series_no = self._recNo()
-        self.series_id = self._recId()
+        if not self.series_locked:
+            self.series_no = self._recNo()
+            self.series_id = self._recId()
 
     def setRecPath(self, folder: str) -> int:
         """

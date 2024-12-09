@@ -1,6 +1,4 @@
 import unittest
-import os
-import glob
 import logging
 
 from bidsschematools import schema as bst
@@ -290,28 +288,6 @@ class TestBIDSschema(unittest.TestCase):
         # Loading all schemas
         cls.schemas = {key: BIDSschema(key)
                        for key, val in modalities.items()}
-
-        # Loading data paths
-        schema_path = bst.utils.get_bundled_schema_path()
-        test_data = os.path.join(schema_path, "..", "..", "tests",
-                                 "data", "bids-examples")
-        cls.test_data = os.path.normpath(test_data)
-
-        for ds_path in os.listdir(cls.test_data):
-            ds_path = os.path.join(cls.test_data, ds_path)
-            if not os.path.isdir(ds_path):
-                continue
-
-            subs = glob.glob(os.path.join(ds_path, "sub-*"))
-            if not subs:
-                continue
-
-            for sub_path in subs:
-                sess = glob.glob(os.path.join(sub_path, "ses-*"))
-                if sess:
-                    cls.dfolders += sess
-                else:
-                    cls.dfolders.append(sub_path)
 
     def test_get_modality(self):
         self.assertEqual(get_modality("anat"), "mri")
