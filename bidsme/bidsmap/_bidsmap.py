@@ -186,16 +186,9 @@ class Bidsmap(object):
                 if recording.match_run(run):
                     if check_multiple:
                         if res_mod is None:
-                            recording.setLabels(run)
                             res_mod = modality
                             res_index = idx
                             res_run = run
-                            if not run.provenance:
-                                run.provenance = recording.currentFile()
-                                run.checked = False
-                                run.example = "{}/{}".format(
-                                        modality,
-                                        recording.getBidsname())
                             logger.debug("Checked run: {}/{}"
                                          .format(res_mod, res_index))
                         else:
@@ -203,7 +196,7 @@ class Bidsmap(object):
                                            .format(res_mod, res_index,
                                                    modality, idx))
                     else:
-                        recording.setLabels(run)
+                        # recording.setLabels(run)
                         break
         if res_mod and res_mod != d[res_mod][res_index].modality:
             logger.warning("Run {}/{}/{} mismach modality {}"
