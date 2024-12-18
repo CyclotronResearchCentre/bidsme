@@ -665,6 +665,16 @@ class baseModule(abstract):
                                 result = query
                             else:
                                 result = None
+                    elif (search := re.fullmatch("increment([0-9]*)", prefix)):
+                        result = self._bidsSession.getIncrement(query)
+                        if raw:
+                            return result
+                        else:
+                            order = search.group(1)
+                            if not order:
+                                order = '1'
+                            fstr = "{{:0{}d}}".format(order)
+                            return fstr.format(result)
                     else:
                         raise KeyError("Unknown prefix {}".format(prefix))
                 # if field is composed only of one entry

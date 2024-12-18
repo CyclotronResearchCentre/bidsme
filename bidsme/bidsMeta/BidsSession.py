@@ -28,6 +28,7 @@ import os
 import logging
 import pandas
 from copy import deepcopy as copy
+from collections import defaultdict
 
 from bidsme.tools import tools
 from .BidsMeta import BIDSfieldLibrary
@@ -40,7 +41,8 @@ class BidsSession(object):
     __slots__ = ["__subject", "__session",
                  "in_path",
                  "__sub_locked", "__ses_locked",
-                 "sub_values"
+                 "sub_values",
+                 "increments"
                  ]
 
     __sub_columns = None
@@ -64,6 +66,8 @@ class BidsSession(object):
         if session is not None:
             self.session = session
             self.lock_session()
+
+        self.increments = defaultdict(int)
 
     @property
     def subject(self) -> str:
@@ -350,3 +354,8 @@ class BidsSession(object):
         if not df.columns.difference(header).empty:
             return False
         return True
+
+    def getIncrement(self, query: str, increment=True) -> int:
+        if increment:
+            self.increments[query] += 1
+        return self.increments[query]
