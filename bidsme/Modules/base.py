@@ -1183,11 +1183,24 @@ class baseModule(abstract):
         if run.modality == ignoremodality:
             return
 
+        incr_key = None
+        tag = ""
         self.labels = OrderedDict.fromkeys(run.entity)
         self.suffix = self.getDynamicField(run.suffix)
         for key in run.entity:
-            val = self.getDynamicField(run.entity[key])
+            if isinstance(run.entity[key], str) \
+                    and re.fullmatch("<<increment[0-9]*>>", run.entity[key]):
+                val = "1"
+                incr_key = key
+                tag = run.entity[key][2:-2]
+            else:
+                val = self.getDynamicField(run.entity[key])
             self.labels[key] = val
+        if incr_key:
+            bids_name = self.getBidsname()
+            tag = "<<{}:{}>>".format(tag, bids_name)
+            val = self.getDynamicField(tag)
+            self.labels[incr_key] = val
 
         for key, val in run.json.items():
             self.metaAuxiliary[key] = deepcopy(val)
