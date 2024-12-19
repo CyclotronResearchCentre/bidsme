@@ -666,6 +666,8 @@ class baseModule(abstract):
                             else:
                                 result = None
                     elif (search := re.fullmatch("increment([0-9]*)", prefix)):
+                        # The unnamed <<increment>> is calculated
+                        # in setLabels function
                         result = self._bidsSession.getIncrement(query)
                         if raw:
                             return result
@@ -1161,7 +1163,7 @@ class baseModule(abstract):
             self.rec_BIDSfields.DumpDefinitions(scans_json)
         return os.path.join(outdir, bidsname + ext)
 
-    def setLabels(self, run=None):
+    def setLabels(self, run):
         """
         Set the BIDS tags (labels) according to given run
 

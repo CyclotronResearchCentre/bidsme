@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+ - `<<increment[1-9]:tag>>` field that will count how much this field is accessed. Useful for `run-` and `chunk-` entities. The tagless version `<<increment[1-9]>>` will count number of times the bidsified name is generated.
+
 ## [1.8.1] - 2024-09-19
 
 ### Changed:
