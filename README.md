@@ -1,5 +1,5 @@
 ![integration test](https://github.com/CyclotronResearchCentre/bidsme/actions/workflows/integration.yml/badge.svg)
-![integration test](https://github.com/CyclotronResearchCentre/bidsme/actions/workflows/integration.yml/coverage.svg)
+![unittest](https://github.com/CyclotronResearchCentre/bidsme/actions/workflows/integration.yml/coverage.svg)
 [![status](https://joss.theoj.org/papers/aeabccb41b627f6223fa2d64e17c64f8/status.svg)](https://joss.theoj.org/papers/aeabccb41b627f6223fa2d64e17c64f8)
 
 # BIDSme
