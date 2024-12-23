@@ -31,7 +31,7 @@ jobs:
     - name: unittests
       run: |
         coverage run -m unittest
-        coverage-badge -o actions/workflows/integration.yml/coverage
+        coverage-badge -o coverage
     - name: getting Test DS
       run: |
         cd
