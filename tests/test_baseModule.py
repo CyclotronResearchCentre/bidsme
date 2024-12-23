@@ -174,6 +174,14 @@ class TestMetadata(unittest.TestCase):
                           .format(log_info, self.rec.recIdentity())
                           ])
 
+        # Testing multiple substitutions
+        self.assertEqual(self.rec.getDynamicField("<f001>_<<subject>>",
+                                                  cleanup=False),
+                         "9_sub-001")
+        self.assertEqual(self.rec.getDynamicField("<f002>_<<subject>>",
+                                                  cleanup=False),
+                         "<f002>_sub-001")
+
 
 if __name__ == '__main__':
     unittest.main()

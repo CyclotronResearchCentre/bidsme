@@ -582,6 +582,8 @@ class baseModule(abstract):
                            .format(self.recIdentity(),
                                    matchobject.group("meta"),
                                    matchobject.string))
+                if not raw:
+                    result = "<{}>".format(matchobject.group("meta"))
         else:
             result = self.getCharecteristic(matchobject.group("internal"))
         if raw:
