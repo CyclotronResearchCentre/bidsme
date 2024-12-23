@@ -917,7 +917,8 @@ class baseModule(abstract):
             # elif prefix == "rec_tsv":
             #     return self._bidsSession.rec_values[query]
             elif prefix == "fname":
-                if (search := re.search("(?:^|_){}-([a-zA-Z0-9]+)".format(query),
+                if (search := re.search("(?:^|_){}-([a-zA-Z0-9]+)"
+                                        .format(query),
                                         self.currentFile(False))):
                     return search.group(1)
                 else:
@@ -925,7 +926,8 @@ class baseModule(abstract):
             elif (search := re.fullmatch("increment([0-9]*)", prefix)):
                 # The unnamed <<increment>> is calculated in setLabels function
                 if not query:
-                    raise CharacteristicError("Can't use increment without label")
+                    raise CharacteristicError("Can't use increment "
+                                              "without label")
                 result = self._bidsSession.getIncrement(query)
                 order = search.group(1)
                 if not order:

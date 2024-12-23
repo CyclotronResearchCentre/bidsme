@@ -1,10 +1,7 @@
 import unittest
 import os
 import logging
-import shutil
-import glob
 
-from bidsme.main import init
 from bidsme.Modules import baseModule
 from bidsme.Modules.common import retrieveFormDict
 from bidsme.bidsMeta import BidsSession
@@ -140,6 +137,10 @@ class TestMetadata(unittest.TestCase):
 
         with self.assertRaises(CharacteristicError):
             self.rec.getCharecteristic("increment:")
-        
+
         with self.assertRaises(CharacteristicError):
             self.rec.getCharecteristic("abc:def")
+
+
+if __name__ == '__main__':
+    unittest.main()
