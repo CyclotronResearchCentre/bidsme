@@ -1,6 +1,7 @@
 from bidsme.Modules import baseModule
 from bidsme.Modules.common import retrieveFormDict
 
+
 class testModule(baseModule):
     _module = "TEST"
     _type = "testModule"

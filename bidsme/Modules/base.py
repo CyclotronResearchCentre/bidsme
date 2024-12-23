@@ -516,14 +516,16 @@ class baseModule(abstract):
         result = self._getField(field.split(separator))
 
         if result is None:
-            return default
+            if default is None:
+                return None
+            result = default
+
         for prefix in reversed(actions):
             if isinstance(result, list):
-                for i, val in enumerate(result):
-                    result[i] = self._transformField(val, prefix)
+                result = [self._transformField(v, prefix) for v in result]
             elif isinstance(result, dict):
-                for i, val in result.items():
-                    result[i] = self._transformField(val, prefix)
+                result = {k: self._transformField(v, prefix)
+                          for k, v in result.items()}
             else:
                 result = self._transformField(result, prefix)
         if isinstance(result, str):
@@ -576,8 +578,10 @@ class baseModule(abstract):
         if matchobject.group("meta"):
             result = self.getAttribute(matchobject.group("meta"), default)
             if result is None:
-                logger.log(log_lvl, "Can't get attribute '{}'"
-                           .format(matchobject.group("meta")))
+                logger.log(log_lvl, "{}: Can't get attribute '{}' from '{}'"
+                           .format(self.recIdentity(),
+                                   matchobject.group("meta"),
+                                   matchobject.string))
         else:
             result = self.getCharecteristic(matchobject.group("internal"))
         if raw:
@@ -614,7 +618,7 @@ class baseModule(abstract):
         if not isinstance(field, str) or field == "":
             return field
 
-        expr = re.compile("(?P<internal><<.*?>>)|(?P<meta><.*?>)")
+        expr = re.compile("<<(?P<internal>.*?)>>|<(?P<meta>.*?)>")
 
         try:
             if raw:
@@ -624,11 +628,13 @@ class baseModule(abstract):
 
             # Results parced into string
             res = re.sub(expr,
-                         lambda x: self._tag_replacement(x, default, False),
+                         lambda x: self._tag_replacement(x, log_lvl,
+                                                         default, False),
                          field)
         except Exception as err:
-            logger.error("Error in dynamic field '{}': {}: {}"
-                         .format(field, type(err).__name__, err))
+            logger.error("{}: Error in dynamic field '{}': {}: {}"
+                         .format(self.recIdentity(),
+                                 field, type(err).__name__, err))
             raise
 
         if cleanup:
