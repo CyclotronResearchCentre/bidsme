@@ -30,7 +30,7 @@ jobs:
         flake8 .
     - name: unittests
       run: |
-        coverage -m unittest
+        coverage run -m unittest
         coverage-badge -o coverage
     - name: getting Test DS
       run: |
