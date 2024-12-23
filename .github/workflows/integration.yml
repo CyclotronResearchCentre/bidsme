@@ -19,6 +19,8 @@ jobs:
           pip install openpyxl
           pip install flake8 wheel
           pip install .
+          pip install coverage
+          pip install coverage-badge
     - name: instalation test
       run: |
         cd
@@ -28,7 +30,8 @@ jobs:
         flake8 .
     - name: unittests
       run: |
-        python -m unittest
+        coverage -m unittest
+        coverage-badge -o coverage
     - name: getting Test DS
       run: |
         cd
