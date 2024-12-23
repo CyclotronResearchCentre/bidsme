@@ -1,12 +1,12 @@
 name: integration test
 on: push
 jobs:
-  build:
+  flake8:
     runs-on: ubuntu-20.04
 
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.8"]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -37,6 +37,28 @@ jobs:
       with:
         name: code-coverage-report
         path: coverage.svg
+  build:
+    runs-on: ubuntu-20.04
+
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+          python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl
+          pip install flake8 wheel
+          pip install .
+    - name: instalation test
+      run: |
+        cd
+        bidsme --help
     - name: getting Test DS
       run: |
         cd
