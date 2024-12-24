@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Changed:
  - Reimplemented `getDynamicField`, now it parces tags using `regexp`, added unittest for metadata retrieval
+ - `baseModule`: During preparation, bidsme will copy not only the image file, but all files sharing the same basename 
+ - `tools/change_ext`: will return the basename without extention if argument `new_ext` is `None`
 
 ## [1.8.1] - 2024-09-19
 

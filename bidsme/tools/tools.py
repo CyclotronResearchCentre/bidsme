@@ -96,7 +96,10 @@ def change_ext(filename, new_ext):
     base, ext = os.path.splitext(filename)
     if ext == ".gz":
         base, ext = os.path.splitext(base)
-    return base + "." + new_ext
+    if new_ext is None:
+        return base
+    else:
+        return base + "." + new_ext
 
 
 def check_type(name: str, cls: type, val: object) -> object:

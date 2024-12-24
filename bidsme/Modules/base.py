@@ -30,6 +30,7 @@ import json
 import re
 import numpy
 import gzip
+import glob
 
 from datetime import datetime, date, time
 from collections import OrderedDict
@@ -228,7 +229,15 @@ class baseModule(abstract):
         str:
             path to copied file
         """
-        shutil.copy2(self.currentFile(), destination)
+        if os.path.isfile(os.path.join(destination,
+                                       self.currentFile(True))):
+            logger.warning("{}: File {} exists at destination"
+                           .format(self.recIdentity(),
+                                   self.currentFile(True)))
+        basename = tools.change_ext(self.currentFile(True), "*")
+        to_copy = glob.glob(os.path.join(self._recPath, basename))
+        for file in to_copy:
+            shutil.copy2(file, destination)
         return os.path.join(destination, self.currentFile(True))
 
     def exportHeader(self, destination: str) -> None:
