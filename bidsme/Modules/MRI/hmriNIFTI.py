@@ -26,7 +26,6 @@
 import os
 import logging
 import json
-import shutil
 import pprint
 from datetime import datetime, timedelta
 
@@ -225,17 +224,6 @@ class hmriNIFTI(MRI):
     def clearCache(self) -> None:
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> str:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
-                     destination)
-        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))

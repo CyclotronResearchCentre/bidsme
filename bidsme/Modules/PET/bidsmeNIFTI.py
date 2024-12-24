@@ -29,7 +29,6 @@ from . import _ECAT
 
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
 
@@ -164,16 +163,6 @@ class bidsmeNIFTI(PET):
     def clearCache(self) -> None:
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> str:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
-        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return self._headerData["subId"]
