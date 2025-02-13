@@ -5,6 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Added
  - `<<increment[1-9]:tag>>` field that will count how much this field is accessed. Useful for `run-` and `chunk-` entities. The tagless version `<<increment[1-9]>>` will count number of times the bidsified name is generated.
+ - `mapper.py`: Added cals to `SessionEndEP` and `SubjectEndEP` plugin functions for consistency with `bidsify.py`
 
 ### Changed:
  - Reimplemented `getDynamicField`, now it parces tags using `regexp`, added unittest for metadata retrieval

@@ -451,8 +451,11 @@ def mapper(source: str, destination: str,
                         break
                 if skip_subject:
                     break
+            plugins.RunPlugin("SessionEndEP", scan)
             if skip_subject:
                 break
+        scan.in_path = sub_dir
+        plugins.RunPlugin("SubjectEndEP", scan)
         if skip_subject:
             break
 
