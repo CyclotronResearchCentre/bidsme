@@ -97,14 +97,14 @@ class cMetaExplorer(object):
         self.eSearch.bind("<Shift-Return>", self.PrevSelect)
         self.eSearch.bind("<Return>", self.NextSelect)
         self.bNext = ttk.Button(frSearch, text=">>",
-                                command=self.Next, state="disabled")
+                                command=self.NextSelect, state="disabled")
         self.bNext.pack(side="right")
         self.varSCount = tk.StringVar(value="0")
-        lSCount = ttk.Label(frSearch,  width=-7, anchor="center",
+        lSCount = ttk.Label(frSearch, width=-7, anchor="center",
                             textvariable=self.varSCount)
         lSCount.pack(side="right")
         self.bPrevious = ttk.Button(frSearch, text="<<",
-                                    command=self.Prev, state="disabled")
+                                    command=self.PrevSelect, state="disabled")
         self.bPrevious.pack(side="right")
         frSearch.grid(column=0, row=0, padx=5, sticky="new", columnspan=2)
 
@@ -113,7 +113,7 @@ class cMetaExplorer(object):
         self.tvMeta["show"] = ("tree", "headings")
         self.tvMeta.grid(column=0, row=1, sticky="nsew")
         self.tvMeta.heading("type", text="type")
-        self.tvMeta.column("type", anchor="w",  width=50, stretch=False)
+        self.tvMeta.column("type", anchor="w", width=50, stretch=False)
         self.tvMeta.heading("value", text="value")
         self.tvMeta.tag_configure("normal", background='white')
         self.tvMeta.tag_configure("found", background='green')
@@ -181,6 +181,13 @@ class cMetaExplorer(object):
                                Id, text=name,
                                tags=("normal",),
                                values=("list", "..."))
+            for i, it in enumerate(item):
+                self.addNode(Id, str(i), it, lvl + 1)
+        if isinstance(item, tuple):
+            self.tvMeta.insert(parent, 'end',
+                               Id, text=name,
+                               tags=("normal",),
+                               values=("tuple", "..."))
             for i, it in enumerate(item):
                 self.addNode(Id, str(i), it, lvl + 1)
         elif isinstance(item, dict):
@@ -351,7 +358,8 @@ class MetaExplorer(object):
 
         self.cbType.bind('<<ComboboxSelected>>', self.UpdateFormats)
 
-        bBrowse = ttk.Button(frMain, text="Select file", command=self.FindFiles)
+        bBrowse = ttk.Button(frMain, text="Select file",
+                             command=self.FindFiles)
         bBrowse.grid(row=2, column=1, sticky="new")
 
     def UpdateFormats(self, *args):
@@ -365,11 +373,12 @@ class MetaExplorer(object):
 
     def FindFiles(self, *args):
         cls = selector.selectByName(self.varFormat.get(), self.varType.get())
-        fname = filedialog.askopenfilename(parent=self.wFormatSelection,
-                                           initialdir=self.path,
-                                           filetypes=[(self.varFormat.get(),
-                                                      " ".join(cls._file_extentions))
-                                                      ])
+        fname = filedialog.askopenfilename(
+                parent=self.wFormatSelection,
+                initialdir=self.path,
+                filetypes=[(self.varFormat.get(),
+                            " ".join(cls._file_extentions))
+                           ])
 
         if fname:
             dir_path = os.path.dirname(fname)
