@@ -1,4 +1,4 @@
-image: "python:3.6"
+image: "python:3.8"
 
 # run on branches
 .only_branches: &only_branches
@@ -8,7 +8,7 @@ image: "python:3.6"
     - cli
 
 variables:
-  RUN: "python3 ${CI_PROJECT_DIR}/bidsme/bidsme.py"
+  RUN: "bidsme"
   EXAMPLE_URL: "https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme_example/-/archive/master/"
   EXAMPLE_DIR: "bidsme_example-master"
 
@@ -19,10 +19,11 @@ cache:
 before_script: 
   - python --version
   - mkdir -p .cache/pip
-  - pip --cache-dir=.cache/pip install -r requirements.txt
+  - pip --cache-dir=.cache/pip install .
   - pip --cache-dir=.cache/pip install flake8
-  - pip --cache-dir=.cache/pip install xlrd==1.2.0
+  - pip --cache-dir=.cache/pip install openpyxl
   - pip --cache-dir=.cache/pip install anybadge
+  - pip --cache-dir=.cache/pip install coverage
 
 stages:
   - test
@@ -35,7 +36,6 @@ flake8:
   script:
     - python -m flake8 bidsme
   allow_failure: true
-  <<: *only_branches
     
 include_test:
   stage: test
@@ -46,6 +46,11 @@ include_test:
     - $RUN prepare --help
     - $RUN bidsify --help
     - $RUN map --help
+
+unittest:
+  stage: test
+  script:
+    - coverage run -m unittest
 
 get_examples:
   stage: get_examples
@@ -79,9 +84,8 @@ badges:
         - ver.svg
         - bids.svg
   script:
-    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/version.txt) --label=version --file=ver.svg --color=blue
-    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsversion.txt) --label=BIDS --file=bids.svg --color=blue
+    - anybadge -o --value=$(cat ${CI_PROJECT_DIR}/bidsme/version.txt) --label=version --file=ver.svg --color=blue
+    - anybadge -o --value=$(bidsme --version-bids) --label=BIDS --file=bids.svg --color=blue
   only:
     - dev
-    - master
     - tag

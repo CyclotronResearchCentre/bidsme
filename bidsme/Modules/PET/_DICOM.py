@@ -24,6 +24,16 @@
 
 metafields = {
         "Unknown": {
+            "TracerName": ("<RadiopharmaceuticalInformationSequence/0/"
+                           "Radiopharmaceutical>"),
+            "TracerRadionuclide": ("<RadiopharmaceuticalInformationSequence/0/"
+                                   "RadionuclideCodeSequence/0/"
+                                   "CodeMeaning>"),
+            "ModeOfAdministration": ("<RadiopharmaceuticalInformationSequence/"
+                                     "0/RadiopharmaceuticalRoute>"),
+            "SliceWidth": "<SliceThickness>",
+            "ReconMatrixSize": ["<Rows>", "<Columns>"],
+            "ManufacturersModelName": "<ManufacturerModelName>"
             }
         }
 

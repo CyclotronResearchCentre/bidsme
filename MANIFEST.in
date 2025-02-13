@@ -1,5 +1,4 @@
-include version.txt
-include bidsversion.txt
-include requirements.txt
-include LICENSE.md
+include bidsme/version.txt
+include bidsme/heuristics/*.yaml
+include bidsme/table_templates/*.json
 global-exclude *.pyc

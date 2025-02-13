@@ -27,7 +27,6 @@ from .PET import PET
 from . import _DICOM
 from .. import _dicom_common
 
-import os
 import logging
 import pydicom
 from datetime import datetime
@@ -39,6 +38,8 @@ class DICOM(PET):
     _type = "DICOM"
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
+
+    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA"]
 
     __specialFields = {}
 
@@ -69,19 +70,7 @@ class DICOM(PET):
         bool:
             True if file is identified as DICOM
         """
-        if not os.path.isfile(file):
-            return False
-        if file.endswith(".dcm") or file.endswith(".DCM"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            try:
-                return _dicom_common.isValidDICOM(file, "PT")
-            except Exception:
-                return False
-        return False
+        return _dicom_common.isValidDICOM(file, ["PT", "CT"])
 
     def _loadFile(self, path: str) -> None:
         if path != self._DICOMFILE_CACHE:
@@ -91,9 +80,7 @@ class DICOM(PET):
             self._DICOM_CACHE = dicomdict
             if self.setManufacturer(self.getField("Manufacturer"),
                                     _DICOM.manufacturers):
-                self.resetMetaFields()
                 self.setupMetaFields(_DICOM.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         for Id in ("Acquisition", "Content", "Instance"):
@@ -108,6 +95,7 @@ class DICOM(PET):
         res = _dicom_common.extractStruct(self._DICOM_CACHE)
         for f in self.__specialFields:
             res[f] = self._getField([f])
+        return res
 
     def _getField(self, field: list):
         res = None
@@ -125,10 +113,10 @@ class DICOM(PET):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.getField("SeriesNumber", 0)
 
-    def recId(self):
+    def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")

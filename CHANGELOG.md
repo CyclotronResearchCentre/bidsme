@@ -3,9 +3,304 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added
+ - `<<increment[1-9]:tag>>` field that will count how much this field is accessed. Useful for `run-` and `chunk-` entities. The tagless version `<<increment[1-9]>>` will count number of times the bidsified name is generated.
+ - `mapper.py`: Added cals to `SessionEndEP` and `SubjectEndEP` plugin functions for consistency with `bidsify.py`
+
+### Changed:
+ - Reimplemented `getDynamicField`, now it parces tags using `regexp`, added unittest for metadata retrieval
+ - `baseModule`: During preparation, bidsme will copy not only the image file, but all files sharing the same basename 
+ - `tools/change_ext`: will return the basename without extention if argument `new_ext` is `None`
+
+## [1.8.1] - 2024-09-19
+
+### Changed:
+ - `bidsmap_template`: Updated to BIDS 1.10.0 and added several new protocols
+ - BIDSschema validation: BIDS-defined fields that are not defined for current data-type now raises an error
+ - BIDSschema validation: Extra non BIDS fields now show a warning
+
+### Fixed:
+ - mapper: Error when testing an empty `IntendedFor` field
+ - mapper: When retrieving run from template, attributes wasn't adapted to the tested file
+ - MRI: `perf` data type wasn't in valid data types
+
+
+## [1.8.0] - 2024-09-12
+
+### Added
+ - MRS: support for [Magnetic Resonance Spectroscopy](https://bids-specification.readthedocs.io/en/stable/modality-specific-files/magnetic-resonance-spectroscopy.html)
+
+### Fixed
+ - bidsmap: Empty modules no longer saved to bidsmap
+ - bidsmap: In case of BIDS version change, warning shows incorrect version
+ - hmriNIFTI: Fixed error of corrupted file on Siemens derivated MRI images lacking `CSASeriesHeaderInfo` sections
+
+### Changed
+ - bidsmap/run: If modality or suffix not defined, default model will be `__unknown__`, otherwise `<modality>:suffix`
+ - bidsmap/bidsmap: For `__unknown__` and `__ignore__` modalities, the model will be fixed to `__unknown__`
+ - mapper: If suffix is not defined, an error will be shown, and no further vqalidations will be performed on that file
+ - BidsTable: Updated `lineterminator` parameter, making it compatible with modern (>1.4) Pandas, and Pythons up to 3.12
+ - Modules: Base module class selector has been moved into tools, new modalities are no longer decalred in `selector.py`
+
+
+## [1.7.1] - 2024-09-05
+
+### Fixed
+ - plugins/tools/General: in `CheckPrepared`, the check is not performed if modality folder is not present
+ - jsonNIFTI: The default metadata is now correctly imported
+ - setup.py: Limited numpy version to `1.26.4`, see issue [!15](https://github.com/CyclotronResearchCentre/bidsme/issues/15)
+
+### Changed
+ - `test_schema`: performing tests on `perf:asl` instead of `eeg:coordsystem`, as it was moved to json subfolder
+
+### Removed
+ - `test_schema`: Test of validity of example datasets, as examples are difficult to manage
+
+
+## [1.7.0] - 2024-06-12
+
+### Added:
+ - The sidecar and entities are retrieved from official BIDS schema via `bidsschematools`
+ - During mapping, the same schema is used to validate the entities and sidecars
+ - unittests for schema retrieval and validation
+ - plugin.tools.General: Functions for helping prepared data curation, namely LoadCurationList, CleanupPrepared and CheckPrepared
+ - unittests for data curation
+
+### Changed
+ - mapping,bidsification: the list of entities and sidecar fields are extracted from current BIDS schema
+(based on `bidsschematools` package)
+ - Python>=3.8, Python<3.11: Restricted python to >=3.8 to satisfy dependence to `bidsschematools`
+ - bidsmap: model parameter is now explicitly saved in bidsmap
+ - bidsmap: model now takes form of `<data type>:<suffix>` and used to retrieve entities and sidecat fields
+ - mapping: template == true will now also expand json and entities sections
+ - Modules: the metadata fields in modality class definitions are now replaced by shotrcuts, which
+links sidecar JSON field with corresponding dynamic field in metadata
+ - bidsmap: required sidecar json fields that BIDSME can retrieve automatically (in custom variables,
+via shortcuts, or directly in metadata) are now explicetly saved in bidsmap
+ - unknown map is now created in same folder as bidsmap
+ - DWI: warning about missing bval/vec files now triggers only for suffix dwi
+
+## [1.6.6] - 2024-04-25
+
+### Fixed
+ - bidsify: Error when trying bidsify non-BIDS modalities ([issue #29](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme/-/issues/29))
+
+
+## [1.6.5] - 2024-04-17
+
+### Fixed
+  - jsonNIFTI: fixed retrieval of ParticipantID, based on `dcm2niix` entry `PatientID`
+  - BaseModule: `series_no`/`series_id` becomes prperties with type check (int/str resp.)
+
+### Added
+  - Log entry while loading tables
+  - NIFTI: added support for compressed files
+
+## [1.6.4] - 2024-04-11
+
+### Fixed
+  - logging output redirected to stdout, and forcing colors (fixing red background in jupyther-lab)
+  - Import issue for MRI/DICOM when installed `pydicom` will raise error with not installed `dicom-parcer`
+
+### Changed
+  - Limited support for Python <3.11
+
+## [1.6.3] - 2024-03-06
+
+### Fixed
+  - Plugin/Nibabel: crash in Convert3Dto4D when removing merged files
+
+### Added
+  - Plugin/Nibabel: Convert3Dto4D will also remove json files, not only nifti
+  - Plugin/Nibabel: Convert3Dto4D will conserve the written data scale, if all merged files have the same slope and intercept
+
+### Changed
+  - Plugin/Nibabel: Convert3Dto4D will produce an error when trying merging of 2-file nifti (hdr/img)
+
+
+## [1.6.2] - 2024-03-04
+
+### Fixed
+  - Plugins import is explicetely reset in the beginning of preparation/mapping/processing/bidsification
+
+
+## [1.6.1] - 2024-02-20
+
+### Fixed
+  - Modules/MRI/bidsmeNifty: Removed error if file was created not from DICOM
+  - Modules/PET/bidsmeNifty: Removed error if file was created not from DICOM
+
+## [1.6.0] - 2024-02-19
+
+### Added
+ - Modules/base: The series Id and No can now be changed in plugins via attributes `recording.series_id` and `recording.series_no`
+ - MRI/jsonNIFTY: All bids metafields are by default completed from the provided json
+ - Modules/base: If BIDS metadata has the same name as a custom metadata, then the content of custom metadata is used
+ - plugins/tools: A tool that uses dcm2niix to convert and merge dicoms after preparation
+
+### Changed:
+ - Modules/MRI/Nifti, Modules/PET/Nifti: the header dump is now created by default
+ - MRI/DICOM: Using nibabel and mri\_parser to parse Siemens-specific headers CSAHeaderInfo and CSASeriesInfo
+
+### Fixed
+ - Modules/MRI/Nifti, Modules/PET/Nifti: diminfo from header are now retrieved as integer instead of bytes
+ - Modules/MRI/Nifti, Modules/PET/Nifti: header dump exported as dict, instead of string
+
+
+## [1.5.1] - 2023-12-19
+
+### Fixed
+ - Module/MRI/hmriNIFTY: Extra error log, if encountered standard json instead of hmriNIFTY json
+
+## [1.5.0] - 2023-11-22
+
+Release for the publication in JOSS
+
+### Fixed
+ - Module/base: Bug when  `recIdentity()` wasn't called as function
+
+### Changed
+ - Several improvements in documentation and README
+ - Updated links to the examples and tutorial to point to GitHub
+
+## [1.4.3] - 2023-08-17
+### Fixed:
+ - Bug in bidsification when working with bare nifty file
+
+## [1.4.2] - 2023-08-08
+### Added:
+ - Integrartion test for GitHub
+### Changed:
+  - Table sidecars (including participants.json) now supports extra phields, not related to columns names
+
+## [1.4.1] - 2023-07-12
+
+### Fixed:
+  - PET: Updated entities list, remobved some nore more required json metadata
+  - PET/ECAT: Degraded warning of non-decodable bytes string to debug
+  - plugins/template: Fixed (finally) the import of classes in template
+
+### Changed:
+  - bidsmap: Accepting non-bids modality with a warning
+  - bidsmap: Runs loaded from template are now unchecked
+  - README.md: liknks points to GitHub repo
+
+## [1.4.0.post4] - 2022-10-17
+
+### Fixed:
+  - MRI/jsonNIFTY, PET/jsonNIFTY: fixed crash when trying to load generic json NIFTY file
+ 
+## [1.4.0.post3] - 2022-06-15
+
+### Fixed:
+ - MRI/hmriNIFTY: removed requirement of presence of `MrPhoenixProtocol`  
+
+### Changed:
+ - Splitted bloated README
+
+## [1.4.0.post2] - 2022-05-06
+
+### Changed
+ - Version naming schema for post-release fixes
+
+### Fixed
+ - `plugins`: added `__init__.py` to tools so plugin tools will be properly installed
+
+## [1.4.0r1] - 2022-05-05
+
+### Removed
+ - `baseModule`: removed spanning messages about testing files in scan folders
+
+### Fixed
+ - `bidsMeta`: Fixed not reseted bidsSession list of `subjects.tsv` columns
+ - `plugins.tools`: Fixed faulty import of `baseModule`
+
+## [1.4.0] - 2022-05-02
+
+### Changed
+ - Rearranged imports to be importable as module
+ - Moved `version.txt` and `bidsversion.txt` to bidsme sub-folder
+ - Moved heuristics folder to bidsme directory
+
+### Added
+ - `bidsme` now is installable with pip, and importable as module
+ - `setup.py` scripts for setuptools
+ - `tools.info.reseterrors()` function to reset error counters
+
+### Removed
+ - `tests` directory, to be reintegrated later
+ - reload participants definition warning
+
+
+## [1.3.6] - 2022-04-26
+
+### Changed
+  - map: by default `bidsme map` will stop after first recording producing
+error/warnings. Added a CLI parameter `--process-all` to process all recordings
+in one go.
+  - BaseModule: more explicit messages for testing validity of files at 
+DEBUG level
+
+### Added
+  - map: check for several files ending up with same bidsified name
+  - Support for CT in PET data type
+
+### Fixed:
+  - Small misprint that forbids the dump of DICOM header in PET
+  - few adjustements in parcing DICOM header
+  - map: checks for `IntendedFor` field wasn't running in multisession datasets
+  - BidsSession: bug when `sub_values` not intended for `participants.tsv` are
+  - EEG, \*NIFTI: Fixed returnvalue for copyRawFile
+  - PET: Updated recommended and required sidecar metadata
+checked for changes
+
+## [1.3.5r9] - 2022-03-04
+
+### Fixed
+  - hmriNIFTI: fixed incorrect PhaseEncodingDirectionSign default value
+
+## [1.3.5r8] - 2021-11-22
+
+### Fixed
+  - bug with option `--skip-existin-session` not working in preparation
+
+## [1.3.5r7] - 2021-10-27
+
+### Fixed
+  - duplicated entries in `participant.tsv` wasn't saved in `__duplicates.tsv`
+
+## [1.3.5r6] - 2021-10-08
+
+### Fixed
+  - NRI/hmriNIFTI: fixed error while retrieving `afFree` and `adFree`
+firlds when they are not defined in json file
+
+## [1.3.5r5] - 2021-08-18
+
+### Fixed
+  - DICOM: fixed crash if patient age is not defined 
+  - DICOM: persons name is decoded correctly
+  - DICOM: if DS or IS not defined, returned value is None
+
+### Added
+  - MRI/DICOM and PET/DICOM: support for extentions `.ima` and `.IMA`
+  - MRI/DICOM: `MRAcquisitionType` metafield
+  - MRI: set of recommended fields for qMRI
+  - DICOM: added exception if decoding a particular value from header
+produces an error
+
+## [1.3.5r4] - 2021-07-20
+
+### Fixed
+  - MRI: misspell in the name of `RepetitionTimeExcitation`
+
+## [1.3.5r3] - 2021-06-16
 
 ### Changed
   - participants.tsv table is managed using bidsMeta.BidsTable class
+
+### Fixed
+  - MRI/NIFTI and PET/NIFTI: incorrect parameter for `retrieveFormDict`
 
 ## [1.3.5r2] - 2021-03-10
 

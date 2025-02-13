@@ -28,7 +28,7 @@ import os
 import importlib.util
 import logging
 
-from tools.tools import check_type
+from bidsme.tools.tools import check_type
 
 from . import exceptions
 from .entry_points import entry_points
@@ -60,8 +60,11 @@ def ImportPlugins(plugin_file):
     exceptions.PluginModuleNotFound :
         if inable to load plugin module
     """
+    global active_plugins
+    active_plugins = dict()
+
     plugin_file = check_type("plugin_file", str, plugin_file)
-    if plugin_file == "":
+    if not plugin_file:
         return 0
 
     global file

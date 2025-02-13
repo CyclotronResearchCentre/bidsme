@@ -26,18 +26,26 @@
 import os
 import logging
 import pandas
+import glob
 
-import exceptions
-from tools import paths
-import tools.tools as tools
-import bidsmap
-import plugins
+from copy import deepcopy
 
-import Modules
-from bidsMeta import BidsSession
-from bidsMeta import BidsTable
+from bidsme import bidsmap
+from bidsme import plugins
+from bidsme import Modules
+
+from bidsme.tools import type_selector
+from bidsme.tools import paths
+from bidsme.tools import info
+from bidsme.tools import tools
+
+from bidsme.bidsMeta import BidsSession
+from bidsme.bidsMeta import BidsTable
+
+from .Modules._constants import ignoremodality, unknownmodality
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def createmap(destination,
@@ -57,6 +65,8 @@ def createmap(destination,
                         recording.sesId(),
                         recording.recIdentity(),
                         len(recording.files)))
+
+    first_name = None
 
     recording.index = -1
     while recording.loadNextFile():
@@ -85,34 +95,99 @@ def createmap(destination,
                         )
                 continue
             run.template = True
+            run.checked = False
             modality, r_index, run = bidsmap.add_run(
                     run,
                     recording.Module(),
                     recording.Type()
                     )
-        if not run.checked:
-            if not run.entity:
-                run.genEntities(recording.bidsmodalities.get(run.model, []))
-            recording.fillMissingJSON(run)
-        elif "IntendedFor" in recording.metaAuxiliary:
+
+        if not run.provenance and not run.checked:
+            run.provenance = recording.currentFile()
+
+        if modality == ignoremodality or modality == unknownmodality:
+            continue
+
+        recording.setLabels(run)
+        if not recording.suffix:
+            logger.error("{}/{}: Suffix must be defined"
+                         .format(recording.Module(),
+                                 recording.recIdentity()))
+            continue
+
+        bidsified_name = "{}/{}".format(modality, recording.getBidsname())
+        logger.debug("{}/{}: {}".format(recording.Module(),
+                                        recording.recIdentity(),
+                                        bidsified_name))
+
+        validate = False
+        if first_name is None:
+            first_name = bidsified_name
+            if not run.checked:
+                validate = True
+                run.example = "{}/{}".format(modality, recording.getBidsname())
+
+        elif first_name == bidsified_name:
+            logger.error("{}/{}: Bidsified name same "
+                         "as first file of recording: {}"
+                         .format(recording.Module(),
+                                 recording.recIdentity(),
+                                 bidsified_name))
+            break
+
+        if validate:
+            # Generating entities list
+            if (not run.entity) or run.template:
+                logger.info("Retrieving entities for model {}"
+                            .format(run.model))
+                model = recording.schema.get_entities(run.model)
+                run.genEntities(model)
+            model = recording.schema.get_sidecar(run.modality,
+                                                 run.suffix,
+                                                 entities=run.entity,
+                                                 sidecar=run.json)
+            # Expanding recording sidecar
+            recording.metaAuxiliary = deepcopy(run.json)
+            recording.expandSidecar(model, use_placeholder=False)
+            sidecar = recording.exportMeta()
+
+            # Validating bidsified name and sidecar
+            base, ext = os.path.splitext(recording.currentFile(False))
+            if ext == ".gz":
+                ext = os.path.splitext(base)[1] + ext
+            logger.info("Validating file {}".format(bidsified_name))
+            recording.schema.validate(bidsified_name + ext, sidecar)
+
+            if (not run.json) or run.template:
+                # Expanding run json fiels
+                logger.info("Expanding sidecar")
+                recording.expandSidecar(model, run.json,
+                                        use_placeholder=True)
+
+        elif recording.metaAuxiliary.get("IntendedFor"):
+            sub_path = os.path.join(destination, recording.subId())
             out_path = os.path.join(destination,
-                                    recording.subId())
+                                    recording.getBidsSession().getPath())
             bidsname = recording.getBidsname()
             bidsmodality = os.path.join(out_path, recording.Modality())
 
             if os.path.isfile(os.path.join(bidsmodality,
                                            bidsname + '.json')):
+                sidecar = recording.exportMeta(["IntendedFor"])
                 # checking the IntendedFor validity
-                intended = recording.metaAuxiliary["IntendedFor"]
+                intended = sidecar["IntendedFor"]
+                if isinstance(intended, str):
+                    intended = [intended]
                 for i in intended:
-                    dest = os.path.join(out_path, i.value)
-                    if not os.path.isfile(dest):
+                    dest = os.path.join(sub_path, i)
+                    if not glob.glob(dest):
                         logger.error("{}/{}({}): IntendedFor value {} "
                                      "not found"
                                      .format(modality, r_index,
-                                             run.example, i.value))
+                                             run.example, i))
 
     plugins.RunPlugin("SequenceEndEP", None, recording)
+    return first_name
 
 
 def mapper(source: str, destination: str,
@@ -122,6 +197,7 @@ def mapper(source: str, destination: str,
            sub_skip_tsv: bool = False,
            sub_skip_dir: bool = False,
            ses_skip_dir: bool = False,
+           process_all: bool = False,
            bidsmapfile: str = "bidsmap.yaml",
            map_template: str = "bidsmap_template.yaml",
            dry_run: bool = False
@@ -215,8 +291,9 @@ def mapper(source: str, destination: str,
     bidsmap_new = bidsmap.Bidsmap(bidsmapfile)
 
     logger.debug("Creating bidsmap for unknown modalities")
+    mapfolder = os.path.dirname(bidsmapfile)
     # removing old unknown files
-    bidsunknown = os.path.join(bidscodefolder, 'unknown.yaml')
+    bidsunknown = os.path.join(mapfolder, 'unknown.yaml')
     if os.path.isfile(bidsunknown):
         os.remove(bidsunknown)
     bidsmap_unk = bidsmap.Bidsmap(bidsunknown)
@@ -224,12 +301,11 @@ def mapper(source: str, destination: str,
     ###############
     # Plugin setup
     ###############
-    if plugin_file:
-        plugins.ImportPlugins(plugin_file)
-        plugins.InitPlugin(source=source,
-                           destination=destination,
-                           dry=True,
-                           **plugin_opt)
+    plugins.ImportPlugins(plugin_file)
+    plugins.InitPlugin(source=source,
+                       destination=destination,
+                       dry=True,
+                       **plugin_opt)
 
     ###############################
     # Checking participants list
@@ -262,6 +338,8 @@ def mapper(source: str, destination: str,
     ##############################
     n_subjects = len(source_sub_table.df["participant_id"])
     for index, sub_row in source_sub_table.df.iterrows():
+        skip_subject = False
+
         sub_no = index + 1
         sub_id = sub_row["participant_id"]
         sub_dir = os.path.join(source, sub_id)
@@ -330,14 +408,16 @@ def mapper(source: str, destination: str,
                             .format(scan.session))
                 continue
 
-            for module in Modules.selector.types_list:
+            bidsified_list = []
+
+            for module in selector.types_list:
                 mod_dir = os.path.join(ses_dir, module)
                 if not os.path.isdir(mod_dir):
                     logger.debug("Module {} not found in {}"
                                  .format(module, ses_dir))
                     continue
                 for run in tools.lsdirs(mod_dir):
-                    cls = Modules.selector.select(run, module)
+                    cls = selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(mod_dir))
@@ -347,13 +427,38 @@ def mapper(source: str, destination: str,
                         logger.error("unable to load data in folder {}"
                                      .format(run))
                     recording.setBidsSession(scan)
+                    err_count = info.counthandler.level2count.copy()
                     try:
-                        createmap(destination, recording,
-                                  bidsmap_new, template, bidsmap_unk)
+                        first_name = createmap(destination, recording,
+                                               bidsmap_new, template,
+                                               bidsmap_unk)
+                        if first_name in bidsified_list:
+                            logger.error("Matches example of "
+                                         "already processed run {}"
+                                         .format(first_name))
+                        elif first_name is not None:
+                            bidsified_list.append(first_name)
                     except Exception as err:
-                        exceptions.ReportError(err)
-                        logger.error("Error processing folder {} in file {}"
-                                     .format(run, recording.currentFile(True)))
+                        logger.error("Error processing folder {} "
+                                     "in file {}: {}"
+                                     .format(run, recording.currentFile(True),
+                                             err))
+                    err_count = info.msg_count(err_count)
+                    if err_count:
+                        logger.info("Recording generated several "
+                                    "errors/warnings")
+                        skip_subject = True and (not process_all)
+                        break
+                if skip_subject:
+                    break
+            plugins.RunPlugin("SessionEndEP", scan)
+            if skip_subject:
+                break
+        scan.in_path = sub_dir
+        plugins.RunPlugin("SubjectEndEP", scan)
+        if skip_subject:
+            break
+
     if not dry_run:
         # Save the bidsmap to the bidsmap YAML-file
         bidsmap_new.save(bidsmapfile, empty_attributes=False)

@@ -40,7 +40,7 @@ class DICOM(MRI):
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
 
-    _file_extentions = [".dcm", ".DCM"]
+    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA"]
 
     __specialFields = {}
 
@@ -92,9 +92,7 @@ class DICOM(MRI):
             self._DICOM_CACHE = dicomdict
             if self.setManufacturer(self.getField("Manufacturer"),
                                     _DICOM.manufacturers):
-                self.resetMetaFields()
                 self.setupMetaFields(_DICOM.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         for Id in ("Acquisition", "Content", "Instance"):
@@ -127,10 +125,10 @@ class DICOM(MRI):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.getField("SeriesNumber", 0)
 
-    def recId(self):
+    def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")

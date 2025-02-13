@@ -142,9 +142,7 @@ class BrainVision(EEG):
                         break
 
             if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
-                self.resetMetaFields()
                 self.setupMetaFields(_EDF.metafields)
-                self.testMetaFields()
 
     def _load_channels(self) -> pandas.DataFrame:
         return self.mne.load_channels()
@@ -223,10 +221,10 @@ class BrainVision(EEG):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.index
 
-    def recId(self):
+    def _recId(self):
         return os.path.splitext(self.currentFile(True))[0]
 
     def isCompleteRecording(self):
@@ -364,7 +362,7 @@ class BrainVision(EEG):
                                       columns=active,
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True,
-                                      line_terminator="\n")
+                                      lineterminator="\n")
             self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
 
         if self.TableEvents is not None and\
@@ -383,7 +381,7 @@ class BrainVision(EEG):
                                     columns=active,
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True,
-                                    line_terminator="\n")
+                                    lineterminator="\n")
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
         if self.TableElectrodes is not None and\
@@ -402,7 +400,7 @@ class BrainVision(EEG):
                                         columns=active,
                                         sep="\t", na_rep="n/a",
                                         header=True, index=True,
-                                        line_terminator="\n")
+                                        lineterminator="\n")
             self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
 
     def copyRawFile(self, destination: str) -> str:
@@ -435,15 +433,15 @@ class BrainVision(EEG):
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True,
-                                      line_terminator="\n")
+                                      lineterminator="\n")
         if self.TableEvents is not None:
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True,
-                                    line_terminator="\n")
+                                    lineterminator="\n")
         if self.TableElectrodes is not None:
             self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
                                         sep="\t", na_rep="n/a",
                                         header=True, index=True,
-                                        line_terminator="\n")
+                                        lineterminator="\n")
         return os.path.join(destination, self.currentFile(True))

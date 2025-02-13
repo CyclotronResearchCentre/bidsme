@@ -29,7 +29,6 @@ from . import _ECAT
 
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
 
@@ -76,18 +75,15 @@ class bidsmeNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-                return False
-            path, base = os.path.split(file)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, "header_dump_" + base + ".json")
-            if os.path.isfile(header):
-                return True
-        return False
+        path, base = os.path.split(file)
+        base, ext = os.path.splitext(base)
+        header = os.path.join(path, "header_dump_" + base + ".json")
+        if os.path.isfile(header):
+            return True
+        else:
+            logger.debug("{}: Missing header dump file"
+                         .format(cls.formatIdentity()))
+            return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
@@ -97,14 +93,8 @@ class bidsmeNIFTI(PET):
             header = os.path.join(path, "header_dump_" + base + ".json")
             try:
                 with open(header, "r") as f:
-                    dicomdict = json.load(f)
-                    self._headerData = {
-                            "format": dicomdict["format"],
-                            "acqDateTime": dicomdict["acqDateTime"],
-                            "manufacturer": dicomdict["manufacturer"],
-                            }
-                    dicomdict["header"]
-                    self.custom = dicomdict["custom"]
+                    self._headerData = json.load(f)
+                    self.custom = self._headerData["custom"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),
@@ -117,29 +107,27 @@ class bidsmeNIFTI(PET):
                                      header))
                 raise
             self._FILE_CACHE = path
-            self._HEADER_CACHE = dicomdict["header"]
+            self._HEADER_CACHE = self._headerData.pop("header")
             self._header_file = header
-            form = dicomdict["format"].split("/")
+            form = self._headerData["format"].split("/")
             if form[0] != self._module:
                 logger.error("{}: format is not {}"
                              .format(self.recIdentity,
                                      self._module))
                 raise Exception("Wrong format")
             if form[1] == "DICOM":
-                mod = _DICOM
+                if self.setManufacturer(self._headerData["manufacturer"],
+                                        _DICOM.manufacturers):
+                    self.setupMetaFields(_DICOM.metafields)
             elif form[1] == "ECAT":
-                mod = _ECAT
+                if self.setManufacturer(self._headerData["manufacturer"],
+                                        _ECAT.manufacturers):
+                    self.setupMetaFields(_ECAT.metafields)
             else:
                 logger.error("{}: unknown format {}"
                              .format(self.recIdentity,
                                      form[1]))
                 raise Exception("Wrong format")
-
-            if self.setManufacturer(dicomdict["manufacturer"],
-                                    mod.manufacturers):
-                self.resetMetaFields()
-                self.setupMetaFields(mod.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         if self._headerData["acqDateTime"]:
@@ -163,10 +151,10 @@ class bidsmeNIFTI(PET):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self._headerData["recNo"]
 
-    def recId(self):
+    def _recId(self):
         return self._headerData["recId"]
 
     def isCompleteRecording(self):
@@ -175,15 +163,6 @@ class bidsmeNIFTI(PET):
     def clearCache(self) -> None:
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
 
     def _getSubId(self) -> str:
         return self._headerData["subId"]

@@ -1,5 +1,9 @@
-pandas
-ruamel.yaml>=0.15.35
+pandas > 1.4
+ruamel.yaml >= 0.15.35
 coloredlogs
+pyparsing
+bidsschematools
 pydicom >= 1.4.2
 nibabel
+dcm2niix >= 1.0.20220715
+dicom_parser >= 1.2.3

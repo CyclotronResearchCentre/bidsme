@@ -24,8 +24,13 @@
 
 
 import os
+import sys
 import logging
 import coloredlogs
+
+import bidsschematools as bst
+
+from . import paths
 
 fmt = '%(asctime)s - %(name)s(%(lineno)d) - %(levelname)s %(message)s'
 datefmt = '%Y-%m-%d %H:%M:%S'
@@ -58,6 +63,11 @@ class MsgCounterHandler(logging.Handler):
         self.level2count[lvl] += 1
 
 
+counthandler = MsgCounterHandler()
+counthandler.setLevel(logging.WARNING)
+counthandler.set_name('counthangler')
+
+
 def bidsversion() -> str:
     """
     Reads the BIDS version from the BIDSVERSION.TXT file
@@ -65,12 +75,8 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__),
-                           "../..",
-                           'bidsversion.txt')) as fid:
-        version = fid.read().strip()
-
-    return str(version)
+    schema_dir = bst.utils.get_bundled_schema_path()
+    return bst.schema._get_bids_version(schema_dir)
 
 
 def version() -> str:
@@ -80,8 +86,8 @@ def version() -> str:
     :return:    The BIDSCOIN version number
     """
 
-    with open(os.path.join(os.path.dirname(__file__),
-                           "../..",
+    with open(os.path.join(paths.installation,
+                           "bidsme",
                            'version.txt')) as fid:
         version = fid.read().strip()
 
@@ -102,10 +108,6 @@ def setup_logging(logger: logging.Logger,
     # Set the format and logging level
     logger.setLevel(level)
 
-    counthandler = MsgCounterHandler()
-    counthandler.setLevel(logging.WARNING)
-    counthandler.set_name('counthangler')
-
     logger.addHandler(counthandler)
 
     global formatter
@@ -114,7 +116,8 @@ def setup_logging(logger: logging.Logger,
     # Set & add the streamhandler and
     # add some color to those boring terminal logs! :-)
     if not quiet:
-        coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt)
+        coloredlogs.install(level=level, fmt=fmt, datefmt=datefmt,
+                            stream=sys.stdout, isatty=True)
 
 
 def addFileLogger(logger, log_dir):
@@ -148,3 +151,21 @@ def reporterrors(logger):
         if isinstance(handler, logging.FileHandler):
             logger.info("{}:{}".format(handler.name, handler.baseFilename))
     return errors
+
+
+def reseterrors(logger):
+    for handler in logger.handlers:
+        if isinstance(handler, MsgCounterHandler):
+            handler.level2count = {}
+
+
+def msg_count(or_count: {}):
+    msg_counts = {}
+    for lvl, count in counthandler.level2count.items():
+        if lvl in or_count:
+            count = count - or_count[lvl]
+
+        if count != 0:
+            msg_counts[lvl] = count
+
+    return msg_counts

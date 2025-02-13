@@ -23,18 +23,21 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-
-from .MRI import MRI
-from ..common import action_value
-from ..common import retrieveFormDict
-from tools import tools
-from . import _hmriNIFTI
-
 import os
 import logging
 import json
-import shutil
+import pprint
+
 from datetime import datetime, timedelta
+
+from bidsme.tools import tools
+
+from .MRI import MRI
+from . import _hmriNIFTI
+
+from ..common import action_value
+from ..common import retrieveFormDict
+
 
 logger = logging.getLogger(__name__)
 
@@ -104,11 +107,8 @@ class hmriNIFTI(MRI):
 
             try:
                 acqpar = cls.__loadJsonDump(file)
-                manufacturer = acqpar.get("Manufacturer").strip()
-                if manufacturer.lower() == "siemens":
-                    acqpar["CSASeriesHeaderInfo"]
-                    acqpar["CSAImageHeaderInfo"]
-                    acqpar["CSASeriesHeaderInfo"]["MrPhoenixProtocol"]
+                if not acqpar:
+                    return False
             except json.JSONDecodeError as e:
                 logger.error("{}:{} corrupted file {}"
                              .format(cls.formatIdentity(),
@@ -144,17 +144,19 @@ class hmriNIFTI(MRI):
             manuf_changed = self.setManufacturer(manufacturer,
                                                  _hmriNIFTI.manufacturers)
             if self.manufacturer == "Siemens":
-                self.__csas = self._DICOMDICT_CACHE["CSASeriesHeaderInfo"]
-                self.__csai = self._DICOMDICT_CACHE["CSAImageHeaderInfo"]
-                self.__phoenix = self.__csas["MrPhoenixProtocol"]
-                if "sWipMemBlock" in self.__phoenix:
-                    self.__alFree = self.__phoenix["sWipMemBlock"]["alFree"]
-                    self.__adFree = self.__phoenix["sWipMemBlock"]["adFree"]
+                self.__csas = \
+                    self._DICOMDICT_CACHE.get("CSASeriesHeaderInfo", {})
+                self.__csai = \
+                    self._DICOMDICT_CACHE.get("CSAImageHeaderInfo", {})
+                self.__phoenix = self.__csas.get("MrPhoenixProtocol", {})
+                if not self.__phoenix:
+                    self.__phoenix = self.__csas.get("MrProtocol", {})
+                sWip = self.__phoenix.get("sWipMemBlock", {})
+                self.__alFree = sWip.get("alFree", [0] * 20)
+                self.__adFree = sWip.get("adFree", [0] * 20)
 
             if manuf_changed:
-                self.resetMetaFields()
                 self.setupMetaFields(_hmriNIFTI.metafields)
-                self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         date_stamp = int(self.getField("AcquisitionDate"))
@@ -197,10 +199,10 @@ class hmriNIFTI(MRI):
                                  prefix, e))
             raise
 
-    def recNo(self):
+    def _recNo(self):
         return self.getField("SeriesNumber", 0)
 
-    def recId(self):
+    def _recId(self):
         seriesdescr = self.getField("SeriesDescription")
         if seriesdescr is None:
             seriesdescr = self.getField("ProtocolName")
@@ -217,16 +219,6 @@ class hmriNIFTI(MRI):
     def clearCache(self) -> None:
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
-                     destination)
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))
@@ -251,9 +243,9 @@ class hmriNIFTI(MRI):
             if name == "NumberOfMeasurements":
                 value = self.__phoenix.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingSign":
-                value = self.__csai.get("PhaseEncodingDirectionPositive", 1)
-                if value == 1:
-                    return "+"
+                value = self.__csai.get("PhaseEncodingDirectionPositive", 0)
+                if value:
+                    return ""
                 else:
                     return "-"
             elif name == "B1mapNominalFAValues":
@@ -300,9 +292,9 @@ class hmriNIFTI(MRI):
             elif name == "MTState":
                 value = self.__phoenix["sPrepPulses"].get("ucMTC", 0)
                 if value == 0:
-                    value = "Off"
+                    value = False
                 else:
-                    value = "On"
+                    value = True
             elif name == "ReceiveCoilActiveElements":
                 value = self.__csai.get("CoilString", "")
             elif name == "EffectiveEchoSpacing":
@@ -328,4 +320,8 @@ class hmriNIFTI(MRI):
     def __loadJsonDump(file: str) -> dict:
         json_dump = tools.change_ext(file, "json")
         with open(json_dump, "r") as f:
-            return json.load(f)["acqpar"][0]
+            js = json.load(f)
+            if "acqpar" in js:
+                return js["acqpar"][0]
+            else:
+                return None

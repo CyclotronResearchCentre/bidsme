@@ -23,17 +23,19 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
-from .PET import PET
-from tools import tools
-from .. import _nifti_common
-
 import os
 import logging
 import shutil
 import gzip
-
 from datetime import datetime
+
+from bidsme.tools import tools
+
+from .PET import PET
+
+from ..common import retrieveFormDict
+from .. import _nifti_common
+
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,7 @@ class NIFTI(PET):
     __slots__ = ["_NIFTI_CACHE", "_FILE_CACHE",
                  "_nii_type", "_endiannes"
                  ]
+    _file_extentions = [".nii", ".nii.gz", ".hdr"]
 
     __specialFields = {"AcquisitionTime",
                        "SeriesNumber",
@@ -58,6 +61,7 @@ class NIFTI(PET):
         self._FILE_CACHE = ""
         self._nii_type = ""
         self._endiannes = "<"
+        self.switches["exportHeader"] = True
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -79,21 +83,12 @@ class NIFTI(PET):
         bool:
             True if file is identified as DICOM
         """
-        if not os.path.isfile(file):
-            return False
-        if file.endswith(".nii") or file.endswith(".hdr"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-            if file.endswith(".hdr"):
-                if not os.path.isfile(file[:-4] + ".img"):
-                    return False
-            try:
-                return _nifti_common.isValidNIFTI(file)
-            except Exception:
+        if file.endswith(".hdr"):
+            if not os.path.isfile(file[:-4] + ".img"):
+                logger.debug('{}: Missing .img file'
+                             .format(cls.formatIdentity()))
                 return False
-        return False
+        return _nifti_common.isValidNIFTI(file)
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
@@ -110,14 +105,9 @@ class NIFTI(PET):
                                                          self._endianness)
 
     def dump(self):
-        if self._NIFTI_CACHE is not None:
-            return str(self._NIFTI_CACHE)
-        elif len(self.files) > 0:
+        if self._NIFTI_CACHE is None:
             self.loadFile(0)
-            return str(self._NIFTI_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._NIFTI_CACHE
 
     def _getField(self, field: list):
         res = None
@@ -126,7 +116,7 @@ class NIFTI(PET):
                 res = self._adaptMetaField(field[0])
             else:
                 res = retrieveFormDict(field, self._NIFTI_CACHE,
-                                       fail_on_last_missing=False)
+                                       fail_on_last_not_found=False)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))
@@ -153,10 +143,10 @@ class NIFTI(PET):
     def _getAcqTime(self) -> datetime:
         return None
 
-    def recNo(self):
+    def _recNo(self):
         return self.index
 
-    def recId(self):
+    def _recId(self):
         return os.path.splitext(self.currentFile(True))[0]
 
     def _getSubId(self) -> str:

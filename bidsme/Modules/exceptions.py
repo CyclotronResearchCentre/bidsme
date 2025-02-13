@@ -28,3 +28,10 @@ class InvalidActionError(Exception):
     Raises if name of an action for dynamic field retrieval is invalid
     """
     pass
+
+
+class CharacteristicError(Exception):
+    """
+    Raises if name of an action for dynamic field retrieval is invalid
+    """
+    pass

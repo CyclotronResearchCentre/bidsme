@@ -135,9 +135,7 @@ class EDF(EEG):
                 self._rec_info = res.split(" ")
 
             if self.setManufacturer(self._ext, _MNE.MANUFACTURERS):
-                self.resetMetaFields()
                 self.setupMetaFields(_EDF.metafields)
-                self.testMetaFields()
 
     def _load_channels(self) -> pandas.DataFrame:
         return self.mne.load_channels()
@@ -216,7 +214,7 @@ class EDF(EEG):
             res = None
         return res
 
-    def recNo(self) -> int:
+    def _recNo(self) -> int:
         """
         Virtual function returning current serie number
         (i.e. numero of scan in session).
@@ -230,7 +228,7 @@ class EDF(EEG):
         """
         return self.index
 
-    def recId(self) -> str:
+    def _recId(self) -> str:
         """
         Virtual function returning current serie id
         (i.e. name of scan in session).
@@ -301,131 +299,3 @@ class EDF(EEG):
             else:
                 return "epoched"
         return None
-
-
-"""
-    def copyRawFile(self, destination: str) -> None:
-        base = os.path.splitext(self.currentFile(True))[0]
-        dest_base = os.path.join(destination, base)
-
-        # Copiyng header
-        shutil.copy2(self.currentFile(), destination)
-
-        dig = self._CACHE.info['dig']
-
-        orient = _MNE.ORIENTATION.get(self._ext, 'n/a')
-        unit = _MNE.UNITS.get(self._ext, 'n/a')
-        manufacturer = _MNE.MANUFACTURERS.get(self._ext, 'n/a')
-
-        if dig:
-            # exporting coord system
-            coords = dict()
-            landmarks = {d['ident']: d for d in dig
-                         if d['kind'] == FIFF.FIFFV_POINT_CARDINAL}
-            if landmarks:
-                if FIFF.FIFFV_POINT_NASION in landmarks:
-                    coords['NAS'] = landmarks[FIFF.FIFFV_POINT_NASION]['r']\
-                            .tolist()
-                if FIFF.FIFFV_POINT_LPA in landmarks:
-                    coords['LPA'] = landmarks[FIFF.FIFFV_POINT_LPA]['r']\
-                            .tolist()
-                if FIFF.FIFFV_POINT_RPA in landmarks:
-                    coords['RPA'] = landmarks[FIFF.FIFFV_POINT_RPA]['r']\
-                            .tolist()
-
-            hpi = {d['ident']: d for d in dig
-                   if d['kind'] == FIFF.FIFFV_POINT_HPI}
-            if hpi:
-                for ident in hpi.keys():
-                    coords['coil%d' % ident] = hpi[ident]['r'].tolist()
-
-            coord_frame = set([dig[ii]['coord_frame']
-                              for ii in range(len(dig))])
-            if len(coord_frame) > 1:
-                raise ValueError('All HPI, electrodes, and fiducials '
-                                 'must be in the '
-                                 'same coordinate frame. Found: "{}"'
-                                 .format(coord_frame))
-            coordsystem_desc = _MNE.COORD_FRAME_DESCRIPTIONS\
-                .get(coord_frame[0], "n/a")
-            fid_json = {
-                'CoordinateSystem': coord_frame[0],
-                'CoordinateUnits': unit,
-                'CoordinateSystemDescription': coordsystem_desc,
-                'Coordinates': coords,
-                'LandmarkCoordinateSystem': orient,
-                'LandmarkCoordinateUnits': unit
-                }
-            json.dump(dest_base + "_coordsystem.json", fid_json)
-
-            # exporting electrodes
-            elec = self._elec_BIDS.GetTemplate()
-            with open(dest_base + "_electrodes.tsv", "w") as f:
-                f.write(self._elec_BIDS.GetHeader() + "\n")
-                for ch in self._CACHE.info['chs']:
-                    elec["name"] = ch['ch_name']
-                    if mne.utils_check_ch_locs([ch]):
-                        elec["x"] = ch['loc'][0]
-                        elec["y"] = ch['loc'][1]
-                        elec["z"] = ch['loc'][2]
-                    else:
-                        elec["x"] = None
-                        elec["y"] = None
-                        elec["z"] = None
-                    f.write(self._elec_BIDS.GetLine(elec) + "\n")
-            self._elec_BIDS.DumpDefinitions(dest_base + "_electrodes.json")
-
-        # exporting channels
-        channels = self._chan_BIDS.GetTemplate()
-        with open(dest_base + "_channels.tsv", "w") as f:
-            f.write(self._chan_BIDS.GetHeader() + "\n")
-            for idx, ch in enumerate(self._CACHE.info['chs']):
-                channels["name"] = ch["ch_name"]
-                ch_type = mne.io.pick.channel_type(self._CACHE.info, idx)
-                if ch_type in ('mag', 'ref_meg', 'grad'):
-                    ch_type = _MNE.COIL_TYPES_MNE.get(ch['coil_type'], ch_type)
-                channels["type"] = _MNE.CHANNELS_TYPE_MNE_BIDS.get(ch_type)
-                if ch["ch_name"] in self._CACHE.info['bads']:
-                    channels["status"] = "bad"
-                else:
-                    channels["status"] = "good"
-                channels["low_cutoff"] = self._CACHE.info["highpass"]
-                channels["high_cutoff"] = self._CACHE.info["lowpass"]
-
-                if self._CACHE._orig_units:
-                    channels["units"] = self._CACHE._orig_units\
-                            .get(channels["name"])
-                channels["sampling_frequency"] = self._CACHE.info["sfreq"]
-                f.write(self._chan_BIDS.GetLine(channels) + "\n")
-            self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
-
-        # exporting markers
-        events = self._chan_BIDS.GetTemplate()
-        with open(dest_base + "_events.tsv", "w") as f:
-            sfreq = self._CACHE.info['sfreq']
-            first_time = self._CACHE.first_time
-            evts = self._CACHE.annotations
-            f.write(self._task_BIDS.GetHeader() + "\n")
-            events = self._task_BIDS.GetTemplate()
-            for ev in evts:
-                events["onset"] = ev["onset"] - first_time
-                events["duration"] = ev["duration"]
-                events["trial_type"] = ev["description"]
-                events["sample"] = int(events["onset"] * sfreq)
-                f.write(self._task_BIDS.GetLine(events) + "\n")
-
-            # stimulus channels
-            first_samp = self._CACHE.first_samp
-            for ch in self._CACHE.info["chs"]:
-                if ch["kind"] != "sitm":
-                    continue
-                evts = mne.find_events(self._CACHE, stim_channel=ch["ch_name"])
-                for ev in evts:
-                    events["onset"] = (ev['onset'] - first_samp) / sfreq
-                    events["duration"] = 0
-                    events["trial_type"] = ch["ch_name"]
-                    events["value"] = ev[2]
-                    events["sample"] = ev["onset"] - first_samp
-                    f.write(self._task_BIDS.GetLine(events) + "\n")
-            self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
-"""

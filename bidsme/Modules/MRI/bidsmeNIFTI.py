@@ -22,16 +22,15 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
-from .MRI import MRI
-from . import _DICOM
-from tools import tools
-
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
+
+from .MRI import MRI
+from . import _DICOM
+from ..common import retrieveFormDict
+from bidsme.tools import tools
 
 logger = logging.getLogger(__name__)
 
@@ -100,14 +99,8 @@ class bidsmeNIFTI(MRI):
                                   + tools.change_ext(base, "json"))
             try:
                 with open(header, "r") as f:
-                    dicomdict = json.load(f)
-                    self._headerData = {
-                            "format": dicomdict["format"],
-                            "acqDateTime": dicomdict["acqDateTime"],
-                            "manufacturer": dicomdict["manufacturer"],
-                            }
-                    dicomdict["header"]
-                    self.custom = dicomdict["custom"]
+                    self._headerData = json.load(f)
+                    self.custom = self._headerData["custom"]
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),
@@ -120,27 +113,18 @@ class bidsmeNIFTI(MRI):
                                      header))
                 raise
             self._FILE_CACHE = path
-            self._HEADER_CACHE = dicomdict["header"]
+            self._HEADER_CACHE = self._headerData.pop("header")
             self._header_file = header
-            form = dicomdict["format"].split("/")
+            form = self._headerData["format"].split("/")
             if form[0] != self._module:
                 logger.error("{}: format is not {}"
                              .format(self.recIdentity,
                                      self._module))
                 raise Exception("Wrong format")
             if form[1] == "DICOM":
-                mod = _DICOM
-            else:
-                logger.error("{}: unknown format {}"
-                             .format(self.recIdentity,
-                                     form[1]))
-                raise Exception("Wrong format")
-
-            if self.setManufacturer(dicomdict["manufacturer"],
-                                    mod.manufacturers):
-                self.resetMetaFields()
-                self.setupMetaFields(mod.metafields)
-                self.testMetaFields()
+                if self.setManufacturer(self._headerData["manufacturer"],
+                                        _DICOM.manufacturers):
+                    self.setupMetaFields(_DICOM.metafields)
 
     def _getAcqTime(self) -> datetime:
         if self._headerData["acqDateTime"]:
@@ -164,10 +148,10 @@ class bidsmeNIFTI(MRI):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self._headerData["recNo"]
 
-    def recId(self):
+    def _recId(self):
         return self._headerData["recId"]
 
     def isCompleteRecording(self):
@@ -176,15 +160,6 @@ class bidsmeNIFTI(MRI):
     def clearCache(self) -> None:
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
 
     def _getSubId(self) -> str:
         return self._headerData["subId"]

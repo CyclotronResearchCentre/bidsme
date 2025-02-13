@@ -25,8 +25,11 @@
 
 import os
 import math
+import shutil
 import logging
+import json
 import zipfile
+import glob
 
 logger = logging.getLogger(__name__)
 
@@ -321,3 +324,255 @@ def SaveBval(fname: str,
 
     f_bval.close()
     f_bvec.close()
+
+
+def LoadCurationList(path, list_name, modalities=True):
+    """
+    Loads and parces prepared data-curation lists in form of json
+    in provided path.
+
+    If modalities is True, then it will load all files with pattern
+    `*_<list_name>.json`, if modalities is False, then pattern will
+    become `<list_name>.json`.
+
+    If no matching json files are found, returns empty dict
+
+    Parameters:
+    -----------
+    path: str
+        Directory where to search for lists
+    list_name: str
+        Name of the list to retrieve
+    modalities: bool
+        If True (default), retrieved lists will be organized by
+        modality, taken as prefix to list name.
+
+    Returns:
+    --------
+    dict:
+        Loaded list as dictionary
+
+    Example:
+    --------
+    #In InitEP:
+    # Getting white, black and ignore lists
+    global white_list
+    global black_list
+    global remove_list
+    lists_path = os.path.join(base_path, "lists")
+
+    white_list = load_white_list(lists_path, "white_list")
+    black_list = load_white_list(lists_path, "black_list", modalities=False)
+    remove_list = load_white_list(lists_path, "to_remove")
+    """
+
+    res = {}
+
+    if modalities:
+        suffix = "_{}.json".format(list_name)
+
+        for l_pth in glob.glob(os.path.join(path, "*" + suffix)):
+            fname = os.path.basename(l_pth)
+            mod = fname[:-len(suffix)]
+            logger.info("Loading {}".format(l_pth))
+            with open(l_pth) as f:
+                res[mod] = json.load(f)
+    else:
+        l_pth = os.path.join(path, list_name + ".json")
+        if os.path.isfile(l_pth):
+            logger.info("Loading {}".format(l_pth))
+            with open(l_pth) as f:
+                res = json.load(f)
+
+    return res
+
+
+def CleanupPrepared(prepared_path, remove_list, session=None):
+    """
+    Cleanup unwanted (faulty) acquisitions from prepared dataset
+    based on contents of remove_list.
+
+    Is session object is None,  acquisitions from all subjects and
+    sessions in remove_list will be removed
+
+    List is expected to be similar to:
+    {"MRI":
+        {
+         "sub-001": {
+            "ses-LCL": ["001-localizer"]
+            },
+         "sub-002": {
+            "ses-LCL": ["006-cmrr_mbep2d_bold_mb2_invertpe"]
+            },
+         "sub-003": {
+            "ses-": ["001-localizer"]
+            }
+        }
+    }
+
+    Subjects without sessions still have to provide session: `ses-`
+
+    Parameters:
+    -----------
+    prepared_path: str
+        Path to prepared dataset
+    remove_list: dict
+        Dictionary containing list of acquisitions, and sessions
+        to remove
+    session: bidsme.bidsMeta.BidsSession
+        Restrict removal for provided session
+
+    Returns:
+    --------
+    None
+
+    Example:
+    --------
+    # In SessionEndEP(session)
+    # Removing acquisitions from remove_list
+    cleanup_prepared(preparedfolder, remove_list, session)
+    """
+
+    # Removing acquisitions for all participants and sessions
+    if session is None:
+        for mod in remove_list:
+            for sub in remove_list[mod]:
+                for ses, to_remove in remove_list[mod][sub].items():
+                    _remove_acq(prepared_path, sub, ses, mod, to_remove)
+    else:
+        sub = session.subject
+        ses = session.session if session.session else "ses-"
+
+        for mod in remove_list:
+            if sub not in remove_list[mod]:
+                continue
+
+            to_remove = remove_list[mod][sub]
+            to_remove = to_remove.get(ses, [])
+            _remove_acq(prepared_path, sub, ses, mod, to_remove)
+
+
+def CheckPrepared(prepared_path, white_list, session,
+                  defaults=["default"]):
+    """
+    Compares acquisitions in prepared dataset with an expected
+    acquisition list from white_list
+
+    If session object is provided, check is performed only for
+    given subject and session, otherwhise checks are performed
+    for all subjects and sessions in prepared folder.
+
+    Is Subject and session are explicetly mentioned in whte list,
+    than provided list of acquisitions will be used, otherwise
+    the lists for `default` subject will be used.
+
+    White list ist is expected to be similar to:
+    {"MRI":
+        {
+         "default": {
+            "ses-LCL": ["001-localizer", "002-t1w"],
+            "ses-HCL": ["001-localizer", "002-t2w"]
+            },
+         "sub-002": {
+            "ses-LCL": ["001-localizer", "001-localizer", "003-t1w"]
+            },
+         "sub-003": {
+            "ses-": ["002-t2w"]
+            }
+        }
+    }
+
+    Subjects without sessions still have to provide session: `ses-`
+
+    Parameters:
+    -----------
+    prepared_path: str
+        Path to prepared dataset
+    remove_list: dict
+        Dictionary containing list of acquisitions, and sessions
+        to remove
+    session: bidsme.bidsMeta.BidsSession
+        Restrict removal for provided session
+    defaults: list, optional
+        List of default sections to check if subject is not listed
+        explicetly
+
+    Returns:
+    --------
+    None
+
+    Example:
+    --------
+    # In SessionEndEP(session)
+    # Removing acquisitions from remove_list
+    cleanup_prepared(preparedfolder, remove_list, session)
+    """
+
+    sub = session.subject
+    ses = session.session if session.session else "ses-"
+
+    for mod in white_list:
+        path = os.path.join(prepared_path, sub, ses, mod)
+        if not os.path.isdir(path):
+            continue
+
+        check_list = white_list[mod].get(sub, {})
+
+        acqs = []
+        acqs = check_list.get(ses, [])
+
+        # Subject and session are explicetly in the list
+        if acqs:
+            logger.info("{}/{}/{}: Comparing acquisitions with white list"
+                        .format(sub, ses, mod))
+            if not CheckSeries(path, acqs, strict=True):
+                logger.error("{}/{} Series do not match expectation."
+                             .format(sub, ses))
+                return False
+            return True
+
+        for default in defaults:
+            test_dict = white_list[mod].get(default, {})
+            acqs = test_dict.get(ses, [])
+            if not acqs:
+                continue
+            logger.info("{}/{}/{}: Comparing acquisitions with {} list"
+                        .format(sub, ses, mod, default))
+            if CheckSeries(path, acqs, strict=True, level=logging.DEBUG):
+                logger.info("{}/{}/{}: Matched {} list"
+                            .format(sub, ses, mod, default))
+                return True
+
+        if defaults:
+            # Prinyting error message only if there defaults defined
+            logger.error("{}/{}/{}: Failed with all default lists"
+                         .format(sub, ses, mod))
+            return False
+    return True
+
+
+def _remove_acq(prepared_path, sub, ses, mod, to_remove):
+    """
+    Removes acquisition directories from `to_remove` from
+    prepared path, given subject, session and modality.
+
+    Parameters:
+    -----------
+    prepared_path: str
+        Path to prepared dataset,
+    sub: str
+        subject id, ex: sub-001
+    ses: str
+        session id, ex: ses-
+    mod: str
+        modality folder, ex. MRI
+    to_remove: list
+        list of acquisition to remove
+    """
+
+    rm_path = os.path.join(prepared_path, sub, ses, mod)
+    for s in to_remove:
+        pth = os.path.join(rm_path, s)
+        if os.path.isdir(pth):
+            logger.info("Removing {} from {}/{}/{}".format(s, sub, ses, mod))
+            shutil.rmtree(pth)

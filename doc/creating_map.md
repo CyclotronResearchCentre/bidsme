@@ -1,14 +1,17 @@
-This is how I usually do the mapping, step-by-step. Sometimes I do some shortcuts, but I suggests to avoid them until you feel comfortable.
+# Bidsmap creation
+
+The bidsmap creation is the most annoying and complex part of bidsification with `bidsme`.
+In this instruction we tried to provide the step-by-step instructions how to create the map.
 
 
-# Intro and definitions
+## Intro and definitions
 
 There main guidelines:
 
   - Have a list of series per session in their expected order, useful to retrieve names and make notes
   - Prepare bidsified names beforehand, this will streamline process and avoid errors in `IntendedFor` meta-fields
   - Work on a good subject i.e. complete without deviation from protocol, without duplicated acquisition etc.
-  - Work at 1 warning/error/recording at time, to remember modifications in previous step
+  - `bidme map` will stop at each error and warning, so make sure to fix errors and warnings that `bidsme` report
   - Rerun map command at each occasion
 
 Some vocabulary (just to avoid confusion):
@@ -21,11 +24,11 @@ Some vocabulary (just to avoid confusion):
   - data type -- kind of data acquired (MRI, EEG, PET etc.)
   - data format -- format that recordings are stored (dicom, nifti, nifti+json etc.)
   - modality -- type of recording, corresponds to lowest level folder in bids structure (func, anat, dwi, beh, edf etc.)
-  - suffix -- BIDS identificant differentiating different types of recording within modality, last part of bidsified name
-  - entity -- a underscore-separated blocks constructing bidsified name, entity is composed of name and value, separated by dash. entity must be as uniform as possible within modality, values must be intuitive
+  - suffix -- BIDS identifier differentiating different types of recording within modality, last part of bidsified name
+  - entity -- a underscore-separated blocks constructing bidsified name, entity is composed of name and value, separated by dash. Entity must be as uniform as possible within modality, values must be intuitive
   - map entry -- bidsmap block corresponding to one recording, starting with `provenance` field and ending with `json`
 
-For MRI the relevant page is (there)[https://bids-specification.readthedocs.io/en/v1.2.0/04-modality-specific-files/01-magnetic-resonance-imaging-data.html]. The current proposal for MPM is (there)[https://docs.google.com/document/d/1QwfHyBzOyFWOLO4u_kkojLpUhW0-4_M7Ubafu9Gf4Gg/edit].
+For MRI the relevant page is [there](https://bids-specification.readthedocs.io/en/v1.2.0/04-modality-specific-files/01-magnetic-resonance-imaging-data.html).
 
 In following I will use `[]` to indicate context-depending variables, usually specific paths.
 For example `[path-to-source-dataset]` should be replaced by by your specific path to source dataset.
@@ -33,86 +36,138 @@ Don't worry about plugins at this stage, but if in your map you find something n
 
 If you are not sure on name to give to one entity, or suffix, just use something easy to spot, like "ToRename".
 
+
+### Prepared data
+
 In the prepared folder data is always organized as follows:
 ```
 sub-[subject Id]/ses-[session Id]/[data type]/[series number]-[series Id]/data
 ```
 
-The bidsme log output usually cites concerning series, if not look to the line above for currently scanned series. Sometimes you need to look into the header, use the organisation to easily find correct file.
+### Errors/warning logs
 
+`bidsme` will try to provide as much of information about encountered errors and warnings as possible. Read the printed log not only at error, but also before -- `bidsme` will say on which series he worked when error occurred. 
 
-Use aliases to invoke bidsme, for ex.:
-```
-alias bidsme="python3 $HOME/Works/bidscoin/bidsme/bidsme.py"
-alias bidsme-pdb="python3 -m pdb $HOME/Works/bidscoin/bidsme/bidsme.py"
-```
-so invocations becomes like:
-```
-bidsme map [parameters]
-```
-
-# Mapping dataset
+## Mapping dataset
 
 I start with prepared dataset, stored in the `prepared` folder in my actual directory.
 Bidsified dataset will be put into already existing and empty folder `bidsified`, in output directory. 
 
- * 0 - **Run map command**
-```
+Map creation is an iterative process, `bidsme` will analyse each series in order of appearance, and will go to the next one only if previous was processed without errors.
+
+Start with prepared dataset (in `prepared` directory) and empty bidsified dataset (in `bidsified` directory)> 
+
+### Step 0 - New series
+
+Execute:
+```bash
 bidsme map prepared bidsified
 ```
-At first execution this will produce a map based on template.
-Template is designed only to attribute correct modalities to recordings, **do not rely on pre-filled values**.
 
- * 1 -  **Look for errors**
-  a) `Unable to identify [N] recordings`: look into `bidsified/code/bidsme/unknown.yaml`, copy one entry corresponding recording into correct modality section of `bidsified/code/bidsme/bidsmap.yaml`. Save bidsmap.yaml and go to *step 0*
-  b) `ruamel error`: go to given line and fix the error in bidsmap.yaml file, usually they are unclosed quotes and spaces. Go to *step 0*
-  c) `Failed: [N] examples matching several runs`. Several map entries produce same bidsified name. The names are given in the warnings preceeding error. Take one and search for it in bidsmap.yaml. You should find the entries that produced this error. If these entries are marked as checked, uncheck them (change true to false), if they are marked as template, also change true to false. Adjust suffix and bids section to produce different result, save file and go to step 0
+`bidsme` will get one series and will try to much it with the template, depending if file matches current `bidsmap`, template or no matches are found, the actions are similar:
 
- * 2 -  **Warnings**
-If no more errors, look for warnings. Take one of the warnings, but ignore `Map contains [N] template runs`, `Map contains [N] unchecked runs`, or `Naming schema not BIDS`, they will be treated later.
+#### Found in template
 
-  a) `[map entry]: Suffix not defined`
-  Go to relevent map entry (indexes are python like starting at 0), and set correct suffix and bids entities. Remove checked and template, if present. Save and go to step 0
-  b) `[series]: Placehoder found`
-  Go to relevent map entry (search by protocol), and look for the string `<<placeholder>>`. Replace the string(s) by correct values for the recording. Remove template and checked, save and go to Step 0
-  c) `[series]: Unable to get [field]`
-  Go to relevant entry and find the faulty field, Usually it is in json section and in brackets, for ex. `<RFSpoilingPhaseIncrement>`. Replace the field by correct value (either from header, enclosed in brackets, or just by raw value). If value is unknown/not needed, replace by `~`, meaning void value. Remove template, checked, save and go to 0.
+`bidsme` will put a new map entry into `bidsified/code/bidsme/bidsmap.yaml` with pre-filled bids entities and json fields from the template.
+`bidsme` will complete the entities and json fields with one from BIDS that corresponds to given modality and suffix.
 
- * 3 - **Warnings `not BIDS` and `unchecked`**
-Once you removed all warnings except the `not BIDS` and `unchecked`, you can treat them. If the treatment will produce warnings above, you should fix them (i.e. repeat 2.).
+Depending on luck/template/data `bidsme` may show some warnings and/or errors, that must be addressed.
+Independently of errors/warnings you must open the `bidsmap.yaml` file and do following actions, in order:
 
-Open bidsmap.yaml file and find first unchecked entry (search for `checked: false`). Look if file (`provenance`) is correctly identified and has correct bidsified name (in field `example`). 
+ - 1. Find relevant map entry (search for line `template:true` or for series name, it should appear in `provenance` field)
+ - 2. Set `template` to `false`
+ - 3. Check `example` field -- it will show generated bidsified name for the file in `provenance`, compare it with what you expect, then adjust `bids` section to much the expectations
+ - 4. Check the json section, if you will need some custom metadata add new field.
+ - 5. Go to step 0 (run map again) -- do not correct errors/warnings at this point
 
-  a) Incorrect `example` value. Adjust `suffix` and `bids` values to your satisfaction. Remove `template` and go to 0.
-  b1) Correct `example` value. Check `json` section, fill fields with missing values, if you know them, or how to retrieve them. If fields are unknown/unwanted, just remove them. Save and go to 0.
-  b2) After b1, check remove empty fields in `json` section that do not produce `Unable to get ` warning. Fields that produce the warning must be set explicetly to `~`. Set checked to true, save and go to 3.
+#### Found in bidsmap
 
-  
- * 4 - **Check for conflicts**
-Once you don't have warnings, unchecked and hopefully templates, you can pass to next step.
+If corresponding map entry, the field `checked` is `false`, `bidsme` will update `example`, `provenance` fields, and complete the entities and json fields.
+The field `template: true` will always produce a warning that will make `bidsme` will always stop after processing this series.
+You can use this for forbid `bidsme` to go further, even if series do not produce errors or warnings.
 
-**Remove all `bidsified/sub-` folders.**
+##### No Errors/Warnings
+`bidsme` will consider series processed and will analyse the next one.
 
-Run bidsification:
-```
+##### Errors/warnings
+`bidsme` encountered some issues that require user input.
+You must open/reload `bidsified/code/bidsme/bidsmap.yaml`:
+
+ - 1. Find relevant map entry (search for series name, it should appear in `provenance` field)
+ - 2. Identify one issue, read the error/warning message attentively (see below)
+ - 3. Fix this issue
+ - 4. Go to step 0 (run map again) -- it is better (at least in the beginning) to correct one issue at the time
+
+Some classical warnings and errors:
+  - `placeholder found`: The field value `<placeholder>` are the reminders that some entities/metadata are mandatory (for ex. `task` entity for `func`). This value will always produce a warning, you need to replace this value with desired one.
+  - `ruamel error`: usually an extra space, this error will point to the faulty line
+  - Unable to get [field]: `bidsme` can't find the requested metadata, find the mentioned field (usually in json section), and manually set the correct value, or set to `~` if this field is not needed
+  - `Failed: [N] examples matching several runs`: this error indicates that there several data files in the series which will be bidsified with exactly same name. It can happen typically with multi-volumes recordings like `func` or `dwi`. You need add a new entity to `bids` section that allow to attribute different names to these files (for ex: `run: <AcquisitionNumber>` or `run: <AcquisitionNumber>`).
+  - `Suffix not defined`: manually set the `suffix` field
+  - `Bidsified name same as first file of recording`: This error happens when a bidsified name of current series coincide with a bidsified name of different series, both series should be mentioned in the message. You need to find both relevant map entries and modify them to ensure that bidsified names are distinct. If one of the recordings has `checked: true`, it must be changed to `checked: false` to insure that changes do not generate an error and `example` field will be updated
+  - `schema not BIDS`: this warning indicates that you set up entities in the manner that are not BIDS compatible. You are invited to cross-check if the bidsified name is exactly what needed, and if so set `checked: true` to silence the warning.
+  - `run [] also matches run []`: this error will raise than mentioned file will match two different map entries, referenced by their index and `provenance` field (for easier search). You need to find both map entries and ensure that `attributes` section matches only desired series.
+  - ` IntendedFor value not found`: if a json section of a given map entry contain `IntendedFor` field **and** bidsified directory already contains current subject bidsified, `bidsme` will try to find if all entries from `IntendedFor` are present on in the bidsified subject and will report all missing files. You need just adapt the `IntendedFor` content to match bidsified dataset.
+
+#### Not found in bidsmap not template (No compatible run found)
+`bidsme` will create e new entry *for each file in the series* in `bidsified/code/bidsme/unknown.yaml`, with `__unknown__` modality, empty `suffix`, `bids`, `json` sections and partially filled `attributes` section.
+
+ - 1. Identify the correct modality of the first map entry in the `unknown.yaml`
+ - 2. Copy the first map entry to corresponding modality in `bidsmap.yaml`. Both `unknown.yaml` and `bidsmap.yaml` follows the same structure and copy-paste should be enough, but sometimes the spaces and tabulations becomes shifted -- you need to correct them, or you will see yaml parsing errors
+ - 3. Fill the `suffix` field, leave `json` and `bids` empty -- they will be automatically filled at the next iteration
+ - 4. Go to step 0 (run map again) -- it is better (at least in the beginning) to correct one issue at the time
+
+
+### Step 10 - manual validation
+Eventually all series in `prepared` directories will have corresponding map entry, without any errors/warnings.
+`bidsme` may still show a warning `found [N] unchecked runs` and/or `found [N] template runs`.
+This is reminder that not all templates map entries are removed and not all entries was manually validated.
+This validation is almost final step for map creation.
+
+You need to go trough all map entries and:
+
+ - 1. Set `template` to `false` if it is `true`
+ - 1. Check `example` field, if it is as you need
+ - 2. Check `json` fields, if they contains needed information
+ - 3. Remove all empty ('' and `~`) json fields
+ - 3a. If both `example` and `json` are correct, set `checked` to `true`
+ - 3b. If you set some modifications to map entry, rerun `map` to ensure that the modifications do not induce warnings/errors
+
+### Step 30 -- Bidsification
+
+Backup `bidsified/code/bidsme/bidsmap.yaml` file in safe place.
+
+When all warnings from `bidsme map` command are fixed, it is the time to test that subject will be well bidsified by running: 
+```bash
 bidsme bidsify prepared bidsified
 ```
 
-You will see warnings about README and dataset\_description. Ignore it, or if you have these files, just pace them into `bidsified` folder.
+If there no errors, go to the next step, map is created. If there errors:
 
-Check for warnings and errors.
-  a) Warning `<<placeholder>>`: redo step 2b
-  b) Warning `Unable to get `: redo step 2c
-  c) Error `[file] exists at destination`. You have at least 2 recordings that produced same bidsified name. Identify them. One of them can be read from log file just above errors, another can be seen in bidsmap, by searching the bidsified name (in `example` field).
-    c1) If both are from same series but different recordings, you need to adjust `run` entity in `bids` section, typically you must place there `<AcquisitionNumber>`. Remove checked and go to *step 0*.
-    c2) If recordings are from different series. Remove checked. Introduce into attribute new field allowing the differentiation between series and set its value. Look in the headers of both files for attributes athd differentiates. Use `SeriesNumber` only if no other options. Adjust `bids` `suffix` and `json` section to represent the first series. Copy-paste the entity just below itself, and adjust `attributes`, `bids` and `json` to match second series. Save and go to *step 0*
+ - 1. Identify error (see below)
+ - 2. Decide if error comes from data or from `bidsmap.yaml`
+ - 3. Correct either data in `prepared` directory or modify `bidsmap.yaml`
+ - 4. Run map on the subject where error has occurred to ensure that error was fixed `bidsme map prepared bidsified --participants sub-<XYZ>`
+ - 5. Remove all `sub-*` from `bidsified` directory (be careful to not remove `code` directory it contains `bidsmap.yaml` file)
+ - 6. Go to step 30 (re-run bidsification)
+
+### Step 40 -- IntendedFor tests
+In some modalities (usually `fmap`) BIDS require to define dependencies of files using `IntendedFor` metadata.
+This metadata must contain the list of data paths (starting from subject root directory) that depends on current file.
+`bidsme` can check if all files in `IntendedFor` are found.
+To do the check, you just need to re-run `map` with already bidsified dataset:
+```bash
+bidsme map prepared bidsified
+```
+
+If some files are missing, you will see a warning `IntendedFor value not found` with references to faulty map entry.
+You need just correct the values.
 
 
-If you have warnings about missing `bval` and `bvec` files for diffusion, ignore them, they will be treated at plugin.
+After these steps, the dataset should be bidsified. If there some new data arriving, the bidsified dataset can be completed by:
+```bash
+bidsme prepare source prepared --skip-in-tsv
+bisdme bidsify prepared bidsified --skip-in-tsv
+```
 
-Once the `bidsify` do not produce errors, check for `bidsify` folder for possible errors, control scans.tsv file, and recordings json files. 
-Pay special attention to `IntendedFor` and other cross-reference fields.
-Check the names if individual recordings. They must can be easily identified. 
-
-If any adjustement of bidsmap is performed, the procedure must be repeated from *step 0*.
-
+The option `--skip-in-tsv` will ensure that subjects already prepared/bidsified will not be processed again.

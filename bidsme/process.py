@@ -26,17 +26,22 @@ import os
 import logging
 import pandas
 
-import exceptions
-from tools import paths
-from tools import tools
-import plugins
+from copy import deepcopy
 
-import Modules
-from bidsmap import Bidsmap
-from bidsMeta import BidsSession
-from bidsMeta import BidsTable
+from bidsme import exceptions
+from bidsme import plugins
+from bidsme import Modules
+
+from bidsme.tools import type_selector
+from bidsme.tools import paths
+from bidsme.tools import tools
+
+from bidsme.bidsmap import Bidsmap
+from bidsme.bidsMeta import BidsSession
+from bidsme.bidsMeta import BidsTable
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def coin(destination: str,
@@ -92,7 +97,12 @@ def coin(destination: str,
                         .format(recording.recIdentity()))
             continue
         recording.setLabels(r_obj)
-        recording.generateMeta()
+        model = recording.schema.get_sidecar(r_obj.modality,
+                                             r_obj.suffix,
+                                             entities=r_obj.entity,
+                                             sidecar=r_obj.json)
+        recording.metaAuxiliary = deepcopy(r_obj.json)
+        recording.expandSidecar(model, use_placeholder=False)
 
         bidsname = recording.getBidsname()
         bidsmodality = os.path.join(out_path, recording.Modality())
@@ -246,12 +256,11 @@ def process(source: str, destination: str,
     ###############
     # Plugin setup
     ###############
-    if plugin_file:
-        plugins.ImportPlugins(plugin_file)
-        plugins.InitPlugin(source=source,
-                           destination=destination,
-                           dry=dry_run,
-                           **plugin_opt)
+    plugins.ImportPlugins(plugin_file)
+    plugins.InitPlugin(source=source,
+                       destination=destination,
+                       dry=dry_run,
+                       **plugin_opt)
 
     ###############################
     # Checking participants list
@@ -362,7 +371,7 @@ def process(source: str, destination: str,
                             .format(scan.session))
                 continue
 
-            for module in Modules.selector.types_list:
+            for module in selector.types_list:
                 mod_dir = os.path.join(ses_dir, module)
                 if not os.path.isdir(mod_dir):
                     logger.debug("Module {} not found in {}"
@@ -370,7 +379,7 @@ def process(source: str, destination: str,
                     continue
                 for run in tools.lsdirs(mod_dir):
                     scan.in_path = run
-                    cls = Modules.select(run, module)
+                    cls = selector.select(run, module)
                     if cls is None:
                         logger.error("Failed to identify data in {}"
                                      .format(run))

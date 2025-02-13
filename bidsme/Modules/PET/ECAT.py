@@ -26,7 +26,6 @@ from .PET import PET
 from ..common import action_value
 from . import _ECAT
 
-import os
 import logging
 import numpy
 
@@ -42,6 +41,7 @@ class ECAT(PET):
     __slots__ = ["_ECAT_CACHE", "_SUB_CACHE", "_FILE_CACHE"]
     __specialFields = {"ScanStart", "InjectionStart",
                        "FramesStart", "FramesDuration"}
+    _file_extentions = [".v"]
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -71,22 +71,15 @@ class ECAT(PET):
         bool:
             True if file is identified as ECAT
         """
-        if not os.path.isfile(file):
-            return False
-        if file.endswith(".v"):
-            if os.path.basename(file).startswith('.'):
-                logger.warning('{}: file {} is hidden'
-                               .format(cls.formatIdentity(),
-                                       file))
-            try:
-                with open(file, "rb") as f:
-                    magic = f.read(14).decode()
-                    magic = magic.strip(" \0")
-                    if magic.startswith("MATRIX"):
-                        return True
-            except Exception:
+        with open(file, "rb") as f:
+            magic = f.read(14).decode()
+            magic = magic.strip(" \0")
+            if magic.startswith("MATRIX"):
+                return True
+            else:
+                logger.debug("{}: Missing magic string"
+                             .format(cls.formatIdentity()))
                 return False
-        return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
@@ -94,10 +87,7 @@ class ECAT(PET):
             self._ECAT_CACHE = e.header
             self._SUB_CACHE = e.get_subheaders().subheaders
             self._FILE_CACHE = path
-            self.setManufacturer("Unknown", {})
-            self.resetMetaFields()
             self.setupMetaFields(_ECAT.metafields)
-            self.testMetaFields()
 
     def _getAcqTime(self) -> datetime:
         return self.getField("datetime:scan_start_time")
@@ -153,10 +143,10 @@ class ECAT(PET):
                          .format(self.formatIdentity(),
                                  prefix, e))
 
-    def recNo(self):
+    def _recNo(self):
         return self._getField(["acquisition_type"])
 
-    def recId(self):
+    def _recId(self):
         return self._getField(["study_type"])
 
     def _getSubId(self) -> str:
@@ -181,9 +171,8 @@ class ECAT(PET):
             try:
                 tmp = tmp.decode()
             except UnicodeError:
-                logger.warning("Unable to decode '{}'"
-                               .format(tmp))
-                tmp = "UnicodeError"
+                logger.debug("Can't decode bytes string")
+                tmp = "BytesString"
         return tmp
 
     def _adaptMetaField(self, name):

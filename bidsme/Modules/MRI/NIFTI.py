@@ -23,16 +23,18 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
-from .MRI import MRI
-from tools import tools
-from .. import _nifti_common
-
 import os
 import logging
 import shutil
 import gzip
 from datetime import datetime
+
+from bidsme.tools import tools
+
+from .MRI import MRI
+from ..common import retrieveFormDict
+from .. import _nifti_common
+
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +52,7 @@ class NIFTI(MRI):
                        "PatientId",
                        "SessionId"}
 
-    _file_extentions = [".nii", ".hdr"]
+    _file_extentions = [".nii", ".nii.gz", ".hdr"]
 
     def __init__(self, rec_path=""):
         super().__init__()
@@ -59,6 +61,7 @@ class NIFTI(MRI):
         self._FILE_CACHE = ""
         self._nii_type = ""
         self._endiannes = "<"
+        self.switches["exportHeader"] = True
 
         if rec_path:
             self.setRecPath(rec_path)
@@ -108,14 +111,9 @@ class NIFTI(MRI):
                                                          self._endianness)
 
     def dump(self):
-        if self._NIFTI_CACHE is not None:
-            return str(self._NIFTI_CACHE)
-        elif len(self.files) > 0:
+        if self._NIFTI_CACHE is None:
             self.loadFile(0)
-            return str(self._NIFTI_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._NIFTI_CACHE
 
     def _getField(self, field: list):
         res = None
@@ -124,23 +122,12 @@ class NIFTI(MRI):
                 res = self._adaptMetaField(field[0])
             else:
                 res = retrieveFormDict(field, self._NIFTI_CACHE,
-                                       fail_on_last_missing=False)
+                                       fail_on_last_not_found=False)
         except Exception as e:
             logger.warning("{}: Could not parse '{}' for {}"
                            .format(self.currentFile(False), field, e))
             res = None
         return res
-
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        if self._nii_type == "ni1":
-            data_file = tools.change_ext(self.currentFile(), "img")
-            shutil.copy2(data_file, destination)
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         if self._nii_type == "ni1":
@@ -151,22 +138,22 @@ class NIFTI(MRI):
                          os.path.join(directory, bidsname + ".img"))
         else:
             out_fname = os.path.join(directory, bidsname + ext)
-            if self.zip:
+            if self.switches["zipFile"] and\
+                    not self.currentFile().endswith(".gz"):
                 with open(self.currentFile(), 'rb') as f_in:
                     with gzip.open(out_fname, 'wb') as f_out:
                         shutil.copyfileobj(f_in, f_out)
             else:
-                shutil.copy2(self.currentFile(),
-                             os.path.join(directory, bidsname + ext))
+                shutil.copy2(self.currentFile(), out_fname)
+
+    def _recNo(self):
+        return self.index
+
+    def _recId(self):
+        return os.path.splitext(self.currentFile(True))[0]
 
     def _getAcqTime(self) -> datetime:
         return None
-
-    def recNo(self):
-        return self.index
-
-    def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
 
     def _getSubId(self) -> str:
         return None

@@ -27,17 +27,19 @@
 import os
 import logging
 
-import exceptions
-from tools import tools
-from tools import paths
-import plugins
+from bidsme import exceptions
+from bidsme import plugins
 
-import Modules
-from bidsMeta import BidsSession
-from bidsMeta import BidsTable
+from bidsme.tools import type_selector
+from bidsme.tools import tools
+from bidsme.tools import paths
+
+from bidsme.bidsMeta import BidsSession
+from bidsme.bidsMeta import BidsTable
 
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 def sortsession(outfolder: str,
@@ -214,12 +216,11 @@ def prepare(source: str, destination: str,
     ###############
     # Plugin setup
     ###############
-    if plugin_file:
-        plugins.ImportPlugins(plugin_file)
-        plugins.InitPlugin(source=source,
-                           destination=destination,
-                           dry=dry_run,
-                           **plugin_opt)
+    plugins.ImportPlugins(plugin_file)
+    plugins.InitPlugin(source=source,
+                       destination=destination,
+                       dry=dry_run,
+                       **plugin_opt)
 
     ###############################
     # Checking participants list
@@ -310,6 +311,7 @@ def prepare(source: str, destination: str,
                 skip = False
                 if ses_skip_dir:
                     if os.path.isdir(os.path.join(destination,
+                                                  scan.subject,
                                                   scan.session)):
                         logger.debug("{} dir exists".format(scan.session))
                         skip = True
@@ -331,7 +333,7 @@ def prepare(source: str, destination: str,
                                                scan.session,
                                                rec_dir))
                         continue
-                    cls = Modules.select(rec_dir, rec_type)
+                    cls = selector.select(rec_dir, rec_type)
                     if cls is None:
                         logger.warning("Unable to identify data in folder {}"
                                        .format(rec_dir))
@@ -378,6 +380,6 @@ def prepare(source: str, destination: str,
             if df_dupl.any():
                 logger.info("Saving the list to be merged manually to {}"
                             .format(sub_table.getDuplicatesPath()))
-                sub_table.save_table(selection=~df_dupl, useDuplicates=True)
+                sub_table.save_table(selection=df_dupl, useDuplicates=True)
 
     plugins.RunPlugin("FinaliseEP")

@@ -120,7 +120,7 @@ class abstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def recNo(self) -> int:
+    def _recNo(self) -> int:
         """
         Virtual function returning current serie number
         (i.e. numero of scan in session).
@@ -135,7 +135,7 @@ class abstract(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def recId(self) -> str:
+    def _recId(self) -> str:
         """
         Virtual function returning current serie id
         (i.e. name of scan in session).

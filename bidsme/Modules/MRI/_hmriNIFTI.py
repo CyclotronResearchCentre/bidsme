@@ -24,34 +24,20 @@
 
 metafields = {
         "Unknown": {
-            "Manufacturer": ("<Manufacturer>", None),
-            "ManufacturersModelName": ("<ManufacturerModelName>", None),
-            "DeviceSerialNumber": ("<DeviceSerialNumber>", None),
-            "StationName": ("<StationName>", None),
-            "SoftwareVersions": ("<SoftwareVersions>", None),
-            "MagneticFieldStrength": ("<MagneticFieldStrength>", None),
-            "ScanningSequence": ("<ScanningSequence>", None),
-            "SequenceVariant": ("<SequenceVariant>", None),
-            "ScanOptions": ("<ScanOptions>", ""),
-            "EchoTime": ("<round10:scale-3:EchoTime>", None),
-            "InversionTime": ("<round10:scale-3:InversionTime>", None),
-            "FlipAngle": ("<FlipAngle>", None),
-            "InstitutionName": ("<InstitutionName>", None),
-            "InstitutionAddress": ("<InstitutionAddress>", None),
-            "InstitutionalDepartmentName": ("<InstitutionalDepartmentName>",
-                                            None),
-            "RepetitionTime": ("<round10:scale-3:RepetitionTime>", None),
-            "RepetitionTimeExitation": ("<round10:scale-3:RepetitionTime>",
-                                        None),
-            "TaskName": ("<<bids:task>>", None)
+            "ManufacturersModelName": "<ManufacturerModelName>",
+            "EchoTime": "<round10:scale-3:EchoTime>",
+            "InversionTime": "<round10:scale-3:InversionTime>",
+            "RepetitionTime": "<round10:scale-3:RepetitionTime>",
+            "RepetitionTimeExcitation": "<round10:scale-3:RepetitionTime>",
             },
         "Siemens": {
-            "SequenceName": ("<SequenceName>", None),
             "PhaseEncodingDirection": ("<PhaseEncodingDirection>"
-                                       "<PhaseEncodingSign>",
-                                       None),
+                                       "<PhaseEncodingSign>"),
+            "EchoTime1": ("<round10:scale-6:CSASeriesHeaderInfo/"
+                          "MrPhoenixProtocol/alTE/0>"),
+            "EchoTime2": ("<round10:scale-6:CSASeriesHeaderInfo/"
+                          "MrPhoenixProtocol/alTE/1>"),
             }
-
         }
 
 manufacturers = {

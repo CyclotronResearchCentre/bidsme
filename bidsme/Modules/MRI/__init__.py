@@ -7,10 +7,9 @@ from .NIFTI import NIFTI
 try:
     from .DICOM import DICOM
 except ModuleNotFoundError as e:
-    if e.name == "pydicom":
-        from .._formats.dummy import dummy as DICOM
-        DICOM.classes["DICOM"] = e.name
-    else:
-        raise
+    from .._formats.dummy import dummy as DICOM
+    DICOM.classes["DICOM"] = e.name
 
 __all__ = ["DICOM", "hmriNIFTI", "bidsmeNIFTI", "jsonNIFTI", "NIFTI"]
+
+__formats = [bidsmeNIFTI, hmriNIFTI, jsonNIFTI, NIFTI, DICOM]

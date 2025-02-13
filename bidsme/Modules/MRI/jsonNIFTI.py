@@ -22,15 +22,15 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
-from ..common import retrieveFormDict
-from .MRI import MRI
-from tools import tools
-
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
+
+from bidsme.tools import tools
+
+from .MRI import MRI
+from ..common import retrieveFormDict
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,14 @@ class jsonNIFTI(MRI):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
-    def acqTime(self) -> datetime:
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
+                                                       "Unknown")
+            meta = {"Unknown": {}}
+            meta[self.manufacturer] = {key: "<{}>".format(key)
+                                       for key in self._HEADER_CACHE}
+            self.setupMetaFields(meta)
+
+    def _getAcqTime(self) -> datetime:
         return None
 
     def dump(self):
@@ -128,11 +135,19 @@ class jsonNIFTI(MRI):
             res = None
         return res
 
-    def recNo(self):
-        return self.index
+    def _recNo(self):
+        return self.getField("SeriesNumber", self.index)
 
-    def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+    def _recId(self):
+        seriesdescr = self.getField("SeriesDescription")
+        if seriesdescr is None:
+            seriesdescr = self.getField("ProtocolName")
+        if seriesdescr is None:
+            logger.warning("{}: Unable to get recording Id for file {}"
+                           .format(self.formatIdentity(),
+                                   self.currentFile()))
+            seriesdescr = os.path.splitext(self.currentFile(True))[0]
+        return seriesdescr.strip()
 
     def isCompleteRecording(self):
         return True
@@ -141,17 +156,8 @@ class jsonNIFTI(MRI):
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
-
     def _getSubId(self) -> str:
-        return ""
+        return self.getField("PatientID", "")
 
     def _getSesId(self) -> str:
         return ""

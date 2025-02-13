@@ -1,0 +1,17 @@
+{
+  "default":{
+    "ses-01": ["acq001", "acq002", "acq003", "acq004"]
+  },
+  "default2":{
+    "ses-01": ["acq001a", "acq002a", "acq003a", "acq004a"]
+  },
+  "sub-ABC001": {
+    "ses-01": ["acq001", "acq002", "acq003", "acq004", "acq005"]
+  },
+  "sub-ABC002": {
+    "ses-01": ["acq001", "acq003", "acq004"]
+  },
+  "sub-ABC003": {
+    "ses-01": ["acq001", "acq003", "acq004", "acq002"]
+  }
+}

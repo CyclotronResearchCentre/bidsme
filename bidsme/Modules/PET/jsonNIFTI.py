@@ -27,9 +27,10 @@ from .PET import PET
 
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
+
+from bidsme.tools import tools
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class jsonNIFTI(PET):
     __slots__ = ["_HEADER_CACHE", "_FILE_CACHE",
                  "_header_file",
                  ]
+    _file_extentions = [".nii", ".nii.gz"]
     __specialFields = {}
 
     def __init__(self, rec_path=""):
@@ -72,15 +74,13 @@ class jsonNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        if os.path.isfile(file) and file.endswith(".nii"):
+        if os.path.isfile(file):
             if os.path.basename(file).startswith('.'):
                 logger.warning('{}: file {} is hidden'
                                .format(cls.formatIdentity(),
                                        file))
                 return False
-            path, base = os.path.split(file)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
+            header = tools.change_ext(file, "json")
             if os.path.isfile(header):
                 return True
         return False
@@ -88,9 +88,7 @@ class jsonNIFTI(PET):
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
-            path, base = os.path.split(path)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, base + ".json")
+            header = tools.change_ext(path, "json")
             try:
                 with open(header, "r") as f:
                     dicomdict = json.load(f)
@@ -103,7 +101,10 @@ class jsonNIFTI(PET):
             self._HEADER_CACHE = dicomdict
             self._header_file = header
 
-    def acqTime(self) -> datetime:
+            self.manufacturer = self._HEADER_CACHE.get("Manufacturer",
+                                                       "Unknown")
+
+    def _getAcqTime(self) -> datetime:
         return None
 
     def dump(self):
@@ -130,11 +131,17 @@ class jsonNIFTI(PET):
             res = None
         return res
 
-    def recNo(self):
+    def _recNo(self):
         return self.index
 
-    def recId(self):
-        return os.path.splitext(self.currentFile(True))[0]
+    def _recId(self):
+        tracer = self.getField("TracerName")
+        body = self.getField("BodyPart")
+        if tracer is None:
+            tracer = os.path.splitext(self.currentFile(True))[0]
+        elif body:
+            tracer = "{}-{}".format(tracer, body)
+        return tracer.strip()
 
     def isCompleteRecording(self):
         return True
@@ -143,17 +150,17 @@ class jsonNIFTI(PET):
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
 
-    def copyRawFile(self, destination: str) -> None:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
-
     def _getSubId(self) -> str:
-        return ""
+        tags = ["patient_id",  # ecat header dump
+                "PatientID"  # dcm2niix
+                ]
+        res = ""
+        for t in tags:
+            res = self.getField(t, "")
+            if res:
+                break
+
+        return res
 
     def _getSesId(self) -> str:
         return ""

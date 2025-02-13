@@ -28,8 +28,9 @@ import os
 import logging
 import pandas
 from copy import deepcopy as copy
+from collections import defaultdict
 
-from tools import tools
+from bidsme.tools import tools
 from .BidsMeta import BIDSfieldLibrary
 
 
@@ -40,7 +41,8 @@ class BidsSession(object):
     __slots__ = ["__subject", "__session",
                  "in_path",
                  "__sub_locked", "__ses_locked",
-                 "sub_values"
+                 "sub_values",
+                 "increments"
                  ]
 
     __sub_columns = None
@@ -64,6 +66,8 @@ class BidsSession(object):
         if session is not None:
             self.session = session
             self.lock_session()
+
+        self.increments = defaultdict(int)
 
     @property
     def subject(self) -> str:
@@ -200,27 +204,18 @@ class BidsSession(object):
             return True
 
     @classmethod
-    def loadSubjectFields(cls, filename: str = "") -> None:
+    def loadSubjectFields(cls, filename: str) -> None:
         """
         Loads the tsv fields for subject.tsv file
 
         Parameters
         ----------
         filename: str
-            path to the template json file, if None,
-            the default is loaded
+            path to the template json file
         """
-        if cls.__sub_columns is not None:
-            logger.warning("Redefinition of participants template")
         cls.__sub_columns = BIDSfieldLibrary()
-        if not filename:
-            cls.__sub_columns.AddField(
-                    name="participant_id",
-                    longName="Participant Id",
-                    description="Unique label associated with a participant"
-                    )
-        else:
-            cls.__sub_columns.LoadDefinitions(filename)
+        cls.__sub_columns.LoadDefinitions(filename)
+        cls.__sub_values = dict()
 
     @classmethod
     def getSubjectColumns(cls) -> list:
@@ -248,6 +243,8 @@ class BidsSession(object):
             last_values = self.__sub_values[self.subject][-1]
             conflict = False
             for key in self.sub_values:
+                if key not in self.getSubjectColumns():
+                    continue
                 old_val = last_values[key]
                 new_val = self.sub_values[key]
                 if new_val is None or pandas.isna(new_val):
@@ -357,3 +354,8 @@ class BidsSession(object):
         if not df.columns.difference(header).empty:
             return False
         return True
+
+    def getIncrement(self, query: str, increment=True) -> int:
+        if increment:
+            self.increments[query] += 1
+        return self.increments[query]

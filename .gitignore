@@ -15,3 +15,5 @@ __pycache__
 tests/testdata/*.log
 tests/testdata/bidsmap_output.yaml
 test/
+.ipynb_checkpoints
+bidsme.egg-info

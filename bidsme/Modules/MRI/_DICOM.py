@@ -24,33 +24,16 @@
 
 metafields = {
         "Unknown": {
-            "Manufacturer": ("<Manufacturer>", None),
-            "ManufacturersModelName": ("<ManufacturerModelName>", None),
-            "DeviceSerialNumber": ("<DeviceSerialNumber>", None),
-            "StationName": ("<StationName>", None),
-            "SoftwareVersions": ("<SoftwareVersions>", None),
-            "MagneticFieldStrength": ("<MagneticFieldStrength>", None),
-            "ScanningSequence": ("<ScanningSequence>", None),
-            "SequenceVariant": ("<SequenceVariant>", None),
-            "ScanOptions": ("<ScanOptions>", None),
-            "EchoTime": ("<scale-3:EchoTime>", None),
-            "FlipAngle": ("<FlipAngle>", None),
-            "InstitutionName": ("<InstitutionName>", None),
-            "InstitutionAddress": ("<InstitutionAddress>", None),
-            "InstitutionalDepartmentName": ("<InstitutionalDepartmentName>",
-                                            None),
-            "RepetitionTime": ("<scale-3:RepetitionTime>", None),
-            "TaskName": ("<<bids:task>>", None)
+            "ManufacturersModelName": "<ManufacturerModelName>",
+            "EchoTime": "<scale-3:EchoTime>",
+            "RepetitionTime": "<scale-3:RepetitionTime>",
             },
-        "Siemens": {
-            "SequenceName": ("<SequenceName>", None),
-            },
+        "Siemens": {},
         "Philips": {
-            "ReceiveCoilName": ("<ReceiveCoilName>", None),
-            "PartialFourier": ("<(2005, 140f)/0/PartialFourier>", None),
+            "PartialFourier": "<(2005, 140f)/0/PartialFourier>",
             "PartialFourierDirection":
-                ("<(2005, 140f)/0/PartialFourierDirection>", None),
-            "InversionTime": ("<scale-3:(2005, 140f)/0/InversionTimes>", None),
+                "<(2005, 140f)/0/PartialFourierDirection>",
+            "InversionTime": "<scale-3:(2005, 140f)/0/InversionTimes>",
             }
         }
 

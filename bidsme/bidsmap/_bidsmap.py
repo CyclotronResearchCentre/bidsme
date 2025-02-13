@@ -28,14 +28,17 @@ import os
 import sys
 import logging
 from copy import deepcopy as copy
-from tools.yaml import yaml
 from collections import OrderedDict
 
+from bidsme.tools import info
+from bidsme.tools.yaml import yaml
+from bidsme.tools import type_selector
+
 from ._run import Run
-from tools import info
-import Modules
+from bidsme import Modules
 
 logger = logging.getLogger(__name__)
+selector = type_selector()
 
 
 class Bidsmap(object):
@@ -54,20 +57,21 @@ class Bidsmap(object):
         self.version = info.bidsversion()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
-                        for mod, types in Modules.types_list.items()
+                        for mod, types in selector.types_list.items()
                         }
 
         self.filename = os.path.basename(yamlfile)
 
         if not os.path.isfile(yamlfile):
-            logger.info("{} not found. Bidsmap will be empty"
-                        .format(yamlfile))
+            # No map -- creatind new empty map
             return
 
         # Read the heuristics from the bidsmap file
         with open(yamlfile, 'r') as stream:
             try:
                 yaml_map = yaml.load(stream)
+                if yaml_map is None:
+                    raise Exception("File don't contain any structure")
             except Exception:
                 err = sys.exc_info()
                 logger.error("Failed to load bidsmap from {}"
@@ -84,7 +88,7 @@ class Bidsmap(object):
             logger.warning('BIDS version conflict: '
                            '{} was created using version {}, '
                            'but this is version {}'
-                           .format(yamlfile, ver, info.version())
+                           .format(yamlfile, ver, info.bidsversion())
                            )
 
         # Over Modules (MRI, EEG etc..)
@@ -97,8 +101,7 @@ class Bidsmap(object):
                 if not form:
                     continue
                 if f_name not in self.Modules[module]:
-                    logger.warning("Failed to find type {}/{} "
-                                   "readed from {}"
+                    logger.warning("Failed to find type {}/{} readed from {}. "
                                    .format(module, f_name, yamlfile))
                     continue
                 # Over Modalities
@@ -109,11 +112,11 @@ class Bidsmap(object):
                     raise TypeError("Malformed map")
 
                 for m_name, modality in form.items():
-                    if not Modules.selectByName(f_name, module)\
+                    if not selector.selectByName(f_name, module)\
                             .isValidModality(m_name):
                         logger.warning("Modality {} not defined for {}/{}"
                                        .format(m_name, module, f_name))
-                        continue
+
                     self.Modules[module][f_name][m_name] =\
                         [None] * len(modality)
                     for ind, run in enumerate(modality):
@@ -139,7 +142,7 @@ class Bidsmap(object):
                                 r.template = run["template"]
                             if "checked" in run:
                                 r.checked = run["checked"]
-                            if "model" in run:
+                            if not run.get("model", "__").startswith("__"):
                                 r.model = run["model"]
                             if not r.checked:
                                 r.provenance = None
@@ -183,16 +186,9 @@ class Bidsmap(object):
                 if recording.match_run(run):
                     if check_multiple:
                         if res_mod is None:
-                            recording.setLabels(run)
                             res_mod = modality
                             res_index = idx
                             res_run = run
-                            if not run.provenance:
-                                run.provenance = recording.currentFile()
-                                run.checked = False
-                                run.example = "{}/{}".format(
-                                        modality,
-                                        recording.getBidsname())
                             logger.debug("Checked run: {}/{}"
                                          .format(res_mod, res_index))
                         else:
@@ -200,7 +196,7 @@ class Bidsmap(object):
                                            .format(res_mod, res_index,
                                                    modality, idx))
                     else:
-                        recording.setLabels(run)
+                        # recording.setLabels(run)
                         break
         if res_mod and res_mod != d[res_mod][res_index].modality:
             logger.warning("Run {}/{}/{} mismach modality {}"
@@ -208,16 +204,17 @@ class Bidsmap(object):
                                    res_mod,
                                    res_index,
                                    d[res_mod][res_index].modality))
-        if fix and res_run:
+        if res_run is None:
+            res_run = Run(modality="__unknown__",
+                          attribute=recording.attributes,
+                          provenance=recording.currentFile())
+        elif fix:
             res_run = copy(res_run)
             for att, val in res_run.attribute.items():
                 if val:
                     res_run.set_attribute(att, recording.getField(att))
             res_run.provenance = recording.currentFile()
-        if res_run is None:
-            res_run = Run(modality="__unknown__",
-                          attribute=recording.attributes,
-                          provenance=recording.currentFile())
+
         return (res_mod, res_index, res_run)
 
     def add_run(self, run: Run, module: str, form: str) -> tuple:
@@ -241,7 +238,6 @@ class Bidsmap(object):
             (modality, run index, run)
         """
         run = copy(run)
-        run.save()
         if run.modality in self.Modules[module][form]:
             self.Modules[module][form][run.modality].append(run)
         else:
@@ -273,20 +269,21 @@ class Bidsmap(object):
 
         # Modules
         for m_name, module in self.Modules.items():
-            if not module and not empty_modules:
-                continue
-            d[m_name] = dict()
+            mod = dict()
             # formats
             for f_name, form in module.items():
                 if not form:
                     continue
-                d[m_name][f_name] = dict()
+                mod[f_name] = dict()
                 # modalities
                 for mod_name, modality in form.items():
                     if not modality:
                         continue
-                    d[m_name][f_name][mod_name] = [run.dump(empty_attributes)
-                                                   for run in modality]
+                    mod[f_name][mod_name] = [run.dump(empty_attributes)
+                                             for run in modality]
+            if mod and not empty_modules:
+                d[m_name] = mod
+
         with open(filename, 'w') as stream:
             yaml.dump(d, stream)
 

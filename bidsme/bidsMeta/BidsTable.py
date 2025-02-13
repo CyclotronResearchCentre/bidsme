@@ -25,7 +25,8 @@ import os
 import logging
 import pandas
 import json
-from tools.tools import change_ext
+
+from bidsme.tools.tools import change_ext
 
 
 logger = logging.getLogger(__name__)
@@ -89,7 +90,10 @@ class BidsTable(object):
                 raise FileNotFoundError(definitionsFile)
 
         with open(definitionsFile, "r") as f:
-            self._definitions = json.load(f)
+            self._definitions = {key: val for key, val in json.load(f).items()
+                                 if isinstance(val, dict)
+                                 and "Description" in val
+                                 }
 
         # loading table
         self.df = None
@@ -127,11 +131,15 @@ class BidsTable(object):
                 else:
                     for c in mismatch:
                         self.df[c] = None
+            logger.info("Loaded {} table with {} entries"
+                        .format(self._name, len(self.df)))
         else:
             columns = self._definitions.keys()
             if index and index not in columns:
                 columns = [index] + list(columns)
             self.df = pandas.DataFrame(columns=columns)
+            logger.info("Created empty {} table"
+                        .format(self._name))
 
     def getTablePath(self) -> str:
         """
@@ -262,4 +270,4 @@ class BidsTable(object):
         data.to_csv(path, mode=mode,
                     sep="\t", na_rep="n/a",
                     index=False, header=header,
-                    line_terminator="\n")
+                    lineterminator="\n")

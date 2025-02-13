@@ -29,10 +29,11 @@ import shutil
 import pandas
 from abc import abstractmethod
 
+from bidsme.bidsMeta import BIDSfieldLibrary
+from bidsme.tools import paths
+
 from ..base import baseModule
-from bidsMeta import BIDSfieldLibrary
-from tools import paths
-from . import _EEG
+
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,8 @@ channel_types = {
 
 class EEG(baseModule):
     _module = "EEG"
+    _schema_mod = "eeg"
+    _schema_data_types = ["eeg"]
 
     bidsmodalities = {
             "eeg": ("task", "acq", "run"),
@@ -104,20 +107,14 @@ class EEG(baseModule):
             }
 
     _chan_BIDS = BIDSfieldLibrary()
-    _chan_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_channels.json"))
+    _chan_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_channels.json"))
     _elec_BIDS = BIDSfieldLibrary()
-    _elec_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_electrodes.json"))
+    _elec_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_electrodes.json"))
     _task_BIDS = BIDSfieldLibrary()
-    _task_BIDS.LoadDefinitions(os.path.join(paths.installation,
-                                            "bidsme",
-                                            "Modules", "EEG",
-                                            "_events.json"))
+    _task_BIDS.LoadDefinitions(os.path.join(paths.templates,
+                                            "EEG_events.json"))
 
     __slots__ = ["TableChannels", "TableElectrodes", "TableEvents",
                  "_channels_count"]
@@ -125,7 +122,6 @@ class EEG(baseModule):
     # Lists of EOG and Misc channels names
     def __init__(self):
         super().__init__()
-        self.resetMetaFields()
         self.manufacturer = None
 
         self.TableChannels = None
@@ -133,28 +129,6 @@ class EEG(baseModule):
         self.TableEvents = None
 
         self._channels_count = dict.fromkeys(channel_kinds, 0)
-
-    def resetMetaFields(self) -> None:
-        """
-        Resets currently defined meta fields dictionaries
-        to None values
-        """
-        self.metaFields_req["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_required_common}
-        for mod in _EEG.eeg_meta_required_modality:
-            self.metaFields_req[mod] = {key: None for key in
-                                        _EEG.eeg_meta_required_modality[mod]}
-        self.metaFields_rec["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_recommended_common}
-        for mod in _EEG.eeg_meta_recommended_modality:
-            self.metaFields_rec[mod] = {key: None for key in
-                                        _EEG.eeg_meta_recommended_modality[mod]
-                                        }
-        self.metaFields_opt["__common__"] = {key: None for key in
-                                             _EEG.eeg_meta_optional_common}
-        for mod in _EEG.eeg_meta_optional_modality:
-            self.metaFields_opt[mod] = {key: None for key in
-                                        _EEG.eeg_meta_optional_modality[mod]}
 
     def load_channels(self, base_name: str, ):
         """
@@ -296,25 +270,26 @@ class EEG(baseModule):
                                    "column '{}'"
                                    .format(self.recIdentity(), col_name))
 
-    def copyRawFile(self, destination: str) -> None:
+    def copyRawFile(self, destination: str) -> str:
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)
         if self.TableChannels is not None:
             self.TableChannels.to_csv(dest_base + "_channels.tsv",
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True,
-                                      line_terminator="\n")
+                                      lineterminator="\n")
         if self.TableEvents is not None:
             self.TableEvents.to_csv(dest_base + "_events.tsv",
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True,
-                                    line_terminator="\n")
+                                    lineterminator="\n")
         if self.TableElectrodes is not None:
             self.TableElectrodes.to_csv(dest_base + "_electrodes.tsv",
                                         sep="\t", na_rep="n/a",
                                         header=True, index=True,
-                                        line_terminator="\n")
+                                        lineterminator="\n")
         shutil.copy2(self.currentFile(), destination)
+        return os.path.join(destination, self.currentFile(True))
 
     def _copy_bidsified(self, directory: str,
                         bidsname: str, ext: str) -> None:
@@ -355,7 +330,7 @@ class EEG(baseModule):
                                       columns=active,
                                       sep="\t", na_rep="n/a",
                                       header=True, index=True,
-                                      line_terminator="\n")
+                                      lineterminator="\n")
             self._chan_BIDS.DumpDefinitions(dest_base + "_channels.json")
 
         if self.TableEvents is not None and\
@@ -374,7 +349,7 @@ class EEG(baseModule):
                                     columns=active,
                                     sep="\t", na_rep="n/a",
                                     header=True, index=True,
-                                    line_terminator="\n")
+                                    lineterminator="\n")
             self._task_BIDS.DumpDefinitions(dest_base + "_events.json")
 
         if self.TableElectrodes is not None and\
@@ -393,7 +368,7 @@ class EEG(baseModule):
                                         columns=active,
                                         sep="\t", na_rep="n/a",
                                         header=True, index=True,
-                                        line_terminator="\n")
+                                        lineterminator="\n")
             self._elec_BIDS.DumpDefinitions(dest_base + "_events.json")
 
     @abstractmethod

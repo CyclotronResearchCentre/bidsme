@@ -30,21 +30,21 @@ import json
 import re
 import numpy
 import gzip
+import glob
 
 from datetime import datetime, date, time
 from collections import OrderedDict
+from copy import deepcopy
 
 from .abstract import abstract
-from tools import tools
-from bidsMeta import MetaField
-from bidsMeta import BIDSfieldLibrary
-from bidsMeta import BidsSession
-
-from bidsmap import Run
-
+from bidsme.tools import tools
+from bidsme.bidsMeta import BIDSfieldLibrary
+from bidsme.bidsMeta import BidsSession
+from bidsme.schema.BIDSschema import BIDSschema
 
 from ._constants import ignoremodality, unknownmodality
 from .common import action_value
+from .exceptions import CharacteristicError
 
 logger = logging.getLogger(__name__)
 
@@ -67,11 +67,14 @@ class baseModule(abstract):
                  "index",
                  "files",
                  "_recPath",
+                 # series identifier
+                 "_series_id",
+                 "_series_no",
+                 # BIDS schema
+                 "schema",
                  # json meta variables
                  "metaAuxiliary",
-                 "metaFields_req",
-                 "metaFields_rec",
-                 "metaFields_opt",
+                 "meta_shorcut",
                  # tsv meta variables
                  "rec_BIDSvalues",
                  "sub_BIDSvalues",
@@ -86,10 +89,13 @@ class baseModule(abstract):
     _module = "base"
     _type = "None"
 
+    # Name of modality as defined in BIDS schema
+    _schema_mod = None
+    # List of associated data-types, as defined in BIDS schema
+    _schema_data_types = []
+
     # list of valid file extentions
     _file_extentions = list()
-
-    bidsmodalities = dict()
 
     rec_BIDSfields = BIDSfieldLibrary()
     rec_BIDSfields.AddField(
@@ -129,6 +135,8 @@ class baseModule(abstract):
         self.files = list()
         self._recPath = ""
         self.index = -1
+        self._series_id = None
+        self._series_no = None
         self.attributes = dict()
         self.custom = dict()
         self.labels = OrderedDict()
@@ -136,9 +144,8 @@ class baseModule(abstract):
         self._modality = unknownmodality
         self._bidsSession = None
 
-        self.metaFields_req = dict()
-        self.metaFields_rec = dict()
-        self.metaFields_opt = dict()
+        self.schema = BIDSschema(self._schema_mod)
+        self.meta_shorcut = dict()
         self.metaAuxiliary = dict()
         self.rec_BIDSvalues = self.rec_BIDSfields.GetTemplate()
         self.sub_BIDSvalues = self.sub_BIDSfields.GetTemplate()
@@ -222,7 +229,15 @@ class baseModule(abstract):
         str:
             path to copied file
         """
-        shutil.copy2(self.currentFile(), destination)
+        if os.path.isfile(os.path.join(destination,
+                                       self.currentFile(True))):
+            logger.warning("{}: File {} exists at destination"
+                           .format(self.recIdentity(),
+                                   self.currentFile(True)))
+        basename = tools.change_ext(self.currentFile(True), "*")
+        to_copy = glob.glob(os.path.join(self._recPath, basename))
+        for file in to_copy:
+            shutil.copy2(file, destination)
         return os.path.join(destination, self.currentFile(True))
 
     def exportHeader(self, destination: str) -> None:
@@ -299,12 +314,20 @@ class baseModule(abstract):
         FileNotFoundError
             If path is not a file
         """
+        # logger.debug("{}: Testing file {}"
+        #              .format(cls.formatIdentity(), file))
+
         if not os.path.exists(file):
             raise FileNotFoundError("File {} not found or not a file"
                                     .format(file))
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
+        if os.path.basename(file).startswith('.'):
+            logger.debug('{}: Hidden file'
+                         .format(cls.formatIdentity()))
+            return False
+
         if cls._file_extentions:
             passed = False
             for ext in cls._file_extentions:
@@ -312,10 +335,22 @@ class baseModule(abstract):
                     passed = True
                     break
             if not passed:
+                # logger.debug("{}: Unaccepted extention"
+                #              .format(cls.formatIdentity()))
                 return False
         try:
-            return cls._isValidFile(file)
+            res = cls._isValidFile(file)
+            # if res:
+            #     logger.debug("{}: Passed"
+            #                  .format(cls.formatIdentity()))
+            # else:
+            #     logger.debug("{}: Rejected"
+            #                  .format(cls.formatIdentity()))
+            return res
+
         except Exception:
+            # logger.debug("{}: {}"
+            #              .format(cls.formatIdentity(), e))
             return False
 
     @classmethod
@@ -447,7 +482,7 @@ class baseModule(abstract):
         passed = False
         if include_ignored and modality == ignoremodality:
             passed = True
-        if modality in cls.bidsmodalities:
+        if modality in cls._schema_data_types:
             passed = True
         return passed
 
@@ -490,14 +525,16 @@ class baseModule(abstract):
         result = self._getField(field.split(separator))
 
         if result is None:
-            return default
+            if default is None:
+                return None
+            result = default
+
         for prefix in reversed(actions):
             if isinstance(result, list):
-                for i, val in enumerate(result):
-                    result[i] = self._transformField(val, prefix)
+                result = [self._transformField(v, prefix) for v in result]
             elif isinstance(result, dict):
-                for i, val in result.items():
-                    result[i] = self._transformField(val, prefix)
+                result = {k: self._transformField(v, prefix)
+                          for k, v in result.items()}
             else:
                 result = self._transformField(result, prefix)
         if isinstance(result, str):
@@ -545,6 +582,24 @@ class baseModule(abstract):
     def resetAttribute(self, attribute):
         self.attributes.pop(attribute)
 
+    def _tag_replacement(self, matchobject, log_lvl,
+                         default=None, raw=False):
+        if matchobject.group("meta"):
+            result = self.getAttribute(matchobject.group("meta"), default)
+            if result is None:
+                logger.log(log_lvl, "{}: Can't get attribute '{}' from '{}'"
+                           .format(self.recIdentity(),
+                                   matchobject.group("meta"),
+                                   matchobject.string))
+                if not raw:
+                    result = "<{}>".format(matchobject.group("meta"))
+        else:
+            result = self.getCharecteristic(matchobject.group("internal"))
+        if raw:
+            return result
+        else:
+            return str(result)
+
     def getDynamicField(self, field: str,
                         default: object = None,
                         cleanup: bool = True, raw: bool = False,
@@ -573,82 +628,26 @@ class baseModule(abstract):
 
         if not isinstance(field, str) or field == "":
             return field
-        res = ""
-        start = 0
-        while start < len(field):
-            pos = field.find('<', start)
-            if pos < 0:
-                res += field[start:]
-                break
-            res += field[start:pos]
 
-            try:
-                if field[pos + 1] == "<":
-                    pos += 2
-                    seek = ">>"
-                else:
-                    pos += 1
-                    seek = ">"
-                pos2 = field.find(seek, pos)
-                if pos2 < 0:
-                    raise IndexError("closing {} from {} not found in {}"
-                                     .format(seek, pos, field))
-                query = field[pos:pos2]
-                if seek == '>':
-                    result = self.getAttribute(query, default)
-                    if result is None:
-                        logger.log(log_lvl,
-                                   "{}: Can't find '{}' "
-                                   "attribute from '{}'"
-                                   .format(self.recIdentity(),
-                                           query, field))
-                        if not raw:
-                            result = query
-                        else:
-                            result = None
-                else:
-                    prefix = ""
-                    if ":" in query:
-                        prefix, query = query.split(":", 1)
-                    if prefix == "":
-                        result = self._getCharacteristic(query)
-                    elif prefix == "bids":
-                        result = self.labels[query]
-                    elif prefix == "custom":
-                        result = self.custom[query]
-                    elif prefix == "sub_tsv":
-                        # result = self.sub_BIDSvalues[query]
-                        result = self._bidsSession.sub_values[query]
-                    elif prefix == "rec_tsv":
-                        result = self._bidsSession.rec_values[query]
-                    elif prefix == "fname":
-                        search = re.search("{}-([a-zA-Z0-9]+)".format(query),
-                                           self.currentFile(False))
-                        if search:
-                            result = search.group(1)
-                        else:
-                            logger.log(log_lvl,
-                                       "{}: Can't find '{}' "
-                                       "attribute from '{}'"
-                                       .format(self.recIdentity(),
-                                               query,
-                                               self.currentFile(False)))
-                            if not raw:
-                                result = query
-                            else:
-                                result = None
-                    else:
-                        raise KeyError("Unknown prefix {}".format(prefix))
-                # if field is composed only of one entry
-                if raw and pos2 - pos + 2 * len(seek) == len(field):
-                    return result
-                res += str(result)
-                start = pos2 + len(seek)
-            except Exception as e:
-                logger.error("{}: Malformed field "
-                             "'{}': {}"
-                             .format(self.recIdentity(), field, str(e)))
-                raise
+        expr = re.compile("<<(?P<internal>.*?)>>|<(?P<meta>.*?)>")
+
+        try:
+            if raw:
+                res = re.fullmatch(expr, field)
+                if res:
+                    return self._tag_replacement(res, log_lvl, default, True)
+
+            # Results parced into string
+            res = re.sub(expr,
+                         lambda x: self._tag_replacement(x, log_lvl,
+                                                         default, False),
+                         field)
+        except Exception as err:
+            logger.error("{}: Error in dynamic field '{}': {}: {}"
+                         .format(self.recIdentity(),
+                                 field, type(err).__name__, err))
+            raise
+
         if cleanup:
             res = tools.cleanup_value(res)
         return res
@@ -700,7 +699,7 @@ class baseModule(abstract):
                 subid = res.group(1)
         if subid is None or subid == "":
             logger.error("{}: Unable to determine subject Id from '{}'"
-                         .format(self.recIdentity, name))
+                         .format(self.recIdentity(), name))
             raise ValueError("Invalid subject Id")
         self._bidsSession.unlock_subject()
         self._bidsSession.subject = subid
@@ -776,6 +775,34 @@ class baseModule(abstract):
         """
         self._acqTime = None
 
+    @property
+    def series_no(self):
+        return self._series_no
+
+    @series_no.setter
+    def series_no(self, val):
+        if not isinstance(val, int):
+            raise ValueError("{}: series_no must be an int, {} recieved"
+                             .format(self.currentFile(), type(val)))
+        self._series_no = val
+
+    def recNo(self):
+        return self.series_no
+
+    @property
+    def series_id(self):
+        return self._series_id
+
+    @series_id.setter
+    def series_id(self, val):
+        if not isinstance(val, str):
+            raise ValueError("{}: series_id must be a string, {} recieved"
+                             .format(self.currentFile(), type(val)))
+        self._series_id = val
+
+    def recId(self):
+        return self.series_id
+
     def recIdentity(self, padding: int = 3, index=True):
         """
         Returns identification string for current recording
@@ -841,10 +868,10 @@ class baseModule(abstract):
             self.manufacturer = manufacturer
             return True
 
-    def _getCharacteristic(self, field):
+    def getCharecteristic(self, field):
         """
         Retrieves given cheracteristic value
-        Allowed characteristics:
+        Allowed characteristics without prefix:
             - subject: subject Id
             - session: session Id
             - serieNumber: serie Id
@@ -857,33 +884,75 @@ class baseModule(abstract):
             - module: name of module
             - placeholder: name to fill manually
             - None: void value
+        Allowed characteristics wit prefix:
+            - bids:entity : Entity value for current file
+            - custom:key : Custom value, stored at key
+            - sub_tsv:column : value from participants.tsv
+            - rec_tsv:column : Value from scans.tsv
+            - fname:query : entity value extracted from filename
+            - increment[0-9]*:tag : counts calls of increments of the tag
         """
-        if field == "subject":
-            return self.subId()
-        if field == "session":
-            return self.sesId()
-        if field == "serieNumber":
-            return self.recNo()
-        if field == "serie":
-            return self.recId()
-        if field == "index":
-            return self.index + 1
-        if field == "nfiles":
-            return len(self.files)
-        if field == "filename":
-            return self.currentFile(False)
-        if field == "suffix":
-            return self.suffix
-        if field == "modality":
-            return self._modality
-        if field == "module":
-            return self.Module
-        if field == "placeholder":
-            logger.warning("{}: Placehoder found"
-                           .format(self.recIdentity()))
-            return "<<placeholder>>"
-        if field == "None":
-            return None
+        prefix = ""
+        if ":" in field:
+            prefix, query = field.split(":", 1)
+
+        if not prefix:
+            if field == "subject":
+                return self.subId()
+            if field == "session":
+                return self.sesId()
+            if field == "serieNumber":
+                return self.recNo()
+            if field == "serie":
+                return self.recId()
+            if field == "index":
+                return self.index + 1
+            if field == "nfiles":
+                return len(self.files)
+            if field == "filename":
+                return self.currentFile(False)
+            if field == "suffix":
+                return self.suffix
+            if field == "modality":
+                return self._modality
+            if field == "module":
+                return self._module
+            if field == "placeholder":
+                logger.warning("{}: Placehoder found"
+                               .format(self.recIdentity()))
+                return "<<placeholder>>"
+            if field == "None":
+                return None
+            raise CharacteristicError(field)
+        else:
+            if prefix == "bids":
+                return self.labels[query]
+            elif prefix == "custom":
+                return self.custom[query]
+            elif prefix == "sub_tsv":
+                return self._bidsSession.sub_values[query]
+            # elif prefix == "rec_tsv":
+            #     return self._bidsSession.rec_values[query]
+            elif prefix == "fname":
+                if (search := re.search("(?:^|_){}-([a-zA-Z0-9]+)"
+                                        .format(query),
+                                        self.currentFile(False))):
+                    return search.group(1)
+                else:
+                    return None
+            elif (search := re.fullmatch("increment([0-9]*)", prefix)):
+                # The unnamed <<increment>> is calculated in setLabels function
+                if not query:
+                    raise CharacteristicError("Can't use increment "
+                                              "without label")
+                result = self._bidsSession.getIncrement(query)
+                order = search.group(1)
+                if not order:
+                    order = '1'
+                fstr = "{{:0{}d}}".format(order)
+                return fstr.format(result)
+            else:
+                raise CharacteristicError("Unknown prefix {}".format(prefix))
 
     ##############################
     # File manipulation methodes #
@@ -908,6 +977,9 @@ class baseModule(abstract):
         self.attributes = {}
         # for key in self.attributes:
         #     self.attributes[key] = self.getField(key)
+        # Updating series No and Id
+        self.series_no = self._recNo()
+        self.series_id = self._recId()
 
     def setRecPath(self, folder: str) -> int:
         """
@@ -1026,10 +1098,9 @@ class baseModule(abstract):
             raise ValueError("{}: Recording have invalid bids session"
                              .format(self.recIdentity()))
         if not self.isValidModality(self._modality, False):
-            logger.error("{}: Invalid modality {}"
-                         .format(self.recIdentity(),
-                                 self._modality))
-            raise ValueError("Invalid modality")
+            logger.warning("{}: Non-BIDS modality {}"
+                           .format(self.recIdentity(),
+                                   self._modality))
 
         outdir = os.path.join(bidsfolder,
                               self.getBidsPrefix('/'),
@@ -1093,7 +1164,7 @@ class baseModule(abstract):
             self.rec_BIDSfields.DumpDefinitions(scans_json)
         return os.path.join(outdir, bidsname + ext)
 
-    def setLabels(self, run: Run = None):
+    def setLabels(self, run):
         """
         Set the BIDS tags (labels) according to given run
 
@@ -1109,47 +1180,33 @@ class baseModule(abstract):
         if not run:
             return
 
-        if run.model in self.bidsmodalities:
-            self._modality = run.modality
-            tags = set(run.entity)\
-                - set(self.bidsmodalities[run.model])
-            if tags:
-                if not run.checked:
-                    logger.warning("{}: Naming schema not BIDS"
-                                   .format(self.recIdentity()))
-                self.labels = OrderedDict.fromkeys(run.entity)
-            else:
-                self.labels = OrderedDict.fromkeys(
-                        self.bidsmodalities[run.model])
-            self.suffix = self.getDynamicField(run.suffix)
-            for key in run.entity:
-                val = self.getDynamicField(run.entity[key])
-                self.labels[key] = val
-        elif run.modality == ignoremodality:
-            self._modality = run.modality
-            return
-        else:
-            logger.error("{}/{}: Unregistered modality {}"
-                         .format(self.get_rec_id(),
-                                 self.index,
-                                 run.model))
+        self._modality = run.modality
 
-        self.metaAuxiliary = dict()
+        # ignored modality
+        if run.modality == ignoremodality:
+            return
+
+        incr_key = None
+        tag = ""
+        self.labels = OrderedDict.fromkeys(run.entity)
+        self.suffix = self.getDynamicField(run.suffix)
+        for key in run.entity:
+            if isinstance(run.entity[key], str) \
+                    and re.fullmatch("<<increment[0-9]*>>", run.entity[key]):
+                val = "1"
+                incr_key = key
+                tag = run.entity[key][2:-2]
+            else:
+                val = self.getDynamicField(run.entity[key])
+            self.labels[key] = val
+        if incr_key:
+            bids_name = self.getBidsname()
+            tag = "<<{}:{}>>".format(tag, bids_name)
+            val = self.getDynamicField(tag)
+            self.labels[incr_key] = val
+
         for key, val in run.json.items():
-            if key:
-                if isinstance(val, list):
-                    self.metaAuxiliary[key] = [
-                            MetaField(key, None,
-                                      self.getDynamicField(v,
-                                                           cleanup=False,
-                                                           raw=True))
-                            for v in val]
-                else:
-                    self.metaAuxiliary[key] = MetaField(
-                            key, None,
-                            self.getDynamicField(val,
-                                                 cleanup=False,
-                                                 raw=True))
+            self.metaAuxiliary[key] = deepcopy(val)
 
     def getBidsPrefix(self, sep: str = '_') -> str:
         """
@@ -1196,14 +1253,6 @@ class baseModule(abstract):
     #############################################
     # JSON sidecar meta-fields related methodes #
     #############################################
-    def reserMetaFields(self) -> None:
-        """
-        Virtual function
-        Resets currently defined meta fields dictionaries
-        to None values
-        """
-        raise NotImplementedError
-
     def setupMetaFields(self, definitions: dict) -> None:
         """
         Setup json fields to values from given dictionary.
@@ -1221,274 +1270,96 @@ class baseModule(abstract):
         definitions: dict
             dictionary with metadata fields definitions
         """
-        if self.manufacturer in definitions:
-            meta = definitions[self.manufacturer]
-        else:
-            meta = None
-        meta_default = definitions["Unknown"]
 
-        for metaFields in (self.metaFields_req,
-                           self.metaFields_rec,
-                           self.metaFields_opt):
-            for mod in metaFields:
-                for key in metaFields[mod]:
-                    if meta and key in meta:
-                        val = meta[key]
-                        if isinstance(val, list):
-                            metaFields[mod][key] = [MetaField(f[0],
-                                                              scaling=None,
-                                                              default=f[1])
-                                                    for f in val]
-                        else:
-                            metaFields[mod][key]\
-                                = MetaField(val[0],
-                                            scaling=None,
-                                            default=val[1])
-                            continue
-                    if key in meta_default:
-                        val = meta_default[key]
-                        if isinstance(val, list):
-                            metaFields[mod][key] = [MetaField(f[0],
-                                                              scaling=None,
-                                                              default=f[1])
-                                                    for f in val]
-                        else:
-                            metaFields[mod][key]\
-                                = MetaField(val[0],
-                                            scaling=None,
-                                            default=val[1])
+        self.meta_shorcut = definitions.get("Unknown", {})
+        self.meta_shorcut.update(definitions.get(self.manufacturer, {}))
 
-    def testMetaFields(self):
+    def expandSidecar(self, model,
+                      sidecar: OrderedDict = None,
+                      use_placeholder: bool = False):
         """
-        Test all metafields values and resets not found ones
+        Expand provided sidecar (OrderedDict) with metafields
+        retrieved from loaded schema based on model.
+
+        If sidecar is None, the metaAuxiliary is used.
+        If use_placeholder, fields that are in schema but not
+        retrieved will be expanded with corresponding placeholder.
+        Additionally, if use_placeholder, the required and
+        retrieved variables will be expanded explicetly.
+
+        The fields will be attempted to be retrieved in following
+        order:
+            custom variables
+            shorctuts defined for given data format
+            metadata from file header
+
+        Parameters:
+        -----------
+            model: str
+                Model name with which expand sidecar
+            sidecar: OrderedDict, optional
+                sidecar to expand, if None, the self.metaAuxiliary
+                will be used
+            use_placeholder: bool, optional
+                If False (default) all not retrieved fields will
+                be ignored.
+                If True, all not retrieved fields will be replaced
+                by corresponding placeholder.
         """
-        for metaFields in (self.metaFields_req,
-                           self.metaFields_rec,
-                           self.metaFields_opt):
-            for mod in metaFields:
-                for key, field in metaFields[mod].items():
-                    if isinstance(field, list):
-                        continue
-                    if field is None or "<<" in field.name:
-                        continue
-                    res = None
-                    try:
-                        res = self.getDynamicField(field.name,
-                                                   default=field.default,
-                                                   raw=True,
-                                                   cleanup=False,
-                                                   warning=False)
-                    except Exception:
-                        metaFields[mod][key] = None
-                        pass
-                    if res is None:
-                        metaFields[mod][key] = None
+        if sidecar is None:
+            sidecar = self.metaAuxiliary
 
-    def generateMeta(self) -> dict:
+        for key, placeholder in model.items():
+            # Already defined
+            if key in sidecar:
+                continue
+            test_key = ""
+            if key in self.custom:
+                test_key = "<<custom:{}>>".format(key)
+            elif key in self.meta_shorcut:
+                test_key = self.meta_shorcut[key]
+            else:
+                test_key = "<{}>".format(key)
+            res = self.getDynamicField(test_key, warning=False,
+                                       cleanup=False, raw=True)
+            if res is None:
+                # Test key field not found
+                if use_placeholder:
+                    sidecar[key] = placeholder
+            else:
+                if not use_placeholder or placeholder:
+                    sidecar[key] = test_key
+
+    def exportMeta(self, keys: list = []) -> dict:
         """
-        Fills standard meta values. Must be called before exporting
-        these meta-data into json
-        """
-        if not self._modality:
-            logger.error("{}/{}: Modality not defined"
-                         .format(self.Module(), self.Type()))
-            raise ValueError("Modality wasn't defined")
-
-        mod = self._modality
-        if mod in self.metaFields_req:
-            for key, field in self.metaFields_req[mod].items():
-                if field is None:
-                    continue
-                if key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_rec:
-            for key, field in self.metaFields_rec[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_opt:
-            for key, field in self.metaFields_opt[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        mod = "__common__"
-        if mod in self.metaFields_req:
-            for key, field in self.metaFields_req[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_rec:
-            for key, field in self.metaFields_rec[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-        if mod in self.metaFields_opt:
-            for key, field in self.metaFields_opt[mod].items():
-                if field is not None and key not in self.metaAuxiliary:
-                    field.value = self.__getMetaFieldSecure(field,
-                                                            field.default)
-
-    def exportMeta(self) -> dict:
-        """
-        Exports recording metadata into dictionary structure
-
-        The metadata keys are put in order:
-            1. The auxiliary (defined in bidsmap)
-            2. Modality required
-            3. Modality recommended
-            4. Modality optional
-            5. Common required
-            6. Common recommended
-            7. Common optional
-
-        Already existing keys are ignored
+        Retrieves metadata values for sidecar json
 
         Returns
         -------
         dict:
             resulting dictionary
         """
-        exp = dict()
-        self.__fillMetaDict(exp, self.metaAuxiliary,
-                            required=False,
-                            ignore_null=True)
-        mod = self._modality
-        if mod in self.metaFields_req:
-            self.__fillMetaDict(exp, self.metaFields_req[mod],
-                                required=True,
-                                ignore_null=False)
-        if mod in self.metaFields_rec:
-            self.__fillMetaDict(exp, self.metaFields_rec[mod],
-                                required=False,
-                                ignore_null=False)
-        if mod in self.metaFields_opt:
-            self.__fillMetaDict(exp, self.metaFields_opt[mod],
-                                required=False,
-                                ignore_null=False)
-        mod = "__common__"
-        if mod in self.metaFields_req:
-            self.__fillMetaDict(exp, self.metaFields_req[mod],
-                                required=True,
-                                ignore_null=False)
-        if mod in self.metaFields_rec:
-            self.__fillMetaDict(exp, self.metaFields_rec[mod],
-                                required=False,
-                                ignore_null=False)
-        if mod in self.metaFields_opt:
-            self.__fillMetaDict(exp, self.metaFields_opt[mod],
-                                required=False,
-                                ignore_null=False)
-        return exp
+        if not keys:
+            keys = self.metaAuxiliary.keys()
 
-    def __fillMetaDict(self,
-                       exportDict: dict, metaFields: dict,
-                       required: bool, ignore_null: bool) -> None:
-        """
-        Helper function to fill exportDict by values from metaFields dict
-        If key is already filled, it is not updated.
-
-        If required is true, missing values will produce a warning
-
-        Parameters
-        ----------
-        exportDict: dict
-            dictionary to fill
-        metaFields: dict
-            dictionary with betaField as values
-        required: bool
-            switch if given values are required or not
-        ignore_null: bool
-            switch if empty values must be filled
-        """
-        for key, field in metaFields.items():
-            if key in exportDict:
-                continue
-            if not field:
-                if required:
-                    logger.warning("{}: Required field {} not set"
-                                   .format(self.recIdentity(),
-                                           key))
-                if not ignore_null:
-                    exportDict[key] = None
+        exp = {}
+        for key in keys:
+            val = self.metaAuxiliary.get(key, None)
+            if val is None:
                 continue
 
-            if isinstance(field, list):
-                exportDict[key] = [f.value for f in field]
+            if isinstance(val, list):
+                res = [self.getDynamicField(v, warning=False,
+                                            raw=True, cleanup=False)
+                       for v in val]
+            elif isinstance(val, str):
+                res = self.getDynamicField(val, warning=False,
+                                           raw=True, cleanup=False)
             else:
-                exportDict[key] = field.value
-
-    def fillMissingJSON(self, run: Run) -> None:
-        """
-        Completes missing values from JSON dictionary in given Run
-
-        Required parameters are filled with '<<placeholder>>';
-        Recommended parameters are filled with '';
-        Optional parameters are filled with None
-
-        Also checks if existing JSON fields are interpretable
-
-        Parameters
-        ----------
-        run: Run
-            Run object with json dictionary to fill
-        """
-        model = run.model
-        if model == ignoremodality or model == unknownmodality:
-            return
-
-        if model in self.metaFields_req:
-            for key, field in self.metaFields_req[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = "<<placeholder>>"
-        if model in self.metaFields_rec:
-            for key, field in self.metaFields_rec[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = ""
-        if model in self.metaFields_opt:
-            for key, field in self.metaFields_opt[model].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = None
-        if "__common__" in self.metaFields_req:
-            for key, field\
-                    in self.metaFields_req["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = "<<placeholder>>"
-        if "__common__" in self.metaFields_rec:
-            for key, field\
-                    in self.metaFields_rec["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = ""
-        if "__common__" in self.metaFields_opt:
-            for key, field\
-                    in self.metaFields_opt["__common__"].items():
-                if key in run.json:
-                    continue
-                if self.__getMetaFieldSecure(field, None) is None:
-                    run.json[key] = None
-
-    def __getMetaFieldSecure(self, field: MetaField, fallback):
-        if field is None:
-            return fallback
-        try:
-            val = self.getDynamicField(field.name,
-                                       default=fallback,
-                                       raw=True, cleanup=False)
-        except Exception:
-            return fallback
-        if val is None:
-            return fallback
-        return val
+                res = val
+            if res is not None:
+                exp[key] = res
+        return exp
 
     #####################################
     # Recording identification methodes #
@@ -1569,7 +1440,7 @@ class ExtendEncoder(json.JSONEncoder):
             return obj.strftime("%Y-%m-%d")
         if isinstance(obj, bytes):
             try:
-                return obj.decode(self.encoding)
+                return obj.decode("ascii")
             except UnicodeDecodeError:
                 return "<bytes>"
         if isinstance(obj, numpy.ndarray):

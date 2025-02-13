@@ -23,7 +23,7 @@
 ##############################################################################
 
 
-from exceptions import CoinException
+from bidsme.exceptions import CoinException
 """
 List of generic Plugin and individual plugin functions
 exceptions

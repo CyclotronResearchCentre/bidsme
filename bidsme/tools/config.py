@@ -28,10 +28,10 @@ import os
 import argparse
 import sys
 
-from tools import info
-from tools import paths
-from tools.yaml import yaml
-from tools.config_default import config
+from . import info
+from . import paths
+from .yaml import yaml
+from .config_default import config
 
 
 __generalDescription = "Generic tool for bidsification of dataset"
@@ -102,6 +102,13 @@ def parseArgs(argv: list) -> (str, argparse.ArgumentParser):
             action="version",
             version="%(prog)s: {}\nBIDS: {}".format(info.version(),
                                                     info.bidsversion())
+            )
+
+    parser.add_argument(
+            '--version-bids',
+            help="Show BIDS schema version and exit",
+            action="version",
+            version=info.bidsversion()
             )
     subparsers = parser.add_subparsers(
             title="subcommands",
@@ -456,6 +463,11 @@ def setMap(parser):
     gr_maps.add_argument('-t', '--template',
                          help='The bidsmap template with the default '
                          'heuristics')
+    gr_maps.add_argument('-a', '--process-all',
+                         help='Do not stop if a recording '
+                         'generated error/warning',
+                         action="store_true"
+                         )
     parser.set_defaults(
             bidsmap=config["maps"]["map"],
             template=config["maps"]["template"])

@@ -25,12 +25,14 @@ import logging
 import pydicom
 import re
 
+from dicom_parser.utils.siemens.csa.ascii.ascconv import parse_ascconv
+
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 
-def isValidDICOM(file: str, mod: str = "") -> bool:
+def isValidDICOM(file: str, mod: list = []) -> bool:
     """
     Returns True if file is valid DICOM file.
     If mod is not empty, checks if Modality tag
@@ -51,8 +53,9 @@ def isValidDICOM(file: str, mod: str = "") -> bool:
     with open(file, 'rb') as dcmfile:
         dcmfile.seek(0x80)
         if dcmfile.read(4) != b"DICM":
+            logger.debug("Missing DICOM magic string")
             return False
-        if mod == "":
+        if not mod:
             return True
 
         dcmfile.seek(0)
@@ -61,8 +64,12 @@ def isValidDICOM(file: str, mod: str = "") -> bool:
             logger.warnng('{}: DICOM file misses Modality tag'
                           .format(file))
             return False
-        if ds["Modality"].value == mod:
+        if ds["Modality"].value in mod:
             return True
+        else:
+            logger.debug("Unaccepted modality: {}"
+                         .format(ds["Modality"].value))
+            return False
     return False
 
 
@@ -166,10 +173,19 @@ def DICOMtransform(element: pydicom.dataelem.DataElement,
     VM = element.VM
     val = element.value
 
-    if VM > 1:
-        return [decodeValue(val[i], VR, clean) for i in range(VM)]
-    else:
-        return decodeValue(val, VR, clean)
+    try:
+        if VR == "OB" and (element.tag == (0x0029, 0x1010)
+                           or element.tag == (0x0029, 0x1020)):
+            return decodeCSA(val)
+        if VM > 1:
+            return [decodeValue(val[i], VR, clean) for i in range(VM)]
+        else:
+            return decodeValue(val, VR, clean)
+
+    except Exception as e:
+        logger.warning('Failed to decode tag {} of type {} for: {}'
+                       .format(element.name, VR, e))
+        return None
 
 
 def decodeValue(val, VR: str, clean=False):
@@ -206,9 +222,15 @@ def decodeValue(val, VR: str, clean=False):
     # Text Numbers
     # using int(), float()
     if VR == "DS":
-        return float(val)
+        if val:
+            return float(val)
+        else:
+            return None
     if VR == "IS":
-        return int(val)
+        if val:
+            return int(val)
+        else:
+            return None
 
     # Text and text-like
     # using strip to remove apddings
@@ -223,13 +245,21 @@ def decodeValue(val, VR: str, clean=False):
     if VR == "PN":
         if isinstance(val, str):
             return val.strip(" \0")
+        if val == "":
+            return None
+
         if len(val.encodings) > 0:
             enc = val.encodings[0]
-        return val.original_string.decode(enc)
+            return val.original_string.decode(enc)
+        else:
+            logger.warning("PN: unable to get encoding")
+            return ""
 
     # Age string
     # unit mark is ignored, value converted to int
     if VR == "AS":
+        if not val:
+            return None
         if val[-1] in "YMWD":
             return int(val[:-1])
         else:
@@ -293,18 +323,35 @@ def decodeValue(val, VR: str, clean=False):
     # Attributes and sequences will produce warning and return
     # None
     if VR in ("AT", "SQ", "UN"):
-        logger.warning("Invalid VR: {}".format(VR))
-        return None
+        raise ValueError("invalid VR: {}".format(VR))
 
     # Other type
+    # Attempting to decode SV10 formatted bytes string
     # Not clear how parce them
     if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
-        logger.warning("Other VR: {}".format(VR))
-        return None
+        return "{}: {}".format(VR, repr(val))
 
     # unregistered VR
-    logger.error("{} is not valid DICOM VR".format(VR))
     raise ValueError("invalid VR: {}".format(VR))
+
+
+def decodeCSA(val):
+    from nibabel.nicom import csareader
+    csaheader = dict()
+    for tag, item in csareader.read(val)["tags"].items():
+        if len(item["items"]) == 0:
+            continue
+
+        if tag == "MrPhoenixProtocol" or tag == "MrProtocol":
+            csaheader[tag] = parse_ascconv(item["items"][0], '""')[0]
+            continue
+
+        if len(item["items"]) == 1:
+            csaheader[tag] = item["items"][0]
+        else:
+            csaheader[tag] = item["items"]
+
+    return csaheader
 
 
 def extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
@@ -331,7 +378,9 @@ def extractStruct(dataset: pydicom.dataset.Dataset) -> dict:
     for el in dataset:
         key = el.keyword
         if key == '':
-            key = str(el.tag)
+            key = el.name.replace(" ", "").strip("[]")
+            if key == "Unknown":
+                key = str(el.tag)
         if el.VR == "SQ":
             res[key] = [extractStruct(val)
                         for val in el]
