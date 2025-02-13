@@ -30,7 +30,9 @@ from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
 
-from Modules import selector
+from bidsme.tools.selector import type_selector
+
+selector = type_selector()
 
 
 class cMetaExplorer(object):
@@ -358,7 +360,8 @@ class MetaExplorer(object):
                    for cl in classes
                    if cl.Type() != "None"]
         self.cbFormat["values"] = formats
-        self.varFormat.set(formats[0])
+        if formats:
+            self.varFormat.set(formats[0])
 
     def FindFiles(self, *args):
         cls = selector.selectByName(self.varFormat.get(), self.varType.get())
