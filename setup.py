@@ -50,7 +50,8 @@ setuptools.setup(
       entry_points={
           "console_scripts": [
               "bidsme=bidsme.main:cli_bidsme",
-              "bidsme-pdb=bidsme.main:cli_bidsme_pdb"
+              "bidsme-pdb=bidsme.main:cli_bidsme_pdb",
+              "bidsme-gui=bidsme.bidsme_gui:main"
               ]
           },
       zip_safe=False,
