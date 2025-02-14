@@ -119,14 +119,9 @@ class jsonNIFTI(MRS):
         return None
 
     def dump(self):
-        if self._HEADER_CACHE is not None:
-            return str(self._HEADER_CACHE)
-        elif len(self.files) > 0:
+        if self._HEADER_CACHE is None:
             self.loadFile(0)
-            return str(self._HEADER_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._HEADER_CACHE
 
     def _getField(self, field: list):
         res = None
