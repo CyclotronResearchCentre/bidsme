@@ -26,7 +26,6 @@
 import os
 import logging
 import json
-import pprint
 
 from datetime import datetime, timedelta
 
