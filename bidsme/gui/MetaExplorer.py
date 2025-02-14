@@ -183,7 +183,7 @@ class cMetaExplorer(object):
                                values=("list", "..."))
             for i, it in enumerate(item):
                 self.addNode(Id, str(i), it, lvl + 1)
-        if isinstance(item, tuple):
+        elif isinstance(item, tuple):
             self.tvMeta.insert(parent, 'end',
                                Id, text=name,
                                tags=("normal",),
