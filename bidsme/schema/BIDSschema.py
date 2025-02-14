@@ -130,13 +130,17 @@ class BIDSschema(object):
                            if dt != modality]
 
         self.ent_rules = OrderedDict()
-        for dt in [self.modality] + self.data_types:
+        rules_list = []
+        if self.modality:
+            rules_list.append(self.modality)
+        rules_list += self.data_types
+        for dt in rules_list:
             rule = self._schema.rules.files.raw.get(dt)
             if rule:
                 self.ent_rules[dt] = rule
 
         self.meta_rules = OrderedDict()
-        for dt in [self.modality] + self.data_types:
+        for dt in rules_list:
             rule = self._schema.rules.sidecars.get(dt)
             if rule:
                 self.meta_rules[dt] = rule

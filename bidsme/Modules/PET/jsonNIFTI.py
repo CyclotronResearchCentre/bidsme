@@ -27,7 +27,6 @@ from .PET import PET
 
 import os
 import logging
-import shutil
 import json
 from datetime import datetime
 
@@ -109,14 +108,9 @@ class jsonNIFTI(PET):
         return None
 
     def dump(self):
-        if self._HEADER_CACHE is not None:
-            return str(self._HEADER_CACHE)
-        elif len(self.files) > 0:
+        if self._HEADER_CACHE is None:
             self.loadFile(0)
-            return str(self._HEADER_CACHE)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        return self._HEADER_CACHE
 
     def _getField(self, field: list):
         res = None
@@ -150,16 +144,6 @@ class jsonNIFTI(PET):
     def clearCache(self) -> None:
         self._HEADER_CACHE = None
         self._FILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> str:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(self._header_file, destination)
-        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         tags = ["patient_id",  # ecat header dump

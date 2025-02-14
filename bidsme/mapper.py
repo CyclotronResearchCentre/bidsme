@@ -102,9 +102,13 @@ def createmap(destination,
                     recording.Type()
                     )
 
+        if not run.provenance and not run.checked:
+            run.provenance = recording.currentFile()
+
         if modality == ignoremodality or modality == unknownmodality:
             continue
 
+        recording.setLabels(run)
         if not recording.suffix:
             logger.error("{}/{}: Suffix must be defined"
                          .format(recording.Module(),
@@ -121,6 +125,7 @@ def createmap(destination,
             first_name = bidsified_name
             if not run.checked:
                 validate = True
+                run.example = "{}/{}".format(modality, recording.getBidsname())
 
         elif first_name == bidsified_name:
             logger.error("{}/{}: Bidsified name same "
@@ -457,8 +462,11 @@ def mapper(source: str, destination: str,
                         break
                 if skip_subject:
                     break
+            plugins.RunPlugin("SessionEndEP", scan)
             if skip_subject:
                 break
+        scan.in_path = sub_dir
+        plugins.RunPlugin("SubjectEndEP", scan)
         if skip_subject:
             break
 

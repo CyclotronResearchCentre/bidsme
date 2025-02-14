@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 
+### Added
+ - `<<increment[1-9]:tag>>` field that will count how much this field is accessed. Useful for `run-` and `chunk-` entities. The tagless version `<<increment[1-9]>>` will count number of times the bidsified name is generated.
+ - `mapper.py`: Added cals to `SessionEndEP` and `SubjectEndEP` plugin functions for consistency with `bidsify.py`
+ - `GUI`: Metadata explorer
+
+### Changed:
+ - Reimplemented `getDynamicField`, now it parces tags using `regexp`, added unittest for metadata retrieval
+ - `baseModule`: During preparation, bidsme will copy not only the image file, but all files sharing the same basename 
+ - `tools/change_ext`: will return the basename without extention if argument `new_ext` is `None`
+ - Added minimal `pyproject.toml` to silence warning
+
+### Fixed:
+ - For some file formats `dump()` was returning string instead of `dict`
+
 ## [1.8.2] - 2024-12-09
 
 ### Added:
@@ -18,7 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed:
  - `Module/jsonNIFTY`: no longer spams warnings if unable to determine series id
-
 
 ## [1.8.1] - 2024-09-19
 

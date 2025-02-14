@@ -129,18 +129,6 @@ class NIFTI(MRI):
             res = None
         return res
 
-    def copyRawFile(self, destination: str) -> str:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        if self._nii_type == "ni1":
-            data_file = tools.change_ext(self.currentFile(), "img")
-            shutil.copy2(data_file, destination)
-        return os.path.join(destination, self.currentFile(True))
-
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         if self._nii_type == "ni1":
             shutil.copy2(self.currentFile(),

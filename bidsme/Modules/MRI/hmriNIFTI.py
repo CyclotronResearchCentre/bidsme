@@ -26,8 +26,7 @@
 import os
 import logging
 import json
-import shutil
-import pprint
+
 from datetime import datetime, timedelta
 
 from bidsme.tools import tools
@@ -166,16 +165,10 @@ class hmriNIFTI(MRI):
             + timedelta(days=days - 366, seconds=time_stamp)
 
     def dump(self):
-        if self._DICOMDICT_CACHE:
-            return pprint.pformat(self._DICOMDICT_CACHE,
-                                  indent=2, width=40, compact=True)
-        elif len(self.files) > 0:
+        if self._DICOMDICT_CACHE is None:
             self.loadFile(0)
-            return pprint.pformat(self._DICOMDICT_CACHE,
-                                  indent=2, width=40, compact=True)
-        else:
-            logger.error("No defined files")
-            return "No defined files"
+        res = self._DICOMDICT_CACHE
+        return res
 
     def _getField(self, field: list):
         res = None
@@ -220,17 +213,6 @@ class hmriNIFTI(MRI):
     def clearCache(self) -> None:
         self._DICOMDICT_CACHE = None
         self._DICOMFILE_CACHE = ""
-
-    def copyRawFile(self, destination: str) -> str:
-        if os.path.isfile(os.path.join(destination,
-                                       self.currentFile(True))):
-            logger.warning("{}: File {} exists at destination"
-                           .format(self.recIdentity(),
-                                   self.currentFile(True)))
-        shutil.copy2(self.currentFile(), destination)
-        shutil.copy2(tools.change_ext(self.currentFile(), "json"),
-                     destination)
-        return os.path.join(destination, self.currentFile(True))
 
     def _getSubId(self) -> str:
         return str(self.getField("PatientID"))

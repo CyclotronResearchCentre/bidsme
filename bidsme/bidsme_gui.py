@@ -1,10 +1,10 @@
 ###############################################################################
-# exceptions.py defines exceptions for base class
+# BIDSme-gui implements a GUI interface to Bidsne
 ###############################################################################
 # Copyright (c) 2019-2020, University of Liège
 # Author: Nikita Beliy
 # Owner: Liege University https://www.uliege.be
-# Credits: [Nikita Beliy]
+# Credits: [Marcel Zwiers]
 # Maintainer: Nikita Beliy
 # Email: Nikita.Beliy@uliege.be
 # Status: developpement
@@ -22,16 +22,26 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+import os
+import tkinter as tk
+from tkinter import ttk
 
-class InvalidActionError(Exception):
-    """
-    Raises if name of an action for dynamic field retrieval is invalid
-    """
-    pass
+from .gui import MetaExplorer
 
 
-class CharacteristicError(Exception):
-    """
-    Raises if name of an action for dynamic field retrieval is invalid
-    """
-    pass
+def GUI():
+    root = tk.Tk()
+    root.title("bidsme gui tools")
+    mainframe = ttk.Frame(root, padding="3 3 12 12")
+    mainframe.grid(column=0, row=0, sticky="nsew")
+    root.columnconfigure(0, weight=1)
+    root.rowconfigure(0, weight=1)
+    ttk.Button(mainframe, text="Metadata Explorer",
+               command=lambda: MetaExplorer(root, os.getcwd()))\
+       .grid(column=1, row=1, sticky="w")
+
+    root.mainloop()
+
+
+if __name__ == "__main__":
+    GUI()

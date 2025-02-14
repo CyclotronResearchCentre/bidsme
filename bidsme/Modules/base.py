@@ -30,6 +30,7 @@ import json
 import re
 import numpy
 import gzip
+import glob
 
 from datetime import datetime, date, time
 from collections import OrderedDict
@@ -41,11 +42,9 @@ from bidsme.bidsMeta import BIDSfieldLibrary
 from bidsme.bidsMeta import BidsSession
 from bidsme.schema.BIDSschema import BIDSschema
 
-# from bidsme.bidsmap import Run
-
-
 from ._constants import ignoremodality, unknownmodality
 from .common import action_value
+from .exceptions import CharacteristicError
 
 logger = logging.getLogger(__name__)
 
@@ -232,7 +231,15 @@ class baseModule(abstract):
         str:
             path to copied file
         """
-        shutil.copy2(self.currentFile(), destination)
+        if os.path.isfile(os.path.join(destination,
+                                       self.currentFile(True))):
+            logger.warning("{}: File {} exists at destination"
+                           .format(self.recIdentity(),
+                                   self.currentFile(True)))
+        basename = tools.change_ext(self.currentFile(True), "*")
+        to_copy = glob.glob(os.path.join(self._recPath, basename))
+        for file in to_copy:
+            shutil.copy2(file, destination)
         return os.path.join(destination, self.currentFile(True))
 
     def exportHeader(self, destination: str) -> None:
@@ -520,14 +527,16 @@ class baseModule(abstract):
         result = self._getField(field.split(separator))
 
         if result is None:
-            return default
+            if default is None:
+                return None
+            result = default
+
         for prefix in reversed(actions):
             if isinstance(result, list):
-                for i, val in enumerate(result):
-                    result[i] = self._transformField(val, prefix)
+                result = [self._transformField(v, prefix) for v in result]
             elif isinstance(result, dict):
-                for i, val in result.items():
-                    result[i] = self._transformField(val, prefix)
+                result = {k: self._transformField(v, prefix)
+                          for k, v in result.items()}
             else:
                 result = self._transformField(result, prefix)
         if isinstance(result, str):
@@ -575,6 +584,24 @@ class baseModule(abstract):
     def resetAttribute(self, attribute):
         self.attributes.pop(attribute)
 
+    def _tag_replacement(self, matchobject, log_lvl,
+                         default=None, raw=False):
+        if matchobject.group("meta"):
+            result = self.getAttribute(matchobject.group("meta"), default)
+            if result is None:
+                logger.log(log_lvl, "{}: Can't get attribute '{}' from '{}'"
+                           .format(self.recIdentity(),
+                                   matchobject.group("meta"),
+                                   matchobject.string))
+                if not raw:
+                    result = "<{}>".format(matchobject.group("meta"))
+        else:
+            result = self.getCharecteristic(matchobject.group("internal"))
+        if raw:
+            return result
+        else:
+            return str(result)
+
     def getDynamicField(self, field: str,
                         default: object = None,
                         cleanup: bool = True, raw: bool = False,
@@ -603,82 +630,26 @@ class baseModule(abstract):
 
         if not isinstance(field, str) or field == "":
             return field
-        res = ""
-        start = 0
-        while start < len(field):
-            pos = field.find('<', start)
-            if pos < 0:
-                res += field[start:]
-                break
-            res += field[start:pos]
 
-            try:
-                if field[pos + 1] == "<":
-                    pos += 2
-                    seek = ">>"
-                else:
-                    pos += 1
-                    seek = ">"
-                pos2 = field.find(seek, pos)
-                if pos2 < 0:
-                    raise IndexError("closing {} from {} not found in {}"
-                                     .format(seek, pos, field))
-                query = field[pos:pos2]
-                if seek == '>':
-                    result = self.getAttribute(query, default)
-                    if result is None:
-                        logger.log(log_lvl,
-                                   "{}: Can't find '{}' "
-                                   "attribute from '{}'"
-                                   .format(self.recIdentity(),
-                                           query, field))
-                        if not raw:
-                            result = query
-                        else:
-                            result = None
-                else:
-                    prefix = ""
-                    if ":" in query:
-                        prefix, query = query.split(":", 1)
-                    if prefix == "":
-                        result = self._getCharacteristic(query)
-                    elif prefix == "bids":
-                        result = self.labels[query]
-                    elif prefix == "custom":
-                        result = self.custom[query]
-                    elif prefix == "sub_tsv":
-                        # result = self.sub_BIDSvalues[query]
-                        result = self._bidsSession.sub_values[query]
-                    elif prefix == "rec_tsv":
-                        result = self._bidsSession.rec_values[query]
-                    elif prefix == "fname":
-                        search = re.search("{}-([a-zA-Z0-9]+)".format(query),
-                                           self.currentFile(False))
-                        if search:
-                            result = search.group(1)
-                        else:
-                            logger.log(log_lvl,
-                                       "{}: Can't find '{}' "
-                                       "attribute from '{}'"
-                                       .format(self.recIdentity(),
-                                               query,
-                                               self.currentFile(False)))
-                            if not raw:
-                                result = query
-                            else:
-                                result = None
-                    else:
-                        raise KeyError("Unknown prefix {}".format(prefix))
-                # if field is composed only of one entry
-                if raw and pos2 - pos + 2 * len(seek) == len(field):
-                    return result
-                res += str(result)
-                start = pos2 + len(seek)
-            except Exception as e:
-                logger.error("{}: Malformed field "
-                             "'{}': {}"
-                             .format(self.recIdentity(), field, str(e)))
-                raise
+        expr = re.compile("<<(?P<internal>.*?)>>|<(?P<meta>.*?)>")
+
+        try:
+            if raw:
+                res = re.fullmatch(expr, field)
+                if res:
+                    return self._tag_replacement(res, log_lvl, default, True)
+
+            # Results parced into string
+            res = re.sub(expr,
+                         lambda x: self._tag_replacement(x, log_lvl,
+                                                         default, False),
+                         field)
+        except Exception as err:
+            logger.error("{}: Error in dynamic field '{}': {}: {}"
+                         .format(self.recIdentity(),
+                                 field, type(err).__name__, err))
+            raise
+
         if cleanup:
             res = tools.cleanup_value(res)
         return res
@@ -910,10 +881,10 @@ class baseModule(abstract):
             self.manufacturer = manufacturer
             return True
 
-    def _getCharacteristic(self, field):
+    def getCharecteristic(self, field):
         """
         Retrieves given cheracteristic value
-        Allowed characteristics:
+        Allowed characteristics without prefix:
             - subject: subject Id
             - session: session Id
             - serieNumber: serie Id
@@ -926,36 +897,75 @@ class baseModule(abstract):
             - module: name of module
             - placeholder: name to fill manually
             - None: void value
+        Allowed characteristics wit prefix:
+            - bids:entity : Entity value for current file
+            - custom:key : Custom value, stored at key
+            - sub_tsv:column : value from participants.tsv
+            - rec_tsv:column : Value from scans.tsv
+            - fname:query : entity value extracted from filename
+            - increment[0-9]*:tag : counts calls of increments of the tag
         """
-        if field == "subject":
-            return self.subId()
-        if field == "session":
-            return self.sesId()
-        if field == "serieNumber":
-            return self.recNo()
-        if field == "serie":
-            return self.recId()
-        if field == "index":
-            return self.index + 1
-        if field == "nfiles":
-            return len(self.files)
-        if field == "filename":
-            return self.currentFile(False)
-        if field == "suffix":
-            return self.suffix
-        if field == "modality":
-            return self._modality
-        if field == "module":
-            return self.Module
-        if field == "placeholder":
-            logger.warning("{}: Placehoder found"
-                           .format(self.recIdentity()))
-            return "<<placeholder>>"
-        if field == "None":
-            return None
-        logger.error("{}: Invalid characteristic <<{}>>"
-                     .format(self.recIdentity(), field))
-        return None
+        prefix = ""
+        if ":" in field:
+            prefix, query = field.split(":", 1)
+
+        if not prefix:
+            if field == "subject":
+                return self.subId()
+            if field == "session":
+                return self.sesId()
+            if field == "serieNumber":
+                return self.recNo()
+            if field == "serie":
+                return self.recId()
+            if field == "index":
+                return self.index + 1
+            if field == "nfiles":
+                return len(self.files)
+            if field == "filename":
+                return self.currentFile(False)
+            if field == "suffix":
+                return self.suffix
+            if field == "modality":
+                return self._modality
+            if field == "module":
+                return self._module
+            if field == "placeholder":
+                logger.warning("{}: Placehoder found"
+                               .format(self.recIdentity()))
+                return "<<placeholder>>"
+            if field == "None":
+                return None
+            raise CharacteristicError(field)
+        else:
+            if prefix == "bids":
+                return self.labels[query]
+            elif prefix == "custom":
+                return self.custom[query]
+            elif prefix == "sub_tsv":
+                return self._bidsSession.sub_values[query]
+            # elif prefix == "rec_tsv":
+            #     return self._bidsSession.rec_values[query]
+            elif prefix == "fname":
+                if (search := re.search("(?:^|_){}-([a-zA-Z0-9]+)"
+                                        .format(query),
+                                        self.currentFile(False))):
+                    return search.group(1)
+                else:
+                    return None
+            elif (search := re.fullmatch("increment([0-9]*)", prefix)):
+                # The unnamed <<increment>> is calculated in setLabels function
+                if not query:
+                    raise CharacteristicError("Can't use increment "
+                                              "without label")
+                result = self._bidsSession.getIncrement(query)
+                order = search.group(1)
+                if not order:
+                    order = '1'
+                fstr = "{{:0{}d}}".format(order)
+                return fstr.format(result)
+            else:
+                raise CharacteristicError("Unknown prefix {}".format(prefix))
 
     ##############################
     # File manipulation methodes #
@@ -1168,7 +1178,7 @@ class baseModule(abstract):
             self.rec_BIDSfields.DumpDefinitions(scans_json)
         return os.path.join(outdir, bidsname + ext)
 
-    def setLabels(self, run=None):
+    def setLabels(self, run):
         """
         Set the BIDS tags (labels) according to given run
 
@@ -1190,11 +1200,24 @@ class baseModule(abstract):
         if run.modality == ignoremodality:
             return
 
+        incr_key = None
+        tag = ""
         self.labels = OrderedDict.fromkeys(run.entity)
         self.suffix = self.getDynamicField(run.suffix)
         for key in run.entity:
-            val = self.getDynamicField(run.entity[key])
+            if isinstance(run.entity[key], str) \
+                    and re.fullmatch("<<increment[0-9]*>>", run.entity[key]):
+                val = "1"
+                incr_key = key
+                tag = run.entity[key][2:-2]
+            else:
+                val = self.getDynamicField(run.entity[key])
             self.labels[key] = val
+        if incr_key:
+            bids_name = self.getBidsname()
+            tag = "<<{}:{}>>".format(tag, bids_name)
+            val = self.getDynamicField(tag)
+            self.labels[incr_key] = val
 
         for key, val in run.json.items():
             self.metaAuxiliary[key] = deepcopy(val)
