@@ -27,6 +27,8 @@ import os
 import logging
 import nibabel
 
+from typing import Union, List
+
 from bidsme.Modules import baseModule
 from bidsme.tools import tools
 
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 def Convert3Dto4D(outfolder: str,
-                  recording: baseModule,
+                  recording: Union[baseModule, List[str], None],
                   skip: int = 0, keep: int = 0,
                   check_affines: bool = True, axis: int = None) -> str:
     """
@@ -60,8 +62,12 @@ def Convert3Dto4D(outfolder: str,
     -----------
     outfolder: str
         path to output folder where data files has been copied
-    recording: Modules.baseModule
-        recording object to concat
+        and where all images will be searched
+    recording: Modules.baseModule, list[str], None
+        recording object to concat, OR explicit list of files
+        to concat, OR directory with .nii(.gz) files to concat
+        in case of directory, files will be sorted aplphabetically,
+        otherwise the order of files will be unchanged
     skip: int
         number of files to exclude from convertion, excluded
         files will be still removed
@@ -92,20 +98,34 @@ def Convert3Dto4D(outfolder: str,
     """
 
     # Generating file list
-    if len(recording.files) <= 1:
-        logger.warning("No files to concat")
-        return
+    if recording is None:
+        pattern = re.compile("[^.]*\.nii(\.gz)?")
+        f_list = [os.path.join(outfolder,f.name)
+                  for f in os.scandir()
+                  if f.is_file()
+                  and pattern.fullmatch(f.name)]
+        f_list.sort()
+    elif isinstance(recording, baseModule):
+        f_list = [os.path.join(outfolder, file)
+                  for file in recording.files
+                  ]
+        f_list = [file for file in f_list
+                  if os.path.exists(file)]
+    elif isinstance(recording, list):
+        f_list = [os.path.join(outfolder, file)
+                  for file in recording
+                  ]
+        f_list = [file for file in f_list
+                  if os.path.exists(file)]
+
+
     f_list = recording.files[skip:]
     if keep > 0:
         f_list = f_list[:keep]
+
     if len(f_list) == 0:
-        logger.warning("No files to concat after selection")
+        logger.warning("No files to concat")
         return ""
-    f_list = [os.path.join(outfolder, file)
-              for file in f_list
-              ]
-    f_list = [file for file in f_list
-              if os.path.exists(file)]
 
     imgs = [nibabel.load(f) for f in f_list]
     slope = imgs[0].dataobj.slope
