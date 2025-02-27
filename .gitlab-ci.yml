@@ -24,6 +24,7 @@ before_script:
   - pip --cache-dir=.cache/pip install openpyxl
   - pip --cache-dir=.cache/pip install anybadge
   - pip --cache-dir=.cache/pip install coverage
+  - pip --cache-dir=.cache/pip install nibabel
 
 stages:
   - test
