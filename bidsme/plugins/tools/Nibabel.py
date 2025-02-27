@@ -26,6 +26,7 @@
 import os
 import logging
 import nibabel
+import re
 
 from typing import Union, List
 
@@ -99,27 +100,13 @@ def Convert3Dto4D(outfolder: str,
 
     # Generating file list
     if recording is None:
-        pattern = re.compile("[^.]*\.nii(\.gz)?")
-        f_list = [os.path.join(outfolder,f.name)
-                  for f in os.scandir()
-                  if f.is_file()
-                  and pattern.fullmatch(f.name)]
-        f_list.sort()
+        f_list = _select_files_scandir(outfolder)
     elif isinstance(recording, baseModule):
-        f_list = [os.path.join(outfolder, file)
-                  for file in recording.files
-                  ]
-        f_list = [file for file in f_list
-                  if os.path.exists(file)]
+        f_list = _select_files_list(outfolder, recording.files)
     elif isinstance(recording, list):
-        f_list = [os.path.join(outfolder, file)
-                  for file in recording
-                  ]
-        f_list = [file for file in f_list
-                  if os.path.exists(file)]
+        f_list = _select_files_list(outfolder, recording)
 
-
-    f_list = recording.files[skip:]
+    f_list = f_list[skip:]
     if keep > 0:
         f_list = f_list[:keep]
 
@@ -127,22 +114,36 @@ def Convert3Dto4D(outfolder: str,
         logger.warning("No files to concat")
         return ""
 
+    if len(f_list) == 1:
+        # Only one file, no need of concatenation
+        return f_list[0]
+
     imgs = [nibabel.load(f) for f in f_list]
     slope = imgs[0].dataobj.slope
     inter = imgs[0].dataobj.inter
+    dtype = imgs[0].get_data_dtype()
+    do_manual_scale = True
 
     for img in imgs[1:]:
-        if slope != img.dataobj.slope or inter != img.dataobj.inter:
-            logger.warning('Concatenation of images of different scale. '
-                           'Will recalculate scale for all files.')
-            slope = None
-            inter = None
+        if slope != img.dataobj.slope or inter != img.dataobj.inter \
+           or dtype != img.get_data_dtype():
+            logger.warning('Concatenation of images of different scale '
+                           'or dtypes. Will recalculate scale for all files.')
+            do_manual_scale = False
             break
 
     img = nibabel.funcs.concat_images(imgs,
                                       check_affines=check_affines,
                                       axis=axis)
-    img.header.set_slope_inter(slope, inter)
+    if do_manual_scale:
+        data = img.dataobj[:]
+        if inter is not None:
+            data -= inter
+        if slope is not None:
+            data /= slope
+        img.header.set_slope_inter(slope, inter)
+        img.set_data_dtype(dtype)
+
     img.to_filename(f_list[0])
 
     for file in f_list[1:]:
@@ -153,3 +154,23 @@ def Convert3Dto4D(outfolder: str,
             os.remove(aux_file)
 
     return f_list[0]
+
+
+def _select_files_scandir(outfolder):
+    # Generating file list from folder content
+    pattern = re.compile(r"[^.]*\.nii(\.gz)?")
+    f_list = [os.path.join(outfolder, f.name)
+              for f in os.scandir(outfolder)
+              if f.is_file()
+              and pattern.fullmatch(f.name)]
+    f_list.sort()
+    return f_list
+
+
+def _select_files_list(outfolder, f_list):
+    f_list = [os.path.join(outfolder, file)
+              for file in f_list
+              ]
+    f_list = [file for file in f_list
+              if os.path.exists(file)]
+    return f_list

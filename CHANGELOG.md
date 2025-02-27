@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Fixed:
  - For some file formats `dump()` was returning string instead of `dict`
+ - `plugins/Nibabel/Convert3Dto4D`: Fixed bug of incrorrectly scaled concatenated image when using original scaling. This bug affects only images with slope and intersept != (1, 0)
 
 ## [1.8.2] - 2024-12-09
 
