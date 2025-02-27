@@ -10,7 +10,6 @@ import numpy as np
 from bidsme.Modules.MRI import NIFTI
 
 from bidsme.plugins.tools import Nibabel as plNibabel
-from bidsme.bidsMeta import BidsSession
 
 data_path = os.path.dirname(__file__)
 
@@ -36,9 +35,11 @@ class TestConvert3Dto4D(unittest.TestCase):
             aff = np.diag([1 + i % 2] * 4)
             img = nibabel.Nifti1Image(data, aff)
             img.header.set_slope_inter(1 + i % 2, 0)
-            img_path = os.path.join(self.data_path, "data_{:02d}.nii".format(i))
+            img_path = os.path.join(self.data_path,
+                                    "data_{:02d}.nii".format(i))
             nibabel.save(img, img_path)
-            img_path = os.path.join(self.data_path, "data_{:02d}.json".format(i))
+            img_path = os.path.join(self.data_path,
+                                    "data_{:02d}.json".format(i))
             slope, inter = img.header.get_slope_inter()
             meta = {"index": i, "data": float(data[0, 0]) * slope + inter,
                     "slope": img.header.get_slope_inter(),
@@ -67,11 +68,12 @@ class TestConvert3Dto4D(unittest.TestCase):
         self.assertEqual(len(f_list), self.num_files)
         for i, f in enumerate(f_list):
             self.assertEqual(self.num_files - i, self.get_index(f))
-    
+
     def test_concat(self):
         # testing skipping too much files
         with self.assertLogs(level=logging.WARN) as cm:
-            res = plNibabel.Convert3Dto4D(self.data_path, None, skip=self.num_files)
+            res = plNibabel.Convert3Dto4D(self.data_path, None,
+                                          skip=self.num_files)
         self.assertEqual(cm.output,
                          ["WARNING:{}:No files to concat"
                           .format(self.log_info)
@@ -80,22 +82,25 @@ class TestConvert3Dto4D(unittest.TestCase):
 
         res = plNibabel.Convert3Dto4D(self.data_path, None, keep=1)
         self.assertEqual(res, os.path.join(self.data_path, "data_01.nii"))
-        
+
         # No slope recalculation, taking only pair elements
         rec = NIFTI(self.data_path)
         files = rec.files[0::2]
-        res = plNibabel.Convert3Dto4D(self.data_path, files, check_affines=True)
+        res = plNibabel.Convert3Dto4D(self.data_path, files,
+                                      check_affines=True)
         self.assertEqual(res, os.path.join(self.data_path, "data_01.nii"))
 
         for i in range(1, self.num_files + 1):
-            img_path = os.path.join(self.data_path, "data_{:02d}.nii".format(i))
-            js_path = os.path.join(self.data_path, "data_{:02d}.json".format(i))
+            img_path = os.path.join(self.data_path,
+                                    "data_{:02d}.nii".format(i))
+            js_path = os.path.join(self.data_path,
+                                   "data_{:02d}.json".format(i))
 
             if img_path == res:
                 with open(js_path) as f:
                     js = json.load(f)
                 img = nibabel.load(img_path)
-                
+
                 # Checking scaling
                 self.assertEqual(img.dataobj.slope, js["slope"][0])
                 self.assertEqual(img.dataobj.inter, js["slope"][1])
@@ -132,14 +137,16 @@ class TestConvert3Dto4D(unittest.TestCase):
         self.assertEqual(res, os.path.join(self.data_path, "data_01.nii"))
 
         for i in range(1, self.num_files + 1):
-            img_path = os.path.join(self.data_path, "data_{:02d}.nii".format(i))
-            js_path = os.path.join(self.data_path, "data_{:02d}.json".format(i))
+            img_path = os.path.join(self.data_path,
+                                    "data_{:02d}.nii".format(i))
+            js_path = os.path.join(self.data_path,
+                                   "data_{:02d}.json".format(i))
 
             if img_path == res:
                 with open(js_path) as f:
                     js = json.load(f)
                 img = nibabel.load(img_path)
-                
+
                 # Checking scaling, must be recalculated!
                 self.assertNotEqual(img.dataobj.slope, js["slope"][0])
                 self.assertNotEqual(img.dataobj.inter, js["slope"][1])
