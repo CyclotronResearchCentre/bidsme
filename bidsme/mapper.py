@@ -147,8 +147,15 @@ def createmap(destination,
                                                  entities=run.entity,
                                                  sidecar=run.json)
             # Expanding recording sidecar
-            recording.metaAuxiliary = deepcopy(run.json)
-            recording.expandSidecar(model, use_placeholder=False)
+            if (not run.json) or run.template:
+                logger.info("Expanding sidecar")
+                # Expansion will affect run Json fields
+                recording.metaAuxiliary = run.json
+                recording.expandSidecar(model, use_placeholder=True)
+            else:
+                # Expansion will not affect run Json fields
+                recording.metaAuxiliary = deepcopy(run.json)
+                recording.expandSidecar(model, use_placeholder=False)
             sidecar = recording.exportMeta()
 
             # Validating bidsified name and sidecar
@@ -157,12 +164,6 @@ def createmap(destination,
                 ext = os.path.splitext(base)[1] + ext
             logger.info("Validating file {}".format(bidsified_name))
             recording.schema.validate(bidsified_name + ext, sidecar)
-
-            if (not run.json) or run.template:
-                # Expanding run json fiels
-                logger.info("Expanding sidecar")
-                recording.expandSidecar(model, run.json,
-                                        use_placeholder=True)
 
         elif recording.metaAuxiliary.get("IntendedFor"):
             sub_path = os.path.join(destination, recording.subId())
