@@ -29,7 +29,6 @@ import pandas
 import glob
 
 from copy import deepcopy
-from collections import defaultdict
 
 from bidsme import bidsmap
 from bidsme import plugins

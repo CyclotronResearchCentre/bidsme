@@ -3,6 +3,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+## Fixed:
+ - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
+ - Temporary fix for an `<<increment>>` tag resetting with every new recording
+
 ## [1.9.0] - 2025-02-27
 
 ### Added
