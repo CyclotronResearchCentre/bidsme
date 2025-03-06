@@ -42,11 +42,11 @@ class BidsSession(object):
                  "in_path",
                  "__sub_locked", "__ses_locked",
                  "sub_values",
-                 "increments"
                  ]
 
     __sub_columns = None
     __sub_values = dict()
+    increments = defaultdict(int)
 
     def __init__(self, subject: str = None, session: str = None):
         self.__subject = None
@@ -66,8 +66,6 @@ class BidsSession(object):
         if session is not None:
             self.session = session
             self.lock_session()
-
-        self.increments = defaultdict(int)
 
     @property
     def subject(self) -> str:

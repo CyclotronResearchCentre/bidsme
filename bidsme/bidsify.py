@@ -29,6 +29,7 @@ import logging
 import pandas
 
 from copy import deepcopy
+from collections import defaultdict
 
 from bidsme import exceptions
 from bidsme import plugins
@@ -348,6 +349,7 @@ def bidsify(source: str, destination: str,
                                 ses_dir))
             scan.unlock_session()
             scan.session = os.path.basename(ses_dir)
+            scan.increments = defaultdict(int)
             if plugins.RunPlugin("SessionEP", scan) < 0:
                 logger.warning("Session {} discarded by {}"
                                .format(scan.session, "SessionEP"))

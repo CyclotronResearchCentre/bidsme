@@ -631,7 +631,7 @@ class baseModule(abstract):
         if not isinstance(field, str) or field == "":
             return field
 
-        expr = re.compile("<<(?P<internal>.*?)>>|<(?P<meta>.*?)>")
+        expr = re.compile("<<(?P<internal>[^<>]*?)>>|<(?P<meta>[^<>]*?)>")
 
         try:
             if raw:
@@ -1341,7 +1341,7 @@ class baseModule(abstract):
                 if use_placeholder:
                     sidecar[key] = placeholder
             else:
-                if not use_placeholder or placeholder:
+                if (not use_placeholder) or placeholder:
                     sidecar[key] = test_key
 
     def exportMeta(self, keys: list = []) -> dict:
