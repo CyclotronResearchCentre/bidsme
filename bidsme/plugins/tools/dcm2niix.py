@@ -28,15 +28,18 @@ import os
 import logging
 import shutil
 import json
+import re
 import dcm2niix
 
+from subprocess import run
 from bidsme.tools import tools
 from bidsme.Modules import baseModule
 
 logger = logging.getLogger(__name__)
 
 
-def convert(outfolder: str, recording: baseModule, use_dump=True):
+def convert(outfolder: str, binary=None, echo=False, remove=True,
+            **kwargs):
     """
     Use dcm2niix (https://github.com/rordenlab/dcm2niix)
     to convert DICOM files to NIFTY.
@@ -79,65 +82,88 @@ def convert(outfolder: str, recording: baseModule, use_dump=True):
     if not dry_run:
         dcm2niix.convert(outfolder, recording)
     """
-    # Creating a list of files in case if not all files
-    # in recording are in output folder
-    flist = [f for f in os.listdir(outfolder)
-             if f in recording.files
-             ]
-    flist.sort()
-
-    if use_dump:
-        out_files = []
-        for i, f in enumerate(flist):
-            json_file = "header_dump_" + tools.change_ext(f, "json")
-            with open(os.path.join(outfolder, json_file)) as fjs:
-                js = json.load(fjs)
-            basename = "{}_{:06d}".format(js["recId"], i)
-            shutil.move(os.path.join(outfolder, f),
-                        os.path.join(outfolder, basename + ".IMA"))
-            shutil.move(os.path.join(outfolder, json_file),
-                        os.path.join(outfolder,
-                                     "header_dump_" + basename + ".json"))
-            out_files.append(basename + ".IMA")
-    else:
-        out_files = flist
-
-    logger.info("Converting {} images".format(len(flist)))
+    # Testing dcm2niix executable
+    if not binary:
+        binary = dcm2niix.bin
+    try: 
+        p = run([binary] + ["--version"], capture_output=True, text=True)
+    except FileNotFoundError as err:
+        logger.error("Can't find dcm2niix executable at {}".format(binary))
+        raise
+    logger.info(p.stdout.split("\n")[0])
 
     # Building up dcm2niix parameters
-    params = []
-    dcm2niix_options = {"-a": "y", "-d": "1", "-z": "o",
-                        "-w": "0"}
-    if use_dump:
-        dcm2niix_options["-f"] = "%b"
-        dcm2niix_options["--terse"] = None
-
-    for key, val in dcm2niix_options.items():
-        params.append(key)
+    kwargs.update(v=1)
+    dcm2niix_options = [binary]
+    for arg, val in kwargs.items():
+        if len(arg) > 1:
+            arg = "--" + arg
+        else:
+            arg = "-" + arg
+        dcm2niix_options.append(arg)
         if val is not None:
-            params.append(val)
-    params.append(outfolder)
-    dcm2niix.main(params)
+            dcm2niix_options.append(str(val))
+    dcm2niix_options.append(outfolder)
+    print(dcm2niix_options)
+    p = run(dcm2niix_options, capture_output=True, text=True)
+    if p.returncode != 0:
+        logger.error("dcm2niix failed with error code {}".format(p.returncode))
+        logger.error("stderr:\n{}".format(p.stderr))
+        logger.info("stdout:\n{}".format(p.stdout))
+        raise Exception("dcm2niix failed: {}".format(p.returncode))
 
-    # Removing original files
-    for fname in out_files:
-        json_file = "header_dump_" + tools.change_ext(fname, "json")
-        os.remove(os.path.join(outfolder, fname))
-        candidate = fname + ".nii.gz"
-        if os.path.isfile(os.path.join(outfolder, candidate)):
-            # Merge metadata
-            js = tools.change_ext(candidate, "json")
-            with open(os.path.join(outfolder, js)) as fjs:
-                js_ext = json.load(fjs)
-            os.remove(os.path.join(outfolder, js))
+    # Identifying output files
+    log_list = p.stdout.split("\n")
+    dcm_files = []
+    json_file = None
+    for l in log_list:
+        tag = "DICOM file: "
+        if l.startswith(tag):
+            dcm_files.append(l[len(tag):])
+            continue
+        tag = "Converting "
+        if l.startswith(tag):
+            logger.info(l)
+            converting = l[len(tag):]
+            dump_path, dump_file  = os.path.split(converting)
+            dump_file = "header_dump_" + tools.change_ext(dump_file, "json")
+            dump_file = os.path.join(dump_path, dump_file)
+            continue
 
-            with open(os.path.join(outfolder, json_file)) as fjs:
-                js_source = json.load(fjs)
-            js_ext.update(js_source["custom"])
-            js_source["custom"] = js_ext
+        tag = "Convert "
+        if l.startswith(tag):
+            logger.info(l)
+            res = re.fullmatch("Convert ([0-9]+) DICOM as (.*) "
+                               "(\((?:[0-9]+x)+[0-9]+\))", l)
+            if os.path.isfile(dump_file):
+                out_dump_path, out_dump_file  = os.path.split(res.group(2))
+                out_dump_file = "header_dump_" + out_dump_file + ".json"
+                out_dump_file = os.path.join(out_dump_path, out_dump_file)
 
-            ext_name = "header_dump_{}".format(js)
-            with open(os.path.join(outfolder, ext_name), "w") as fjs:
-                json.dump(js_source, fjs, indent="  ")
+                dcm_json = res.group(2) + ".json"
+                if os.path.isfile(dcm_json):
+                    with open(dcm_json, "r") as f:
+                        js = json.load(f)
+                    os.remove(js)
+                    with open(dump_file, "r") as f:
+                        dump = json.load(f)
+                    dump["custom"].update(js)
+                    with open(out_dump_file, "w") as f:
+                        json.dump(dump, f, indent="  ")
+                else:
+                    shutil.copyfile2(dump_file, out_dump_file)
+            converting = None
+            continue
 
-        os.remove(os.path.join(outfolder, json_file))
+        if l.startswith("Warning: "):
+            logger.warning(l)
+        elif echo:
+            logger.info(l)
+
+    # Removing old dicoms
+    if remove:
+        for file in dcm_files:
+            json_file = "header_dump_" + tools.change_ext(file, "json")
+            os.remove(file)
+            if os.path.isfile(json_file):
+                os.remove(json_file)
