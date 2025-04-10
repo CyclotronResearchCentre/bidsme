@@ -7,6 +7,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Fixed:
  - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
  - Temporary fix for an `<<increment>>` tag resetting with every new recording
+ - hmriNIFTI: Inverted PE direction for `j`, based on [dcm2niix](https://github.com/rordenlab/dcm2niix/blob/98ecd0bec9a1dfabd77b2be8c54c3bae97b92a55/console/nii_dicom_batch.cpp#L2426)
+ - bidsmeNIFTI: Fixed custom fields overwrite when loading the file
+
+## Added:
+ - hmriNIFTI: Added more shortcuts for retrieving metadata from header, in particular DwellTime
+
 
 ## [1.9.0] - 2025-02-27
 
