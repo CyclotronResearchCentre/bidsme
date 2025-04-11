@@ -42,7 +42,7 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
     """
     Use dcm2niix (https://github.com/rordenlab/dcm2niix)
     to convert DICOM files to NIFTY with default options
-    -a y -f %p_%s -i y -z y
+    -a y -f %p_%s -z y
     These options can be changed by providing params dictionary.
 
     If original DICOM files are acompagnied by bidsme header file,
@@ -95,7 +95,7 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
     #   outfolder is the path where files are copied
     from bidsme.plugins.tools import dcm2niix
     if not dry_run:
-        dcm2niix.convert(outfolder, {"-i": "y", "-f", "%p_%r"})
+        dcm2niix.convert(outfolder, params={"-i": "y", "-f", "%p_%r"})
     """
     # Testing dcm2niix executable
     if not binary:
@@ -110,7 +110,6 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
     # Building up dcm2niix parameters
     dcm_params = {"-a": "y",
                   "-f": "%p_%s",
-                  "-i": "y",
                   "-z": "y"}
     dcm_params.update(params)
     dcm_params["-v"] = 1
