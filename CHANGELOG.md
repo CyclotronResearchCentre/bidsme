@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
  - plugins/tools/General/CheckPrepared: will accept also subject and session names directly to perform checks;
 also will mirror the same checks configurations as CheckSeries 
 
+## Added:
+ - ISSUES.md: keep track of currently known issues with `bidsme`
+
 ## [1.9.0] - 2025-02-27
 
 ### Added
