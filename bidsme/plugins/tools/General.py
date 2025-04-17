@@ -452,8 +452,12 @@ def CleanupPrepared(prepared_path, remove_list, session=None):
             _remove_acq(prepared_path, sub, ses, mod, to_remove)
 
 
-def CheckPrepared(prepared_path, white_list, session,
-                  defaults=["default"]):
+def CheckPrepared(prepared_path, white_list,
+                  session=None, defaults=["default"],
+                  sub=None, ses=None,
+                  strict: bool = True,
+                  complete: bool = True,
+                  order: bool = True):
     """
     Compares acquisitions in prepared dataset with an expected
     acquisition list from white_list
@@ -496,6 +500,22 @@ def CheckPrepared(prepared_path, white_list, session,
     defaults: list, optional
         List of default sections to check if subject is not listed
         explicetly
+    sub: str
+        if session is None, then this can manually set the
+        subject id to check.
+        If both session and sub are none, all subjects and sessions
+        in prepared_path will be checked
+    ses: str
+        if session is None and sub is defined, ses allow to define
+        the session to check, if left undefined, the default session
+        ses- will be checked
+    strict: bool
+        checks if all series on disk are in the list
+    complete: bool
+        checks if all series in the list are on disk
+    order: bool
+        checks if all series in the list corresponds to series on
+        disk and are in the same order
 
     Returns:
     --------
@@ -508,8 +528,33 @@ def CheckPrepared(prepared_path, white_list, session,
     cleanup_prepared(preparedfolder, remove_list, session)
     """
 
-    sub = session.subject
-    ses = session.session if session.session else "ses-"
+    if session is not None:
+        sub = session.subject
+        ses = session.session if session.session else "ses-"
+    elif sub is not None:
+        if not ses:
+            ses = "ses-"
+    else:
+        count_tot = 0
+        count_passed = 0
+        for sub in os.scandir(prepared_path):
+            if not sub.is_dir() or not sub.name.startswith("sub-"):
+                continue
+            for ses in os.scandir(sub.path):
+                if not ses.is_dir() or not ses.name.startswith("ses-"):
+                    continue
+                count_tot += 1
+                res = CheckPrepared(prepared_path, white_list,
+                                    sub=sub.name, ses=ses.name,
+                                    defaults=defaults,
+                                    strict=strict,
+                                    complete=complete,
+                                    order=order)
+                if res:
+                    count_passed += 1
+        logger.info("Passed {} out of {} checks"
+                    .format(count_passed, count_tot))
+        return count_passed == count_tot
 
     for mod in white_list:
         path = os.path.join(prepared_path, sub, ses, mod)
@@ -525,7 +570,9 @@ def CheckPrepared(prepared_path, white_list, session,
         if acqs:
             logger.info("{}/{}/{}: Comparing acquisitions with white list"
                         .format(sub, ses, mod))
-            if not CheckSeries(path, acqs, strict=True):
+            if not CheckSeries(path, acqs,
+                               strict=strict, complete=complete,
+                               order=order):
                 logger.error("{}/{} Series do not match expectation."
                              .format(sub, ses))
                 return False
@@ -538,7 +585,10 @@ def CheckPrepared(prepared_path, white_list, session,
                 continue
             logger.info("{}/{}/{}: Comparing acquisitions with {} list"
                         .format(sub, ses, mod, default))
-            if CheckSeries(path, acqs, strict=True, level=logging.DEBUG):
+            if CheckSeries(path, acqs,
+                           strict=strict, complete=complete,
+                           order=order,
+                           level=logging.DEBUG):
                 logger.info("{}/{}/{}: Matched {} list"
                             .format(sub, ses, mod, default))
                 return True

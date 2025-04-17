@@ -98,6 +98,27 @@ class TestCuration(unittest.TestCase):
         shutil.rmtree(os.path.join(data_path, session.subject))
         self.assertTrue(General.CheckPrepared(data_path, w_list, session, []))
 
+        # Testing subject and session passed directly
+        self.gen_paths(data_path, session, acqs)
+        with self.assertLogs(level=logging.ERROR):
+            self.assertFalse(General.CheckPrepared(data_path, w_list, None,
+                                                   ["defaultX", "default"],
+                                                   session.subject,
+                                                   session.session))
+        shutil.rmtree(os.path.join(data_path, session.subject))
+        self.assertTrue(General.CheckPrepared(data_path, w_list, None, [],
+                                              session.subject,
+                                              session.session))
+
+        # Testing no subject/session
+        self.gen_paths(data_path, session, acqs)
+        with self.assertLogs(level=logging.ERROR):
+            self.assertFalse(General.CheckPrepared(data_path, w_list, None,
+                                                   ["defaultX", "default"]))
+
+        shutil.rmtree(os.path.join(data_path, session.subject))
+        self.assertTrue(General.CheckPrepared(data_path, w_list, None, []))
+
     def test_cleanup(self):
         log_info = "INFO:bidsme.plugins.tools.General"
         w_list = General.LoadCurationList(data_path, "white_list")
