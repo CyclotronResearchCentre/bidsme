@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
  - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
  - Temporary fix for an `<<increment>>` tag resetting with every new recording
 
+## Changed:
+ - plugins/tools/General/CheckPrepared: will accept also subject and session names directly to perform checks;
+also will mirror the same checks configurations as CheckSeries 
+
 ## [1.9.0] - 2025-02-27
 
 ### Added
