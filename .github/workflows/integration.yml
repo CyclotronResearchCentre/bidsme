@@ -2,7 +2,7 @@ name: integration test
 on: push
 jobs:
   flake8:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
@@ -39,7 +39,7 @@ jobs:
         name: code-coverage-report
         path: coverage.svg
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     strategy:
       matrix:
