@@ -123,10 +123,6 @@ def createmap(destination,
         validate = False
         if first_name is None:
             first_name = bidsified_name
-            if not run.checked:
-                validate = True
-                run.example = "{}/{}".format(modality, recording.getBidsname())
-
         elif first_name == bidsified_name:
             logger.error("{}/{}: Bidsified name same "
                          "as first file of recording: {}"
@@ -134,6 +130,11 @@ def createmap(destination,
                                  recording.recIdentity(),
                                  bidsified_name))
             break
+
+        if run.example is None:
+            run.example = bidsified_name
+            if not run.checked:
+                validate = True
 
         if validate:
             # Generating entities list

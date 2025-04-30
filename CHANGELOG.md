@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Fixed:
  - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
  - Temporary fix for an `<<increment>>` tag resetting with every new recording
+ - bidsmap: example field not filled when two different map blocks process same acquisition
 
 ## Changed:
  - plugins/tools/General/CheckPrepared: will accept also subject and session names directly to perform checks;
