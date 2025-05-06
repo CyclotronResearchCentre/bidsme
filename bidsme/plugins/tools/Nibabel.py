@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 def Convert3Dto4D(outfolder: str,
                   recording: Union[baseModule, List[str], None],
-                  skip: int = 0, keep: int = 0,
+                  skip: int = 0, keep: int = 0, TR=None,
                   check_affines: bool = True, axis: int = None) -> str:
     """
     Concat nii images from recording into one 4D image, using
@@ -74,6 +74,11 @@ def Convert3Dto4D(outfolder: str,
         files will be still removed
     keep: int
         maximum number of files to merge
+    TR: float or None
+        If specified, will add repitition time as axis/last
+        dimention. For default 4th dimention (axis=None) unit
+        is miliseconds, overwise mm.
+        see https://nipy.org/nibabel/nibabel_images.html
     check_affines: bool
         If True, then check that all the affines for images
         are nearly the same, raising a ValueError otherwise.
@@ -143,6 +148,14 @@ def Convert3Dto4D(outfolder: str,
             data /= slope
         img.header.set_slope_inter(slope, inter)
         img.set_data_dtype(dtype)
+
+    if TR is not None:
+        zooms = list(img.header.get_zooms())
+        if axis is None:
+            zooms[-1] = TR
+        else:
+            zooms[axis] = TR
+        img.header.set_zooms(zooms)
 
     img.to_filename(f_list[0])
 

@@ -15,6 +15,7 @@ also will mirror the same checks configurations as CheckSeries
 
 ## Added:
  - ISSUES.md: keep track of currently known issues with `bidsme`
+ - plugins/nibabel: Added TR parameter in `Convert_3D_to_4D` to set the time dimention of 4D images
 
 ## [1.9.0] - 2025-02-27
 
