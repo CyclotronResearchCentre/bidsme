@@ -23,6 +23,7 @@
 ##############################################################################
 
 import os
+from multiprocessing import Process
 
 try:
     import tkinter as tk
@@ -35,6 +36,11 @@ try:
         Launches bidsme GUI to facilitate some bidsification
         tasks
         """
+        p = Process(target=_gui, name="bidsme-GUI",
+                    daemon=True)
+        p.start()
+
+    def _gui():
         root = tk.Tk()
         root.title("bidsme gui tools")
         mainframe = ttk.Frame(root, padding="3 3 12 12")
