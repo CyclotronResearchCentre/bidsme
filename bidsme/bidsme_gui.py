@@ -23,24 +23,33 @@
 ##############################################################################
 
 import os
-import tkinter as tk
-from tkinter import ttk
 
-from .gui import MetaExplorer
+try:
+    import tkinter as tk
+    from tkinter import ttk
 
+    from .gui import MetaExplorer
 
-def GUI():
-    root = tk.Tk()
-    root.title("bidsme gui tools")
-    mainframe = ttk.Frame(root, padding="3 3 12 12")
-    mainframe.grid(column=0, row=0, sticky="nsew")
-    root.columnconfigure(0, weight=1)
-    root.rowconfigure(0, weight=1)
-    ttk.Button(mainframe, text="Metadata Explorer",
-               command=lambda: MetaExplorer(root, os.getcwd()))\
-       .grid(column=1, row=1, sticky="w")
+    def GUI():
+        """
+        Launches bidsme GUI to facilitate some bidsification
+        tasks
+        """
+        root = tk.Tk()
+        root.title("bidsme gui tools")
+        mainframe = ttk.Frame(root, padding="3 3 12 12")
+        mainframe.grid(column=0, row=0, sticky="nsew")
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(0, weight=1)
+        ttk.Button(mainframe, text="Metadata Explorer",
+                   command=lambda: MetaExplorer(root, os.getcwd()))\
+           .grid(column=1, row=1, sticky="w")
 
-    root.mainloop()
+        root.mainloop()
+
+except ModuleNotFoundError:
+    def GUI():
+        raise ModuleNotFoundError("bidsme GUI needs tkinter installed")
 
 
 if __name__ == "__main__":
