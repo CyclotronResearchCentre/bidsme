@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Changed:
  - plugins/tools/General/CheckPrepared: will accept also subject and session names directly to perform checks;
 also will mirror the same checks configurations as CheckSeries 
+ - bidsme-gui: the tkinter dependency is now optional, `bidsme` can be used without it, but attempting
+to launch `bidsme-gui` will end up with `ModuleNotFoundError`
 
 ## Added:
  - ISSUES.md: keep track of currently known issues with `bidsme`

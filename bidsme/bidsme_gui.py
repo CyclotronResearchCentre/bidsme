@@ -49,6 +49,10 @@ try:
 
 except ModuleNotFoundError:
     def GUI():
+        """
+        Placeholder for the GUI in case when tkinter is not aviable.
+        Always raise ModuleNotFoundError
+        """
         raise ModuleNotFoundError("bidsme GUI needs tkinter installed")
 
 
