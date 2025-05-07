@@ -51,7 +51,7 @@ setuptools.setup(
           "console_scripts": [
               "bidsme=bidsme.main:cli_bidsme",
               "bidsme-pdb=bidsme.main:cli_bidsme_pdb",
-              "bidsme-gui=bidsme.bidsme_gui:GUI"
+              "bidsme-gui=bidsme.main:cli_bidsme_gui"
               ]
           },
       zip_safe=False,

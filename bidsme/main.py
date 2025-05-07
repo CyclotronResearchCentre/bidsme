@@ -27,6 +27,7 @@ import os
 import sys
 import logging
 import time
+from multiprocessing import Process
 
 import bidsschematools as bst
 
@@ -217,3 +218,48 @@ def cli_bidsme_pdb():
         pdb.post_mortem()
         res = 1
     return res
+
+
+def cli_bidsme_gui():
+    """
+    Funtion hook for setup-tools executable for bidsme GUI
+    """
+    p = GUI()
+    p.join()
+
+
+try:
+    import tkinter as tk
+    from tkinter import ttk
+
+    from .gui import MetaExplorer
+
+    def GUI():
+        """
+        Launches bidsme GUI to facilitate some bidsification
+        tasks
+        """
+        p = Process(target=_gui, name="bidsme-GUI",
+                    daemon=True)
+        p.start()
+        return p
+
+    def _gui():
+        root = tk.Tk()
+        root.title("bidsme gui tools")
+        mainframe = ttk.Frame(root, padding="3 3 12 12")
+        mainframe.grid(column=0, row=0, sticky="nsew")
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(0, weight=1)
+        ttk.Button(mainframe, text="Metadata Explorer",
+                   command=lambda: MetaExplorer(root, os.getcwd()))\
+           .grid(column=1, row=1, sticky="w")
+
+        root.mainloop()
+except ModuleNotFoundError:
+    def GUI():
+        """
+        Placeholder for the GUI in case when tkinter is not aviable.
+        Always raise ModuleNotFoundError
+        """
+        raise ModuleNotFoundError("bidsme GUI needs tkinter installed")
