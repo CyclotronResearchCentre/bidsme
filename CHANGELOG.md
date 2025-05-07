@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.9.1] - 2025-05-07
 
 ## Fixed:
  - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
