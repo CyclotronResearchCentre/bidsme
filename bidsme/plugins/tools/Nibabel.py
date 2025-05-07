@@ -77,8 +77,8 @@ def Convert3Dto4D(outfolder: str,
     TR: float or None
         If specified, will add repitition time as axis/last
         dimention. For default 4th dimention (axis=None) unit
-        is miliseconds, overwise mm.
-        see https://nipy.org/nibabel/nibabel_images.html
+        is in seconds, overwise mm. In case of doubt,
+        see https://neurostars.org/t/what-units-of-rt-tedana-expects/33294/3
     check_affines: bool
         If True, then check that all the affines for images
         are nearly the same, raising a ValueError otherwise.
