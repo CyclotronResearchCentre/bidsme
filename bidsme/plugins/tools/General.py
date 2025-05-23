@@ -30,6 +30,7 @@ import logging
 import json
 import zipfile
 import glob
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -227,7 +228,7 @@ def StoreSource(source_path: str, bidsified_path,
     zip_file.close()
 
 
-def ExtractBval(recording):
+def ExtractBval(recording, doCorrection=True):
     """
     Extracts Bval and Bvec values from a DWI recording
     Might work only on Siemens files
@@ -236,6 +237,14 @@ def ExtractBval(recording):
     -----------
     recording: Modules.baseModule
         recording from which extract values
+    doCorrections: bool
+        If True (default), bvec values will be reoriented
+        into the image space, using info in
+        CSAImageHeaderInfo/DiffusionGradientDirection.
+        If False, bvec values are reported as they appear in
+        CSAImageHeaderInfo/B_value
+        Reorientation code is inspired by dcm2niix function
+        siemensPhilipsCorrectBvecs
 
     Returns:
     --------
@@ -256,18 +265,44 @@ def ExtractBval(recording):
         bvec_z.append(vec[2])
     """
     bval = recording.getField("CSAImageHeaderInfo/B_value", default=0)
-    bvec = recording.getField("CSAImageHeaderInfo/DiffusionGradientDirection",
-                              default=[0, 0, 0])
-    norm = math.sqrt(sum(x**2 for x in bvec))
-    if norm > 0:
-        bvec = [bvec[0] / norm, -bvec[1] / norm, -bvec[2] / norm]
+    bvec = np.array(recording.getField("CSAImageHeaderInfo/"
+                                       "DiffusionGradientDirection",
+                                       default=[0, 0, 0]))
+
+    if doCorrection:
+        # Inspired by dcm2niix reorientation Siemens b-vector
+        # See:
+        # console/nii_dicom_batch.cpp:382, siemensPhilipsCorrectBvecs
+
+        bvec_norm = np.linalg.norm(bvec)
+        if math.isclose(bval, 0) or math.isclose(bvec_norm, 0):
+            return bval, bvec
+        orient_vector = recording.getField("ImageOrientationPatient",
+                                           default=[1, 0, 0, 0, 1, 0]
+                                           )
+        read_vector = orient_vector[:3]
+        phase_vector = orient_vector[3:]
+        slice_vector = np.cross(read_vector, phase_vector)
+
+        read_vector /= np.linalg.norm(read_vector)
+        phase_vector /= np.linalg.norm(phase_vector)
+        slice_vector /= np.linalg.norm(slice_vector)
+
+        bvec = np.array([np.dot(bvec, read_vector),
+                         np.dot(bvec, phase_vector),
+                         np.dot(bvec, slice_vector)
+                         ])
+
+    norm = np.linalg.norm(bvec)
+    bvec /= norm
+    bvec[1] = -bvec[1]
     return bval, bvec
 
 
 def SaveBval(fname: str,
              bval: list,
              bvec_x: list, bvec_y: list, bvec_z: list,
-             precision: int = 4):
+             precision: int = 7):
     """
     Saves b-values and vector given in bval, bvec_x, y, z
     parameters into file derived from fname by changing extension.
@@ -311,7 +346,7 @@ def SaveBval(fname: str,
 
     f_bval = open(out_base + ".bval", "w")
     f_bvec = open(out_base + ".bvec", "w")
-    float_format = "{:." + str(precision) + "f}"
+    float_format = "{:." + str(precision) + "g}"
 
     for val in bval[:-1]:
         f_bval.write(float_format.format(val) + " ")
