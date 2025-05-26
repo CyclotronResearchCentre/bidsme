@@ -30,7 +30,7 @@ import logging
 from copy import deepcopy as copy
 from collections import OrderedDict
 
-from bidsme import BIDSschema
+from bidsme.schema import BIDSschema
 from bidsme.tools.yaml import yaml
 from bidsme.tools import type_selector
 
