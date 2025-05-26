@@ -3,21 +3,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.9.2] - 2025-05-26
+ 
+### Fixed:
+ - plugins/General: Extracted `bvec` vectors are now reoriented to the image space
+
 ## [1.9.1] - 2025-05-07
 
-## Fixed:
+### Fixed:
  - Metadata field parcing: bug where a composite fields (like `PhaseEncodingDirection`) couldn't retrieved the raw values
  - Temporary fix for an `<<increment>>` tag resetting with every new recording
  - bidsmap: example field not filled when two different map blocks process same acquisition
 
-## Changed:
+### Changed:
  - plugins/tools/General/CheckPrepared: will accept also subject and session names directly to perform checks;
 also will mirror the same checks configurations as CheckSeries 
  - bidsme-gui: the tkinter dependency is now optional, `bidsme` can be used without it, but attempting
 to launch `bidsme-gui` will end up with `ModuleNotFoundError`
  - bidsme-gui: now launched from CLI with `bidsme-gui` command
 
-## Added:
+### Added:
  - ISSUES.md: keep track of currently known issues with `bidsme`
  - plugins/nibabel: Added TR parameter in `Convert_3D_to_4D` to set the time dimention of 4D images
 
