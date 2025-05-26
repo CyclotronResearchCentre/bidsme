@@ -30,7 +30,7 @@ import logging
 from copy import deepcopy as copy
 from collections import OrderedDict
 
-from bidsme.tools import info
+from bidsme import BIDSschema
 from bidsme.tools.yaml import yaml
 from bidsme.tools import type_selector
 
@@ -54,7 +54,7 @@ class Bidsmap(object):
         yamlfile: str
             YAML file to load
         """
-        self.version = info.bidsversion()
+        self.version = BIDSschema.get_version()
 
         self.Modules = {mod: {t.__name__: dict() for t in types}
                         for mod, types in selector.types_list.items()
@@ -88,7 +88,7 @@ class Bidsmap(object):
             logger.warning('BIDS version conflict: '
                            '{} was created using version {}, '
                            'but this is version {}'
-                           .format(yamlfile, ver, info.bidsversion())
+                           .format(yamlfile, ver, self.version)
                            )
 
         # Over Modules (MRI, EEG etc..)

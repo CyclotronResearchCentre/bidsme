@@ -680,6 +680,13 @@ class BIDSschema(object):
         cls._metadata = cls._schema.objects.metadata
         cls._formats = cls._schema.objects.formats
 
+    @classmethod
+    def get_version(cls) -> str:
+        if cls._schema:
+            return cls._schema["bids_version"]
+        else:
+            return ""
+
     # Internal static methods
     @staticmethod
     def _get_requirement_from_level(level: str) -> (int, str):

@@ -29,8 +29,6 @@ import logging
 import time
 from multiprocessing import Process
 
-import bidsschematools as bst
-
 from bidsme import exceptions
 from bidsme.prepare import prepare
 from bidsme.process import process
