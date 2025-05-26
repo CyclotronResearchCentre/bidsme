@@ -671,8 +671,10 @@ class BIDSschema(object):
             schema from bidsschematools is imported
         """
         cls._schema = bst.load_schema(path)
-        logger.info("Loaded BIDS schema version {}"
+        logger.info("Loaded BIDS version {}"
                     .format(cls._schema["bids_version"]))
+        logger.info("Schema version {}"
+                    .format(cls._schema["schema_version"]))
         cls._entities_order = cls._schema.rules.entities[2:]
         cls._entities = cls._schema.objects.entities
         cls._metadata = cls._schema.objects.metadata

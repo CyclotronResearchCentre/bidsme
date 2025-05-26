@@ -90,9 +90,6 @@ def init(level="INFO",
     logger.debug("Instal dir: {}".format(paths.installation))
     logger.debug("Conf dir: {}".format(paths.config))
 
-    if not schema_path:
-        schema_path = bst.utils.get_bundled_schema_path()
-    logger.debug("Schema dir: {}".format(schema_path))
     BIDSschema.load_schema(schema_path)
     return logger
 

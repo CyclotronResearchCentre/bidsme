@@ -75,8 +75,7 @@ def bidsversion() -> str:
     :return:    The BIDS version number
     """
 
-    schema_dir = bst.utils.get_bundled_schema_path()
-    return bst.schema._get_bids_version(schema_dir)
+    return bst.__bids_version__
 
 
 def version() -> str:
