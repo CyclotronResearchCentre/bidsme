@@ -202,7 +202,8 @@ class BidsTable(object):
         """
         Removes duplicated values from table
         """
-
+        self.df.ffill(inplace=True)
+        self.df.bfill(inplace=True)
         self.df = self.df.drop_duplicates()
 
     def check_duplicates(self, columns=None, keep=False):

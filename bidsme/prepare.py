@@ -367,8 +367,6 @@ def prepare(source: str, destination: str,
                     .format(sub_table.getDuplicatesPath()))
         sub_table.write_data(sub_table.getDuplicatesPath(), df_processed)
     else:
-        sub_table.ffill(inplace=True)
-        sub_table.bfill(inplace=True)
         sub_table.drop_duplicates()
         df_dupl = sub_table.check_duplicates()
         if df_dupl.any():
