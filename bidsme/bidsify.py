@@ -420,6 +420,8 @@ def bidsify(source: str, destination: str,
         dest_sub_table.write_data(dest_sub_table.getDuplicatesPath(),
                                   df_processed)
     else:
+        dest_sub_table.ffill(inplace=True)
+        dest_sub_table.bfill(inplace=True)
         dest_sub_table.drop_duplicates()
         df_dupl = dest_sub_table.check_duplicates()
         if df_dupl.any():

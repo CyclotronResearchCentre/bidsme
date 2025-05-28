@@ -415,6 +415,8 @@ def process(source: str, destination: str,
         source_sub_table.write_data(source_sub_table.getDuplicatesPath(),
                                     df_processed)
     else:
+        source_sub_table.ffill(inplace=True)
+        source_sub_table.bfill(inplace=True)
         source_sub_table.drop_duplicates()
         df_dupl = source_sub_table.check_duplicates()
         if df_dupl.any():
