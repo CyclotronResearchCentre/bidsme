@@ -32,6 +32,8 @@ import zipfile
 import glob
 import numpy as np
 
+from bidsme.tools import tools
+
 logger = logging.getLogger(__name__)
 
 
@@ -338,7 +340,7 @@ def SaveBval(fname: str,
         bvec_y.append(vec[1])
         bvec_z.append(vec[2])
     """
-    out_base = os.path.splitext(fname)[0]
+    out_base = tools.change_ext(fname, None)
 
     size = len(bval)
     if size != len(bvec_x) or size != len(bvec_y) or size != len(bvec_z):
@@ -348,14 +350,12 @@ def SaveBval(fname: str,
     f_bvec = open(out_base + ".bvec", "w")
     float_format = "{:." + str(precision) + "g}"
 
-    for val in bval[:-1]:
-        f_bval.write(float_format.format(val) + " ")
-    f_bval.write(float_format.format(bval[-1]) + "\n")
+    values_to_write = [float_format.format(val) for val in bval]
+    f_bval.write(" ".join(values_to_write) + "\n")
 
     for vec in (bvec_x, bvec_y, bvec_z):
-        for val in vec[:-1]:
-            f_bvec.write(float_format.format(val) + " ")
-        f_bvec.write(float_format.format(vec[-1]) + "\n")
+        values_to_write = [float_format.format(val) for val in vec]
+        f_bvec.write(" ".join(values_to_write) + "\n")
 
     f_bval.close()
     f_bvec.close()

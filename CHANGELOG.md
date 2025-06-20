@@ -3,8 +3,10 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [1.9.3] - 2025-06-20
 ### Fixed:
  - `participants_table.tsv`: Now the `N/A` are filled in case of duplicates 
+ - `plugins/tools/General.py`: `SaveBval` kept `.nii` extensions if base name was a compressed image ([issue #37](https://gitlab.uliege.be/CyclotronResearchCentre/Public/bidstools/bidsme/bidsme/-/issues/37))
 
 
 ## [1.9.2] - 2025-05-26
