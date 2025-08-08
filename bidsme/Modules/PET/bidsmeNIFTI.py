@@ -27,6 +27,8 @@ from .PET import PET
 from . import _DICOM
 from . import _ECAT
 
+from bidsme.tools import tools
+
 import os
 import logging
 import json
@@ -75,22 +77,28 @@ class bidsmeNIFTI(PET):
             True if file is identified as NIFTI
         """
 
-        path, base = os.path.split(file)
-        base, ext = os.path.splitext(base)
-        header = os.path.join(path, "header_dump_" + base + ".json")
-        if os.path.isfile(header):
-            return True
-        else:
-            logger.debug("{}: Missing header dump file"
-                         .format(cls.formatIdentity()))
-            return False
+        if os.path.isfile(file):
+            if os.path.basename(file).startswith('.'):
+                logger.warning('{}: file {} is hidden'
+                               .format(cls.formatIdentity(),
+                                       file))
+                return False
+            path, base = os.path.split(file)
+
+            header = os.path.join(path,
+                                  "header_dump_"
+                                  + tools.change_ext(base, "json"))
+            if os.path.isfile(header):
+                return True
+        return False
 
     def _loadFile(self, path: str) -> None:
         if path != self._FILE_CACHE:
             # The DICM tag may be missing for anonymized DICOM files
-            path, base = os.path.split(path)
-            base, ext = os.path.splitext(base)
-            header = os.path.join(path, "header_dump_" + base + ".json")
+            path_dir, base = os.path.split(path)
+            header = os.path.join(path_dir,
+                                  "header_dump_"
+                                  + tools.change_ext(base, "json"))
             try:
                 with open(header, "r") as f:
                     self._headerData = json.load(f)
