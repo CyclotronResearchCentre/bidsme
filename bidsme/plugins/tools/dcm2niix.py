@@ -29,7 +29,7 @@ import logging
 import shutil
 import json
 import re
-import dcm2niix
+#import dcm2niix
 
 from subprocess import run
 from bidsme.tools import tools
@@ -99,6 +99,7 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
     """
     # Testing dcm2niix executable
     if not binary:
+        import dcm2niix
         binary = dcm2niix.bin
     try:
         p = run([binary] + ["--version"], capture_output=True, text=True)
