@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ## Added:
  - hmriNIFTI: Added more shortcuts for retrieving metadata from header, in particular DwellTime
 
+## Changed:
+ - plugins/dcm2niix: Reimplemented conversion code for dcm2niix, filenames are recovered from parcing stdout, also accepts local instalations of dcm2niix
+
 
 ## [1.9.0] - 2025-02-27
 

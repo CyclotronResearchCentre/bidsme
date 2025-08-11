@@ -50,7 +50,7 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
     the header file as custom fields, and will be automatically
     used during bidsification.
 
-    If echo is true, the output od dcm2niix will bi redirected
+    If echo is true, the output of dcm2niix will be redirected
     to logger (the output will be verbose!).
 
     If remove is true, the DCM files detected by dcm2niix will
