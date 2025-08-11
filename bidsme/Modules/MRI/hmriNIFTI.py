@@ -238,10 +238,21 @@ class hmriNIFTI(MRI):
                 value = self.__phoenix.get("lRepetitions", 0) + 1
             elif name == "PhaseEncodingSign":
                 value = self.__csai.get("PhaseEncodingDirectionPositive", 0)
-                if value:
+                phDir = self.getAttribute("PhaseEncodingDirection")
+                """
+                Invering sign based on
+                    dcm2niix/console/nii_dicom_batch.cpp:2390
+                """
+                if value > 0:
+                    if phDir == "j":
+                        return "-"
                     return ""
-                else:
+                elif value == 0:
+                    if phDir == "j":
+                        return ""
                     return "-"
+                else:
+                    return "?"
             elif name == "B1mapNominalFAValues":
                 if self.__seqName in ("b1v2d3d2", "b1epi4a3d2", "b1epi2b3d2",
                                       "b1epi2d3d2"):
