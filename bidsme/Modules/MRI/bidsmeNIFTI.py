@@ -100,7 +100,7 @@ class bidsmeNIFTI(MRI):
             try:
                 with open(header, "r") as f:
                     self._headerData = json.load(f)
-                    self.custom = self._headerData["custom"]
+                    self.custom.update(self._headerData["custom"])
             except json.JSONDecodeError:
                 logger.error("{}: corrupted header {}"
                              .format(self.formatIdentity(),

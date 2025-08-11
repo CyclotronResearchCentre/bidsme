@@ -37,6 +37,13 @@ metafields = {
                           "MrPhoenixProtocol/alTE/0>"),
             "EchoTime2": ("<round10:scale-6:CSASeriesHeaderInfo/"
                           "MrPhoenixProtocol/alTE/1>"),
+            "ReceiveCoilActiveElements": "<CSASeriesHeaderInfo/CoilString>",
+            "DwellTime": "<scale-6:CSAImageHeaderInfo/RealDwellTime>",
+            "PulseSequenceDetails": ("<CSASeriesHeaderInfo/MrPhoenixProtocol/"
+                                     "tSequenceFileName>"),
+            "ReceiveCoilName": ("<CSASeriesHeaderInfo/MrPhoenixProtocol/"
+                                "sCoilSelectMeas/aRxCoilSelectData/0/"
+                                "asList/0/sCoilElementID/tCoilID>")
             }
         }
 

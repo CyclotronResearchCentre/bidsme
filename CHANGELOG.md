@@ -3,6 +3,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+
+### Fixed:
+ - hmriNIFTI: Inverted PE direction for `j`, based on [dcm2niix](https://github.com/rordenlab/dcm2niix/blob/98ecd0bec9a1dfabd77b2be8c54c3bae97b92a55/console/nii_dicom_batch.cpp#L2426)
+ - bidsmeNIFTI: Fixed custom fields overwrite when loading the file
+
+## Added:
+ - hmriNIFTI: Added more shortcuts for retrieving metadata from header, in particular DwellTime
+
+## Changed:
+ - plugins/dcm2niix: Reimplemented conversion code for dcm2niix, filenames are recovered from parcing stdout, also accepts local instalations of dcm2niix
+
+
 ## [1.9.4] - 2025-06-20
 ### Fixed:
  - `PET/bidsmeNIFTY`: Fixed extensions so compressed files should be taken into account

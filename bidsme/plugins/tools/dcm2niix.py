@@ -28,43 +28,60 @@ import os
 import logging
 import shutil
 import json
-import dcm2niix
+import re
 
+from subprocess import run
 from bidsme.tools import tools
-from bidsme.Modules import baseModule
 
 logger = logging.getLogger(__name__)
 
 
-def convert(outfolder: str, recording: baseModule, use_dump=True):
+def convert(dcm_folder: str, binary=None, echo=False, remove=True,
+            params={}):
     """
     Use dcm2niix (https://github.com/rordenlab/dcm2niix)
-    to convert DICOM files to NIFTY.
+    to convert DICOM files to NIFTY with default options
+    -a y -f %p_%s -z y
+    These options can be changed by providing params dictionary.
 
-    If use_dump is True, the header dump will be complemented
-    by metadata extracted by dcm2niix in the custom section
-    of the header, and output files will be identified by
-    bidsme as bidsmeNIFTY files. Due to technical limitations,
-    the files will be renamed into <SequenceId>.IMA files.
+    If original DICOM files are acompagnied by bidsme header file,
+    the metadata exported by dcm2niix will be incorporated in to
+    the header file as custom fields, and will be automatically
+    used during bidsification.
 
-    If use_dump is False, the default json files from conversion
-    will be preserved and output files will be identified as
-    jsonNIFTY.
+    If echo is true, the output of dcm2niix will be redirected
+    to logger (the output will be verbose!).
+
+    If remove is true, the DCM files detected by dcm2niix will
+    be removed, be carefull to run this function outside prepared
+    dataset!
 
     This tool is intended to be used in preparation step
     in SequenceEndEP.
 
     Parameters:
     -----------
-    outfolder: str
+    dcm_folder: str
         path to output folder where data files has been copied
-    recording: baseModule
-        recording object to convert
-    use_dump: bool
-        To conserve header dump json file (True) or
-        to ignore it (False). Conserving header dump file
-        will also rename dicom files to convert.
-        Default: True
+    binary: str | None
+        path to the dcm2niix executable, if None, the default
+        system executable will be used
+    echo: bool
+        If True, all dcm2niix output will be redirected to
+        logger (the verbosity is fixed to 1).
+        If False (default), only basic information will be given
+        to logger.
+    remove: bool
+        If True (default), the original DICOM files will be removed.
+        If False, the original files will be conserved, this can
+        interfere with future bidsification step.
+    params: dict
+        dictionary of parameters to be passed to dcm2niix.
+        The verbosity (-v) will be fixed to verbose(1).
+        For repeated arguments (-n) provide a list of values.
+        For switches (--ignore_trigger_times) provide None.
+        If the -o is not specified, the input folder will be
+        used.
 
     Returns:
     --------
@@ -77,67 +94,109 @@ def convert(outfolder: str, recording: baseModule, use_dump=True):
     #   outfolder is the path where files are copied
     from bidsme.plugins.tools import dcm2niix
     if not dry_run:
-        dcm2niix.convert(outfolder, recording)
+        dcm2niix.convert(outfolder, params={"-i": "y", "-f", "%p_%r"})
     """
-    # Creating a list of files in case if not all files
-    # in recording are in output folder
-    flist = [f for f in os.listdir(outfolder)
-             if f in recording.files
-             ]
-    flist.sort()
-
-    if use_dump:
-        out_files = []
-        for i, f in enumerate(flist):
-            json_file = "header_dump_" + tools.change_ext(f, "json")
-            with open(os.path.join(outfolder, json_file)) as fjs:
-                js = json.load(fjs)
-            basename = "{}_{:06d}".format(js["recId"], i)
-            shutil.move(os.path.join(outfolder, f),
-                        os.path.join(outfolder, basename + ".IMA"))
-            shutil.move(os.path.join(outfolder, json_file),
-                        os.path.join(outfolder,
-                                     "header_dump_" + basename + ".json"))
-            out_files.append(basename + ".IMA")
-    else:
-        out_files = flist
-
-    logger.info("Converting {} images".format(len(flist)))
+    # Testing dcm2niix executable
+    if not binary:
+        import dcm2niix
+        binary = dcm2niix.bin
+    try:
+        p = run([binary] + ["--version"], capture_output=True, text=True)
+    except FileNotFoundError:
+        logger.error("Can't find dcm2niix executable at {}".format(binary))
+        raise
+    logger.info(p.stdout.split("\n")[0])
 
     # Building up dcm2niix parameters
-    params = []
-    dcm2niix_options = {"-a": "y", "-d": "1", "-z": "o",
-                        "-w": "0"}
-    if use_dump:
-        dcm2niix_options["-f"] = "%b"
-        dcm2niix_options["--terse"] = None
+    dcm_params = {"-a": "y",
+                  "-f": "%p_%s",
+                  "-z": "y"}
+    dcm_params.update(params)
+    dcm_params["-v"] = 1
+    dcm2niix_options = [binary]
+    for arg, val in dcm_params.items():
+        if isinstance(val, list):
+            for subval in val:
+                dcm2niix_options.append(arg)
+                dcm2niix_options.append(str(val))
+        else:
+            dcm2niix_options.append(arg)
+            if val is not None:
+                dcm2niix_options.append(str(val))
+    dcm2niix_options.append(dcm_folder)
 
-    for key, val in dcm2niix_options.items():
-        params.append(key)
-        if val is not None:
-            params.append(val)
-    params.append(outfolder)
-    dcm2niix.main(params)
+    # Running conversion
+    logger.info('"' + '" "'.join(dcm2niix_options) + '"')
+    p = run(dcm2niix_options, capture_output=True, text=True)
+    if p.returncode == 2 and p.stderr.strip() == "":
+        logger.error("dcm2niix failed with error code {}".format(p.returncode))
+        logger.error("Unable to find any DICOM images in {}"
+                     .format(dcm_folder.strip()))
+        logger.info("stdout: {}".format(p.stdout.strip()))
+        raise Exception("dcm2niix failed: {}".format(p.returncode))
 
-    # Removing original files
-    for fname in out_files:
-        json_file = "header_dump_" + tools.change_ext(fname, "json")
-        os.remove(os.path.join(outfolder, fname))
-        candidate = fname + ".nii.gz"
-        if os.path.isfile(os.path.join(outfolder, candidate)):
-            # Merge metadata
-            js = tools.change_ext(candidate, "json")
-            with open(os.path.join(outfolder, js)) as fjs:
-                js_ext = json.load(fjs)
-            os.remove(os.path.join(outfolder, js))
+    if p.returncode != 0:
+        logger.error("dcm2niix failed with error code {}".format(p.returncode))
+        logger.error("stderr: {}".format(p.stderr.strip()))
+        logger.info("stdout: {}".format(p.stdout.strip()))
+        raise Exception("dcm2niix failed: {}".format(p.returncode))
 
-            with open(os.path.join(outfolder, json_file)) as fjs:
-                js_source = json.load(fjs)
-            js_ext.update(js_source["custom"])
-            js_source["custom"] = js_ext
+    # Identifying output files
+    log_list = p.stdout.split("\n")
+    dcm_files = []
+    for ln in log_list:
+        tag = "DICOM file: "
+        if ln.startswith(tag):
+            dcm_files.append(ln[len(tag):])
+            continue
+        tag = "Converting "
+        if ln.startswith(tag):
+            logger.info(ln)
+            converting = ln[len(tag):]
+            dump_path, dump_file = os.path.split(converting)
+            dump_file = "header_dump_" + tools.change_ext(dump_file, "json")
+            dump_file = os.path.join(dump_path, dump_file)
+            continue
 
-            ext_name = "header_dump_{}".format(js)
-            with open(os.path.join(outfolder, ext_name), "w") as fjs:
-                json.dump(js_source, fjs, indent="  ")
+        tag = "Convert "
+        if ln.startswith(tag):
+            logger.info(ln)
+            res = re.fullmatch(r"Convert ([0-9]+) DICOM as (.*) "
+                               r"(\((?:[0-9]+x)+[0-9]+\))", ln)
+            if os.path.isfile(dump_file):
+                out_dump_path, out_dump_file = os.path.split(res.group(2))
+                out_dump_file = "header_dump_" + out_dump_file + ".json"
+                out_dump_file = os.path.join(out_dump_path, out_dump_file)
 
-        os.remove(os.path.join(outfolder, json_file))
+                dcm_json = res.group(2) + ".json"
+                if os.path.isfile(dcm_json):
+                    with open(dcm_json, "r") as f:
+                        js = json.load(f)
+                    os.remove(dcm_json)
+                    with open(dump_file, "r") as f:
+                        dump = json.load(f)
+                    js.update(dump["custom"])
+                    dump["custom"] = js
+                    with open(out_dump_file, "w") as f:
+                        json.dump(dump, f, indent="  ")
+                else:
+                    shutil.copyfile2(dump_file, out_dump_file)
+            converting = None
+            continue
+
+        if ln.startswith("Warning: "):
+            logger.warning(ln)
+        elif echo:
+            logger.info(ln)
+
+    # Removing old dicoms
+    if remove:
+        logger.info("Removing {} DCM files".format(len(dcm_files)))
+        for file in dcm_files:
+            dump_path, dump_file = os.path.split(file)
+            dump_file = "header_dump_" + tools.change_ext(dump_file, "json")
+            os.remove(file)
+            try:
+                os.remove(os.path.join(dump_path, dump_file))
+            except FileNotFoundError:
+                pass
