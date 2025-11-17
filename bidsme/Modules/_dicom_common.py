@@ -319,17 +319,25 @@ def decodeValue(val, VR: str, clean=False):
         else:
             return t
 
-    # Invalid type
-    # Attributes and sequences will produce warning and return
-    # None
-    if VR in ("AT", "SQ", "UN"):
-        raise ValueError("invalid VR: {}".format(VR))
+    # Attribute Tag: Returns name, or, if not aviable,
+    # string represenrtion of tag
+    if VR in ("AT"):
+        res = pydicom.datadict.keyword_for_tag(val)
+        if res:
+            return res
+        return str(val)
 
     # Other type
     # Attempting to decode SV10 formatted bytes string
     # Not clear how parce them
     if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
         return "{}: {}".format(VR, repr(val))
+
+    # Invalid type
+    # Attributes and sequences will produce warning and return
+    # None
+    if VR in ("SQ", "UN"):
+        raise ValueError("invalid VR: {}".format(VR))
 
     # unregistered VR
     raise ValueError("invalid VR: {}".format(VR))
