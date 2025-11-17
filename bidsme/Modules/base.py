@@ -240,7 +240,11 @@ class baseModule(abstract):
         to_copy = glob.glob(os.path.join(self._recPath, basename))
         for file in to_copy:
             shutil.copy2(file, destination)
-        return os.path.join(destination, self.currentFile(True))
+        out_name = os.path.join(destination, self.currentFile(True))
+        if not os.path.isfile(out_name):
+            shutil.copy2(self.currentFile(False), destination)
+
+        return out_name
 
     def exportHeader(self, destination: str) -> None:
         """
@@ -325,7 +329,8 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
-        if os.path.basename(file).startswith('.'):
+        basename = os.path.basename(file)
+        if basename.startswith('.'):
             logger.debug('{}: Hidden file'
                          .format(cls.formatIdentity()))
             return False
@@ -333,26 +338,19 @@ class baseModule(abstract):
         if cls._file_extentions:
             passed = False
             for ext in cls._file_extentions:
-                if file.endswith(ext):
+                if ext == "" and "." not in basename:
+                    passed = True
+                    break
+                elif file.endswith(ext):
                     passed = True
                     break
             if not passed:
-                # logger.debug("{}: Unaccepted extention"
-                #              .format(cls.formatIdentity()))
                 return False
         try:
             res = cls._isValidFile(file)
-            # if res:
-            #     logger.debug("{}: Passed"
-            #                  .format(cls.formatIdentity()))
-            # else:
-            #     logger.debug("{}: Rejected"
-            #                  .format(cls.formatIdentity()))
             return res
 
         except Exception:
-            # logger.debug("{}: {}"
-            #              .format(cls.formatIdentity(), e))
             return False
 
     @classmethod
