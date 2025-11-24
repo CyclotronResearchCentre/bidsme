@@ -243,7 +243,7 @@ class baseModule(abstract):
         out_name = os.path.join(destination,
                                 self.currentFile(True).replace(os.sep, "_"))
         if not os.path.isfile(out_name):
-            shutil.copy2(self.currentFile(False), destination)
+            shutil.copy2(self.currentFile(False), out_name)
 
         return out_name
 
