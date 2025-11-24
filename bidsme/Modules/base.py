@@ -240,7 +240,8 @@ class baseModule(abstract):
         to_copy = glob.glob(os.path.join(self._recPath, basename))
         for file in to_copy:
             shutil.copy2(file, destination)
-        out_name = os.path.join(destination, self.currentFile(True))
+        out_name = os.path.join(destination,
+                                self.currentFile(True).replace(os.sep, "_"))
         if not os.path.isfile(out_name):
             shutil.copy2(self.currentFile(False), destination)
 
@@ -261,6 +262,7 @@ class baseModule(abstract):
 
         data_file = self.currentFile(True)
         json_file = "header_dump_" + tools.change_ext(data_file, "json")
+        json_file = json_file.replace(os.sep, "_")
         with open(os.path.join(destination, json_file), "w") as f:
             d = dict()
             d["format"] = self.formatIdentity()
@@ -329,6 +331,10 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
+
+        if not os.path.isfile(file):
+            return False
+
         basename = os.path.basename(file)
         if basename.startswith('.'):
             logger.debug('{}: Hidden file'
@@ -338,10 +344,11 @@ class baseModule(abstract):
         if cls._file_extentions:
             passed = False
             for ext in cls._file_extentions:
-                if ext == "" and "." not in basename:
-                    passed = True
-                    break
-                elif file.endswith(ext):
+                if ext == "":
+                    if "." not in basename:
+                        passed = True
+                        break
+                elif basename.endswith(ext):
                     passed = True
                     break
             if not passed:

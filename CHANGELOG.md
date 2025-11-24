@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Added:
+  - DICOM: parcing of `AT` type
+  - Support of extension-less files (in prepare)
 
 ## [1.9.5] - 2025-08-11
 ### Fixed:

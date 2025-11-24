@@ -21,6 +21,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+import os
 import logging
 import pydicom
 import re
@@ -51,20 +52,19 @@ def isValidDICOM(file: str, mod: list = []) -> bool:
         True if file is DICOM with given modality
     """
     with open(file, 'rb') as dcmfile:
-        dcmfile.seek(0x80)
-        if dcmfile.read(4) != b"DICM":
-            logger.debug("Missing DICOM magic string")
-            return False
-        if not mod:
+        if os.path.basename(file) == "DICOMDIR":
+            ds = pydicom.dcmread(dcmfile)
+            if not isinstance(ds, pydicom.dicomdir.DicomDir):
+                logger.warning("{}: Not a DICOMDIR file".format(file))
+                return False
             return True
 
-        dcmfile.seek(0)
         ds = pydicom.dcmread(dcmfile, specific_tags=["Modality"])
         if "Modality" not in ds:
             logger.warnng('{}: DICOM file misses Modality tag'
                           .format(file))
             return False
-        if ds["Modality"].value in mod:
+        if (not mod) or (ds["Modality"].value in mod):
             return True
         else:
             logger.debug("Unaccepted modality: {}"
