@@ -23,6 +23,14 @@
 ##############################################################################
 import re
 
+classes = {
+    "NoneType": "null",
+    "list": "array",
+    "int": "number",
+    "dict": "object",
+    "bool": "boolean"
+        }
+
 
 def in_(val, li):
     if hasattr(li, '__iter__'):
@@ -39,6 +47,16 @@ def intersects(l_list, r_list):
 
 def match(string, pattern):
     return bool(re.fullmatch(pattern, string))
+
+
+def type(item):
+    if item is None:
+        return "null"
+    if isinstance(item, list):
+        return "array"
+    if isinstance(item, dict):
+        return "object"
+    return "unknown"
 
 
 def test_boolean(item, value):

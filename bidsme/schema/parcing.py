@@ -37,7 +37,8 @@ key_words = {"null": None,
 
 functions = {
     "intersects": functs.intersects,
-    "match": functs.match
+    "match": functs.match,
+    "type": functs.type
         }
 
 operators = {
