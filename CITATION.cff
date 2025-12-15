@@ -1,0 +1,49 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Beliy"
+    given-names: "Nikita"
+    orcid: "0https://orcid.org/009-0002-0830-3279"
+  - family-names: "Guillemin"
+    given-names: "Camille"
+    orcid: "https://orcid.org/0000-0002-5377-7417"
+  - family-names: "Pommier"
+    given-names: "Emeline"
+  - family-names: "Hammad"
+    given-names: "Grégory"
+    orcid: "https://orcid.org/0000-0003-1083-3869"
+  - family-names: "Phillips"
+    given-names: "Christophe"
+    orcid: "https://orcid.org/0000-0002-4990-425X"
+  - family-names: "Spitz"
+    given-names: "Bradley"
+title: "Bidsme: expandable BIDS-ifier of brain imagery datasets"
+doi: "https://doi.org/10.5281/zenodo.10185300"
+date-released: 2023-01-11
+url: "https://github.com/CyclotronResearchCentre/bidsme"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Beliy"
+    given-names: "Nikita"
+    orcid: "0https://orcid.org/009-0002-0830-3279"
+  - family-names: "Guillemin"
+    given-names: "Camille"
+    orcid: "https://orcid.org/0000-0002-5377-7417"
+  - family-names: "Pommier"
+    given-names: "Emeline"
+  - family-names: "Hammad"
+    given-names: "Grégory"
+    orcid: "https://orcid.org/0000-0003-1083-3869"
+  - family-names: "Phillips"
+    given-names: "Christophe"
+    orcid: "https://orcid.org/0000-0002-4990-425X"
+  doi: "https://doi.org/10.21105/joss.05575"
+  journal: "Journal of Open Source Software"
+  title: "Bidsme: expandable BIDS-ifier of brain imagery datasets"
+  year: 2023
+  month: 12
+  issue: 10
+  volume: 8
+  number: 92
+  pages: 5572
