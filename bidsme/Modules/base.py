@@ -807,10 +807,7 @@ class baseModule(abstract):
             raise ValueError("{}: series_id must be a string, {} recieved"
                              .format(self.currentFile(), type(val)))
         val = val.strip()
-        val = val.replace("\t", "_")
-        val = val.replace(" ", "_")
-        val = val.replace("/", "_")
-        val = val.replace("\\", "_")
+        val = re.sub(r"\W", "_", val)
         self._series_id = val
 
     def recId(self):
