@@ -3,6 +3,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+### Changed:
+ - Python version: limited version to `<3.13`
+
 ### Fixed:
  - bidsschema: added `type`function making it compatible with bidsschematool 1.1.3
  - recId: Replacing all non word characters by `_` ([gitHub:#19](https://github.com/CyclotronResearchCentre/bidsme/issues/19))

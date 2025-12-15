@@ -30,7 +30,7 @@ setuptools.setup(
       long_description=long_description,
       author="Nikita Beliy",
       author_email="nikita.beliy@uliege.be",
-      python_requires=">=3.8",
+      python_requires=">=3.8, <3.13",
       packages=setuptools.find_packages(),
       install_requires=[
           "pandas>1.4.4",
