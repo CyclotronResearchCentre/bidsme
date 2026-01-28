@@ -131,10 +131,10 @@ class NIFTI(MRS):
 
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         if self._nii_type == "ni1":
-            shutil.copy2(self.currentFile(),
+            shutil.copy(self.currentFile(),
                          os.path.join(directory, bidsname + ext))
             data_file = tools.change_ext(self.currentFile(), "img")
-            shutil.copy2(data_file,
+            shutil.copy(data_file,
                          os.path.join(directory, bidsname + ".img"))
         else:
             out_fname = os.path.join(directory, bidsname + ext)
@@ -144,7 +144,7 @@ class NIFTI(MRS):
                     with gzip.open(out_fname, 'wb') as f_out:
                         shutil.copyfileobj(f_in, f_out)
             else:
-                shutil.copy2(self.currentFile(), out_fname)
+                shutil.copy(self.currentFile(), out_fname)
 
     def _recNo(self):
         return None

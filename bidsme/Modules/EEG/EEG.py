@@ -288,7 +288,7 @@ class EEG(baseModule):
                                         sep="\t", na_rep="n/a",
                                         header=True, index=True,
                                         lineterminator="\n")
-        shutil.copy2(self.currentFile(), destination)
+        shutil.copy(self.currentFile(), destination)
         return os.path.join(destination, self.currentFile(True))
 
     def _copy_bidsified(self, directory: str,
@@ -310,7 +310,7 @@ class EEG(baseModule):
         """
         dest_base = os.path.join(directory, bidsname)
 
-        shutil.copy2(self.currentFile(), dest_base + ext)
+        shutil.copy(self.currentFile(), dest_base + ext)
 
         dest_base = dest_base.rsplit("_", 1)[0]
 
