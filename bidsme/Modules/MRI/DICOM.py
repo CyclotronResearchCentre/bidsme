@@ -53,7 +53,7 @@ class DICOM(MRI):
 
         if rec_path:
             self.setRecPath(rec_path)
-        
+
         if "DICOMDIR" in self.files:
             dcmdir_ind = self.files.index("DICOMDIR")
             loc_files = []
@@ -70,7 +70,7 @@ class DICOM(MRI):
                                 len(loc_files))
                         )
             self.files = self.files[0:dcmdir_ind] + loc_files +\
-                    self.files[dcmdir_ind + 1:]
+                self.files[dcmdir_ind + 1:]
 
     @classmethod
     def _isValidFile(cls, file: str) -> bool:
@@ -104,10 +104,14 @@ class DICOM(MRI):
                 # DICOMDIR, loading only basic info
                 # TODO: warn about study, subject and acq change
                 self._DICOM_CACHE = dicomdict["DirectoryRecordSequence"][0]
-                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][1])
-                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][2])
-                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][3])
-                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][4])
+                self._DICOM_CACHE.update(
+                        dicomdict["DirectoryRecordSequence"][1])
+                self._DICOM_CACHE.update(
+                        dicomdict["DirectoryRecordSequence"][2])
+                self._DICOM_CACHE.update(
+                        dicomdict["DirectoryRecordSequence"][3])
+                self._DICOM_CACHE.update(
+                        dicomdict["DirectoryRecordSequence"][4])
             else:
                 self._DICOM_CACHE = dicomdict
                 if self.setManufacturer(self.getField("Manufacturer"),
