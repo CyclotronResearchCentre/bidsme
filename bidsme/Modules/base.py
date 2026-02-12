@@ -241,7 +241,13 @@ class baseModule(abstract):
         for file in to_copy:
             out_path = os.path.join(destination, os.path.basename(file))
             shutil.copyfile(file, out_path)
-        return os.path.join(destination, self.currentFile(True))
+
+        out_name = os.path.join(destination,
+                                self.currentFile(True).replace(os.sep, "_"))
+        if not os.path.isfile(out_name):
+            shutil.copyfile(self.currentFile(False), out_name)
+
+        return out_name
 
     def exportHeader(self, destination: str) -> None:
         """
@@ -258,6 +264,7 @@ class baseModule(abstract):
 
         data_file = self.currentFile(True)
         json_file = "header_dump_" + tools.change_ext(data_file, "json")
+        json_file = json_file.replace(os.sep, "_")
         with open(os.path.join(destination, json_file), "w") as f:
             d = dict()
             d["format"] = self.formatIdentity()
@@ -326,7 +333,12 @@ class baseModule(abstract):
         if not os.access(file, os.R_OK):
             raise PermissionError("File {} not readable"
                                   .format(file))
-        if os.path.basename(file).startswith('.'):
+
+        if not os.path.isfile(file):
+            return False
+
+        basename = os.path.basename(file)
+        if basename.startswith('.'):
             logger.debug('{}: Hidden file'
                          .format(cls.formatIdentity()))
             return False
@@ -334,26 +346,20 @@ class baseModule(abstract):
         if cls._file_extentions:
             passed = False
             for ext in cls._file_extentions:
-                if file.endswith(ext):
+                if ext == "":
+                    if "." not in basename:
+                        passed = True
+                        break
+                elif basename.endswith(ext):
                     passed = True
                     break
             if not passed:
-                # logger.debug("{}: Unaccepted extention"
-                #              .format(cls.formatIdentity()))
                 return False
         try:
             res = cls._isValidFile(file)
-            # if res:
-            #     logger.debug("{}: Passed"
-            #                  .format(cls.formatIdentity()))
-            # else:
-            #     logger.debug("{}: Rejected"
-            #                  .format(cls.formatIdentity()))
             return res
 
         except Exception:
-            # logger.debug("{}: {}"
-            #              .format(cls.formatIdentity(), e))
             return False
 
     @classmethod

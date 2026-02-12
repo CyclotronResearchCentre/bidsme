@@ -180,7 +180,7 @@ def convert(dcm_folder: str, binary=None, echo=False, remove=True,
                     with open(out_dump_file, "w") as f:
                         json.dump(dump, f, indent="  ")
                 else:
-                    shutil.copyfile2(dump_file, out_dump_file)
+                    shutil.copyfile(dump_file, out_dump_file)
             converting = None
             continue
 

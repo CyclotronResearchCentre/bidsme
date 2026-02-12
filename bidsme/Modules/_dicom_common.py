@@ -21,6 +21,7 @@
 # along with BIDSme.  If not, see <https://www.gnu.org/licenses/>.
 ##############################################################################
 
+import os
 import logging
 import pydicom
 import re
@@ -51,20 +52,19 @@ def isValidDICOM(file: str, mod: list = []) -> bool:
         True if file is DICOM with given modality
     """
     with open(file, 'rb') as dcmfile:
-        dcmfile.seek(0x80)
-        if dcmfile.read(4) != b"DICM":
-            logger.debug("Missing DICOM magic string")
-            return False
-        if not mod:
+        if os.path.basename(file) == "DICOMDIR":
+            ds = pydicom.dcmread(dcmfile)
+            if not isinstance(ds, pydicom.dicomdir.DicomDir):
+                logger.warning("{}: Not a DICOMDIR file".format(file))
+                return False
             return True
 
-        dcmfile.seek(0)
         ds = pydicom.dcmread(dcmfile, specific_tags=["Modality"])
         if "Modality" not in ds:
             logger.warnng('{}: DICOM file misses Modality tag'
                           .format(file))
             return False
-        if ds["Modality"].value in mod:
+        if (not mod) or (ds["Modality"].value in mod):
             return True
         else:
             logger.debug("Unaccepted modality: {}"
@@ -319,17 +319,25 @@ def decodeValue(val, VR: str, clean=False):
         else:
             return t
 
-    # Invalid type
-    # Attributes and sequences will produce warning and return
-    # None
-    if VR in ("AT", "SQ", "UN"):
-        raise ValueError("invalid VR: {}".format(VR))
+    # Attribute Tag: Returns name, or, if not aviable,
+    # string represenrtion of tag
+    if VR in ("AT"):
+        res = pydicom.datadict.keyword_for_tag(val)
+        if res:
+            return res
+        return str(val)
 
     # Other type
     # Attempting to decode SV10 formatted bytes string
     # Not clear how parce them
     if VR in ("OB", "OD", "OF", "OL", "OV", "OW"):
         return "{}: {}".format(VR, repr(val))
+
+    # Invalid type
+    # Attributes and sequences will produce warning and return
+    # None
+    if VR in ("SQ", "UN"):
+        raise ValueError("invalid VR: {}".format(VR))
 
     # unregistered VR
     raise ValueError("invalid VR: {}".format(VR))

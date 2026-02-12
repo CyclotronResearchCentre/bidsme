@@ -333,7 +333,11 @@ def prepare(source: str, destination: str,
                                                scan.session,
                                                rec_dir))
                         continue
-                    cls = selector.select(rec_dir, rec_type)
+                    if "/" in rec_type:
+                        module, name = rec_type.split("/", 1)
+                        cls = selector.selectByName(name, module)
+                    else:
+                        cls = selector.select(rec_dir, rec_type)
                     if cls is None:
                         logger.warning("Unable to identify data in folder {}"
                                        .format(rec_dir))

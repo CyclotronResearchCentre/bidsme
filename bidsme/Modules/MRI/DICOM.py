@@ -40,7 +40,7 @@ class DICOM(MRI):
 
     __slots__ = ["_DICOM_CACHE", "_DICOMFILE_CACHE"]
 
-    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA"]
+    _file_extentions = [".dcm", ".DCM", ".ima", ".IMA", ""]
 
     __specialFields = {}
 
@@ -53,6 +53,24 @@ class DICOM(MRI):
 
         if rec_path:
             self.setRecPath(rec_path)
+        
+        if "DICOMDIR" in self.files:
+            dcmdir_ind = self.files.index("DICOMDIR")
+            loc_files = []
+            dcmdir = pydicom.dcmread(os.path.join(self.recPath(),
+                                                  self.files[dcmdir_ind]))
+            for image in dcmdir["DirectoryRecordSequence"]:
+                if image["DirectoryRecordType"].value != "IMAGE":
+                    continue
+                ref = image["ReferencedFileID"]
+                loc_files.append(os.path.join(*[v for v in ref]))
+            logger.info("{}/{}: Expanded DICOMDIR to {} files"
+                        .format(self.Module(),
+                                self.Type(),
+                                len(loc_files))
+                        )
+            self.files = self.files[0:dcmdir_ind] + loc_files +\
+                    self.files[dcmdir_ind + 1:]
 
     @classmethod
     def _isValidFile(cls, file: str) -> bool:
@@ -71,13 +89,6 @@ class DICOM(MRI):
         bool:
             True if file is identified as DICOM
         """
-        if not os.path.isfile(file):
-            return False
-        if os.path.basename(file).startswith('.'):
-            logger.warning('{}: file {} is hidden'
-                           .format(cls.formatIdentity(),
-                                   file))
-            return False
         try:
             return _dicom_common.isValidDICOM(file, "MR")
         except Exception:
@@ -89,10 +100,19 @@ class DICOM(MRI):
             # The DICM tag may be missing for anonymized DICOM files
             dicomdict = pydicom.dcmread(path, stop_before_pixels=True)
             self._DICOMFILE_CACHE = path
-            self._DICOM_CACHE = dicomdict
-            if self.setManufacturer(self.getField("Manufacturer"),
-                                    _DICOM.manufacturers):
-                self.setupMetaFields(_DICOM.metafields)
+            if isinstance(dicomdict, pydicom.dicomdir.DicomDir):
+                # DICOMDIR, loading only basic info
+                # TODO: warn about study, subject and acq change
+                self._DICOM_CACHE = dicomdict["DirectoryRecordSequence"][0]
+                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][1])
+                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][2])
+                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][3])
+                self._DICOM_CACHE.update(dicomdict["DirectoryRecordSequence"][4])
+            else:
+                self._DICOM_CACHE = dicomdict
+                if self.setManufacturer(self.getField("Manufacturer"),
+                                        _DICOM.manufacturers):
+                    self.setupMetaFields(_DICOM.metafields)
 
     def _getAcqTime(self) -> datetime:
         for Id in ("Acquisition", "Content", "Instance"):

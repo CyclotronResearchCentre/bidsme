@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
  - bidsschema: added `type`function making it compatible with bidsschematool 1.1.3
  - recId: Replacing all non word characters by `_` ([gitHub:#19](https://github.com/CyclotronResearchCentre/bidsme/issues/19))
  - Using `shutil.copyfile` instead of `shutil.copy` to avoid cros-filesystem problems
+  - DICOM: parcing of `AT` type
+  - Support of extension-less files (in prepare)
 
 ## [1.9.5] - 2025-08-11
 ### Fixed:
