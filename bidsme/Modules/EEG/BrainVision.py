@@ -320,7 +320,7 @@ class BrainVision(EEG):
 
         if self._data_file:
             f = os.path.join(self._recPath, self._data_file)
-            shutil.copy(f, out_base + ".eeg")
+            shutil.copyfile(f, out_base + ".eeg")
 
         if self._marker_file:
             f_in = open(os.path.join(self._recPath, self._marker_file), "r")
@@ -419,13 +419,15 @@ class BrainVision(EEG):
         str:
             path to copied file
         """
-        shutil.copy(self.currentFile(), destination)
+        shutil.copyfile(
+            self.currentFile(),
+            os.path.join(destination, self.currentFile(True)))
         if self._data_file:
             f = os.path.join(self._recPath, self._data_file)
-            shutil.copy(f, destination)
+            shutil.copyfile(f, os.path.join(destination, self._data_file))
         if self._marker_file:
             f = os.path.join(self._recPath, self._marker_file)
-            shutil.copy(f, destination)
+            shutil.copyfile(f, os.path.join(destination, self._marker_file))
 
         base = os.path.splitext(self.currentFile(True))[0]
         dest_base = os.path.join(destination, base)

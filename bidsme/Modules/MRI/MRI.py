@@ -67,18 +67,18 @@ class MRI(baseModule):
         """
         bids_base = os.path.join(directory, bidsname)
 
-        if self.Modality() == "dwi" and self.suffix == "dwi":
+        if self.Modality() in ("dwi", "fmap"):
             bvec = tools.change_ext(self.currentFile(), "bvec")
             if os.path.isfile(bvec):
-                shutil.copy(bvec,
-                            bids_base + ".bvec")
-            else:
+                shutil.copyfile(bvec,
+                                bids_base + ".bvec")
+            elif self.suffix == "dwi":
                 logger.warning("{} missing bvec file for diffusion recording"
                                .format(self.recIdentity()))
             bval = tools.change_ext(self.currentFile(), "bval")
             if os.path.isfile(bval):
-                shutil.copy(bval,
-                            bids_base + ".bval")
-            else:
+                shutil.copyfile(bval,
+                                bids_base + ".bval")
+            elif self.suffix == "dwi":
                 logger.warning("{} missing bval file for diffusion recording"
                                .format(self.recIdentity()))
