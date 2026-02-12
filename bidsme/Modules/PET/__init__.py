@@ -1,5 +1,5 @@
 from .bidsmeNIFTI import bidsmeNIFTI
-from .NIFTI import jsonNIFTI
+from .jsonNIFTI import jsonNIFTI
 from .NIFTI import NIFTI
 
 try:
