@@ -132,10 +132,10 @@ class NIFTI(MRI):
     def _copy_bidsified(self, directory: str, bidsname: str, ext: str) -> None:
         if self._nii_type == "ni1":
             shutil.copy(self.currentFile(),
-                         os.path.join(directory, bidsname + ext))
+                        os.path.join(directory, bidsname + ext))
             data_file = tools.change_ext(self.currentFile(), "img")
             shutil.copy(data_file,
-                         os.path.join(directory, bidsname + ".img"))
+                        os.path.join(directory, bidsname + ".img"))
         else:
             out_fname = os.path.join(directory, bidsname + ext)
             if self.switches["zipFile"] and\

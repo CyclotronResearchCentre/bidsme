@@ -71,14 +71,14 @@ class MRI(baseModule):
             bvec = tools.change_ext(self.currentFile(), "bvec")
             if os.path.isfile(bvec):
                 shutil.copy(bvec,
-                             bids_base + ".bvec")
+                            bids_base + ".bvec")
             else:
                 logger.warning("{} missing bvec file for diffusion recording"
                                .format(self.recIdentity()))
             bval = tools.change_ext(self.currentFile(), "bval")
             if os.path.isfile(bval):
                 shutil.copy(bval,
-                             bids_base + ".bval")
+                            bids_base + ".bval")
             else:
                 logger.warning("{} missing bval file for diffusion recording"
                                .format(self.recIdentity()))
