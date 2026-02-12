@@ -191,7 +191,7 @@ class baseModule(abstract):
                 with gzip.open(out_fname, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
         else:
-            shutil.copy(self.currentFile(), out_fname)
+            shutil.copyfile(self.currentFile(), out_fname)
 
     def _post_copy_bidsified(self,
                              directory: str,
@@ -239,7 +239,8 @@ class baseModule(abstract):
         basename = tools.change_ext(self.currentFile(True), "*")
         to_copy = glob.glob(os.path.join(self._recPath, basename))
         for file in to_copy:
-            shutil.copy(file, destination)
+            out_path = os.path.join(destination, os.path.basename(file))
+            shutil.copyfile(file, out_path)
         return os.path.join(destination, self.currentFile(True))
 
     def exportHeader(self, destination: str) -> None:
