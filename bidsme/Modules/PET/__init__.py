@@ -1,4 +1,5 @@
 from .bidsmeNIFTI import bidsmeNIFTI
+from .NIFTI import jsonNIFTI
 from .NIFTI import NIFTI
 
 try:
@@ -14,6 +15,6 @@ except ModuleNotFoundError as e:
     ECAT.classes["ECAT"] = e.name
 
 
-__all__ = ["DICOM", "ECAT", "bidsmeNIFTI", "NIFTI"]
+__all__ = ["DICOM", "ECAT", "bidsmeNIFTI", "jsonNIFTI", "NIFTI"]
 
 __formats = [DICOM, ECAT, bidsmeNIFTI, NIFTI]
