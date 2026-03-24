@@ -138,7 +138,10 @@ class hmriNIFTI(MRI):
             self._DICOMFILE_CACHE = path
             self._DICOMDICT_CACHE = dicomdict
 
-            self.__seqName = self._DICOMDICT_CACHE["SequenceName"].lower()
+            seqName = self._DICOMDICT_CACHE.get("SequenceName")
+            if not seqName:
+                seqName = self._DICOMDICT_CACHE.get("PulseSequenceName", "")
+            self.__seqName = seqName.lower()
             manufacturer = self._DICOMDICT_CACHE["Manufacturer"]
             manuf_changed = self.setManufacturer(manufacturer,
                                                  _hmriNIFTI.manufacturers)
@@ -158,6 +161,10 @@ class hmriNIFTI(MRI):
                 self.setupMetaFields(_hmriNIFTI.metafields)
 
     def _getAcqTime(self) -> datetime:
+        time_stamp = self.getField("AcquisitionDateTime")
+        if time_stamp:
+            return datetime.strptime(time_stamp, "%Y%m%d%H%M%S.%f")
+
         date_stamp = int(self.getField("AcquisitionDate"))
         time_stamp = float(self.getField("AcquisitionTime"))
         days = date_stamp % 1
