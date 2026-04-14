@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
  - Using `shutil.copyfile` instead of `shutil.copy` to avoid cros-filesystem problems
   - DICOM: parcing of `AT` type
   - Support of extension-less files (in prepare)
+  - Data paths in `_scans.tsv` are now forced to use `/` as path separator
 
 ## [1.9.5] - 2025-08-11
 ### Fixed:

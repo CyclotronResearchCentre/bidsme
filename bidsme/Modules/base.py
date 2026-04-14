@@ -1151,9 +1151,8 @@ class baseModule(abstract):
                        if val is not None}
             json.dump(js_dict, f, indent=2, cls=ExtendEncoder)
 
-        self.rec_BIDSvalues["filename"] = os.path.join(self.Modality(),
-                                                       bidsname
-                                                       + ext)
+        self.rec_BIDSvalues["filename"] = "{}/{}".format(self.Modality(),
+                                                         bidsname + ext)
         if self.acqTime() is None:
             self.rec_BIDSvalues["acq_time"] = None
         else:
