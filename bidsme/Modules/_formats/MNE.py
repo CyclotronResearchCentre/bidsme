@@ -121,7 +121,7 @@ class MNE(object):
                 d_evts["trial_type"][idx] = ev["description"]
             d_evts["sample"][idx] = int(ev["onset"] * sfreq)
 
-        df = DataFrame(d_evts, columns=columns)
+        df = DataFrame(d_evts, columns=list(columns))
 
         for ch in self.CACHE.info["chs"]:
             if ch["ch_name"] not in stim_channels and ch["kind"] != "sitm":
@@ -136,7 +136,7 @@ class MNE(object):
                 d_evts["trial_type"] = ch["ch_name"]
                 d_evts["value"] = ev[2]
                 d_evts["sample"] = ev["onset"] - first_samp
-            df = df.append(DataFrame(d_evts, columns=columns))
+            df = df.append(DataFrame(d_evts, columns=list(columns)))
 
         df.set_index('onset', inplace=True)
         df.sort_index(inplace=True, na_position="first")
@@ -182,7 +182,7 @@ class MNE(object):
                         .get(ch["ch_name"])
             d_chs["sampling_frequency"][idx] = self.CACHE.info["sfreq"]
 
-        df = DataFrame(d_chs, columns=column_base)
+        df = DataFrame(d_chs, columns=list(column_base))
         df.set_index('name', inplace=True)
 
         return df
@@ -225,7 +225,7 @@ class MNE(object):
                 d_chs["y"][idx] = None
                 d_chs["z"][idx] = None
 
-        df = DataFrame(d_chs, columns=columns)
+        df = DataFrame(d_chs, columns=list(columns))
         df.set_index('name', inplace=True)
 
         return df
